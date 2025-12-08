@@ -3,20 +3,20 @@ package vaultWeb.services;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 import vaultWeb.dtos.ChatMessageDto;
 import vaultWeb.exceptions.DecryptionFailedException;
 import vaultWeb.exceptions.EncryptionFailedException;
 import vaultWeb.exceptions.notfound.GroupNotFoundException;
 import vaultWeb.exceptions.notfound.UserNotFoundException;
-import vaultWeb.models.ChatMessage;
-import vaultWeb.models.Group;
-import vaultWeb.models.PrivateChat;
-import vaultWeb.models.User;
-import vaultWeb.repositories.ChatMessageRepository;
-import vaultWeb.repositories.GroupRepository;
-import vaultWeb.repositories.PrivateChatRepository;
-import vaultWeb.repositories.UserRepository;
+import vaultWeb.models.*;
+import vaultWeb.repositories.*;
 import vaultWeb.security.EncryptionUtil;
+
+import java.io.IOException;
+import java.time.Instant;
+import java.time.OffsetDateTime;
 
 /**
  * Service responsible for handling chat-related operations.
@@ -40,11 +40,30 @@ import vaultWeb.security.EncryptionUtil;
 @RequiredArgsConstructor
 public class ChatService {
 
-  private final ChatMessageRepository chatMessageRepository;
-  private final UserRepository userRepository;
-  private final GroupRepository groupRepository;
-  private final PrivateChatRepository privateChatRepository;
-  private final EncryptionUtil encryptionUtil;
+    private final ChatMessageRepository chatMessageRepository;
+    private final UserRepository userRepository;
+    private final GroupRepository groupRepository;
+    private final PrivateChatRepository privateChatRepository;
+    private final EncryptionUtil encryptionUtil;
+    private final ChatImageRepo chatImageRepo;
+
+    /**
+     * Saves a chat message to a group or private chat.
+     *
+     * <p>The message content is encrypted before being persisted. The sender is
+     * identified either by ID or username. If a timestamp is not provided, the
+     * current time is used. The message must belong to either a group or a private chat.</p>
+     *
+     * @param dto DTO containing the message content, sender information, timestamp,
+     *            and either a groupId or privateChatId.
+     * @return The persisted ChatMessage entity with encrypted content.
+     * @throws UserNotFoundException  if the sender cannot be found by ID or username.
+     * @throws GroupNotFoundException if neither groupId nor privateChatId is provided,
+     *                                or if the specified group/private chat does not exist.
+     * @throws RuntimeException       if encryption fails.
+     */
+    public ChatMessage saveMessage(ChatMessageDto dto) {
+        User sender;
 
   /**
    * Saves a chat message to a group or private chat.
@@ -135,5 +154,46 @@ public class ChatService {
     } catch (Exception e) {
       throw new DecryptionFailedException("Decryption failed", e);
     }
+
+    public long uploadImage(MultipartFile image, ChatImage body, int receiver_id, int sender_id) throws IOException {
+        if (image == null || image.isEmpty()) {
+            throw new IllegalArgumentException("Image must not be empty");
+        }
+
+        ChatImage imageEntity = mapImagePayload(image, body, receiver_id, sender_id);
+        ChatImage saved = chatImageRepo.save(imageEntity);
+        return saved.getId();
+    }
+
+    public ChatImage getImage(Long id) {
+        return chatImageRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Chat image not found with id " + id));
+    }
+
+    private ChatImage mapImagePayload(MultipartFile image, ChatImage body, int receiver_id, int sender_id) throws IOException {
+        ChatImage result = body != null ? body : new ChatImage();
+
+        if (!StringUtils.hasText(result.getFileName())) {
+            result.setFileName(image.getOriginalFilename());
+        }
+        if (!StringUtils.hasText(result.getContentType())) {
+            result.setContentType(image.getContentType());
+        }
+        if (result.getCreatedOn() == null) {
+            result.setCreatedOn(OffsetDateTime.now());
+        }
+
+        // Ensure sender and receiver IDs are present on the entity
+        if (result.getSenderId() == null) {
+            result.setSenderId((long) sender_id);
+        }
+        if (result.getReceiverId() == null) {
+            result.setReceiverId((long) receiver_id);
+        }
+
+        result.setImageContent(image.getBytes());
+        return result;
+    }
+}
   }
 }

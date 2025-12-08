@@ -1,0 +1,1051 @@
+{
+  "info": {
+    "_postman_id": "c0723333-0bd5-4533-a44b-7ba01ec611df",
+    "name": "Vault Web API",
+    "description": "Complete API collection for Vault Web application including authentication, groups, polls, private chats, and cloud storage endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "id": "d0c4b4a3-9e4f-4763-845c-c3d14cbcce06",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser2\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Register a new user. Password is hashed using BCrypt before being persisted. New users are assigned the default 'User' role."
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set(\"jwt_token\", jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "id": "e37ba8ce-7e2c-4b63-a234-c07f8473d1ef",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Authenticate user and return JWT token. Token validity is 1 hour. Use the token in the Authorization header for protected endpoints."
+          }
+        },
+        {
+          "name": "Check Username Exists",
+          "id": "4427c3e5-95f8-4fa9-82c7-dbcded60f9a2",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/auth/check-username?username=testuser",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "check-username"
+              ],
+              "query": [
+                {
+                  "key": "username",
+                  "value": "testuser"
+                }
+              ]
+            },
+            "description": "Check if a username already exists. Returns true if the username is taken, false otherwise."
+          }
+        },
+        {
+          "name": "Get All Users",
+          "id": "ffb25147-61a5-451b-8551-c2e6d9aa9d6f",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/auth/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "users"
+              ]
+            },
+            "description": "Get all users with basic info (e.g., usernames) for displaying in the chat list."
+          }
+        },
+        {
+          "name": "chatimage",
+          "id": "e9fcc077-017c-4b6b-b808-d6a5039fba45",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": ""
+            }
+          }
+        }
+      ],
+      "id": "3f9eb467-1b89-4b0f-aaa9-735fce1dc24b",
+      "description": "User registration, login, and user management endpoints"
+    },
+    {
+      "name": "Groups",
+      "item": [
+        {
+          "name": "Get All Public Groups",
+          "id": "be0f1f74-0ef7-4044-9947-25043ad092a3",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/groups",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "groups"
+              ]
+            },
+            "description": "Retrieves all public groups available in the application."
+          }
+        },
+        {
+          "name": "Get Group By ID",
+          "id": "6c5cb4b6-b670-4892-ac05-4cf7320e7421",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/groups/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "groups",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Retrieves a specific group by its ID."
+          }
+        },
+        {
+          "name": "Get Group Members",
+          "id": "2341ce18-f3eb-4774-9234-4001cd2d778f",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/groups/:id/members",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "groups",
+                ":id",
+                "members"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Retrieves all members of a given group."
+          }
+        },
+        {
+          "name": "Create Group",
+          "id": "0202f8fb-3c49-413d-9937-f7aeb662e6fd",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Group\",\n  \"description\": \"Group description\",\n  \"isPublic\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/groups",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "groups"
+              ]
+            },
+            "description": "Creates a new group. The current user becomes the creator."
+          }
+        },
+        {
+          "name": "Join Group",
+          "id": "68d8cce2-7fcc-4961-9445-916dbae2aea2",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/api/groups/:id/join",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "groups",
+                ":id",
+                "join"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Current user joins a group."
+          }
+        },
+        {
+          "name": "Update Group (Admin Only)",
+          "id": "7f439a12-d0a9-46a6-8622-66adab327f03",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Group Name\",\n  \"description\": \"Updated description\",\n  \"isPublic\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/groups/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "groups",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Updates a group. Requires admin privileges."
+          }
+        },
+        {
+          "name": "Delete Group (Admin Only)",
+          "id": "3ab65989-1dc9-49ce-b900-cbfa92d6fb03",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/groups/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "groups",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Deletes a group. Requires admin privileges."
+          }
+        },
+        {
+          "name": "Leave Group",
+          "id": "d27a1acb-eab8-4cb1-ae61-fb84a3735f4e",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/groups/:id/leave",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "groups",
+                ":id",
+                "leave"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Current user leaves a group."
+          }
+        },
+        {
+          "name": "Remove Member from Group (Admin Only)",
+          "id": "0b3ab747-548e-4268-85af-e8c2a10f250b",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/groups/:groupId/members/:userId",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "groups",
+                ":groupId",
+                "members",
+                ":userId"
+              ],
+              "variable": [
+                {
+                  "key": "groupId",
+                  "value": "1"
+                },
+                {
+                  "key": "userId",
+                  "value": "2"
+                }
+              ]
+            },
+            "description": "Removes a member from a group. Requires admin privileges."
+          }
+        }
+      ],
+      "id": "ef2088f6-3253-4038-937d-b492cee03efb",
+      "description": "Group management endpoints including creation, membership, and CRUD operations"
+    },
+    {
+      "name": "Polls",
+      "item": [
+        {
+          "name": "Create Poll",
+          "id": "25c213e0-8cfe-41b1-91e7-44a88c6453b2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What is your favorite programming language?\",\n  \"deadline\": \"2024-12-31T23:59:59.000Z\",\n  \"isAnonymous\": false,\n  \"options\": [\n    \"Java\",\n    \"Python\",\n    \"JavaScript\",\n    \"Go\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/groups/:groupId/polls",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "groups",
+                ":groupId",
+                "polls"
+              ],
+              "variable": [
+                {
+                  "key": "groupId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Creates a new poll in the specified group. Requires at least 2 options."
+          }
+        },
+        {
+          "name": "Get All Polls in Group",
+          "id": "c01c6742-767f-4dc4-a5f7-41e398d0e931",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/groups/:groupId/polls",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "groups",
+                ":groupId",
+                "polls"
+              ],
+              "variable": [
+                {
+                  "key": "groupId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Retrieves all polls of a given group."
+          }
+        },
+        {
+          "name": "Vote on Poll Option",
+          "id": "272e2cec-301d-4725-b163-059688471bd7",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/groups/:groupId/polls/:pollId/options/:optionId/vote",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "groups",
+                ":groupId",
+                "polls",
+                ":pollId",
+                "options",
+                ":optionId",
+                "vote"
+              ],
+              "variable": [
+                {
+                  "key": "groupId",
+                  "value": "1"
+                },
+                {
+                  "key": "pollId",
+                  "value": "1"
+                },
+                {
+                  "key": "optionId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Casts a vote for a specific poll option."
+          }
+        },
+        {
+          "name": "Update Poll",
+          "id": "88d065b2-693a-464c-8891-048c39ce3261",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Updated poll question?\",\n  \"deadline\": \"2024-12-31T23:59:59.000Z\",\n  \"isAnonymous\": true,\n  \"options\": [\n    \"Option 1\",\n    \"Option 2\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/groups/:groupId/polls/:pollId",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "groups",
+                ":groupId",
+                "polls",
+                ":pollId"
+              ],
+              "variable": [
+                {
+                  "key": "groupId",
+                  "value": "1"
+                },
+                {
+                  "key": "pollId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Updates an existing poll."
+          }
+        },
+        {
+          "name": "Delete Poll",
+          "id": "3f4aeb7b-f9b6-4352-bb31-1ef2896a7332",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/groups/:groupId/polls/:pollId",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "groups",
+                ":groupId",
+                "polls",
+                ":pollId"
+              ],
+              "variable": [
+                {
+                  "key": "groupId",
+                  "value": "1"
+                },
+                {
+                  "key": "pollId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Deletes a poll from a group."
+          }
+        }
+      ],
+      "id": "99146721-b4c1-4dec-8156-496e0a55e82f",
+      "description": "Poll management within groups including creation, voting, and CRUD operations"
+    },
+    {
+      "name": "Private Chats",
+      "item": [
+        {
+          "name": "Get or Create Private Chat",
+          "id": "850b6464-0fbf-449b-9918-bd30db4433d3",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/private-chats/between?sender=user1&receiver=user2",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "private-chats",
+                "between"
+              ],
+              "query": [
+                {
+                  "key": "sender",
+                  "value": "user1"
+                },
+                {
+                  "key": "receiver",
+                  "value": "user2"
+                }
+              ]
+            },
+            "description": "Retrieves an existing private chat between two users, or creates a new one if it does not exist."
+          }
+        },
+        {
+          "name": "Get Private Chat Messages",
+          "id": "dda8d0e3-f763-4d10-a975-5d438d729b6f",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/private-chats/private?privateChatId=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "private-chats",
+                "private"
+              ],
+              "query": [
+                {
+                  "key": "privateChatId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Retrieves all messages from a specific private chat. Messages are ordered chronologically and decrypted before being sent."
+          }
+        }
+      ],
+      "id": "83662bac-5d8a-4a38-ab15-9b8fd8ef13e5",
+      "description": "Private chat management and message retrieval endpoints"
+    },
+    {
+      "name": "Cloud Storage",
+      "item": [
+        {
+          "name": "Folders",
+          "item": [
+            {
+              "name": "Get Root Folder",
+              "id": "5c0328ca-72d2-4263-869b-3f415e39b54b",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{cloud_base_url}}/api/folders",
+                  "host": [
+                    "{{cloud_base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "folders"
+                  ]
+                },
+                "description": "Retrieves the root folder structure."
+              }
+            },
+            {
+              "name": "Get Folder by Path",
+              "id": "2eaa01f8-39cc-47fb-b522-6964bba7902b",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{cloud_base_url}}/api/folders/path?path=/documents",
+                  "host": [
+                    "{{cloud_base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "folders",
+                    "path"
+                  ],
+                  "query": [
+                    {
+                      "key": "path",
+                      "value": "/documents"
+                    }
+                  ]
+                },
+                "description": "Retrieves a folder by its relative path."
+              }
+            },
+            {
+              "name": "Create Folder",
+              "id": "38d02486-3ebf-4670-a512-a641e0c0c4da",
+              "request": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{cloud_base_url}}/api/folders?parentPath=/&name=NewFolder",
+                  "host": [
+                    "{{cloud_base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "folders"
+                  ],
+                  "query": [
+                    {
+                      "key": "parentPath",
+                      "value": "/"
+                    },
+                    {
+                      "key": "name",
+                      "value": "NewFolder"
+                    }
+                  ]
+                },
+                "description": "Creates a new folder at the specified parent path."
+              }
+            },
+            {
+              "name": "Rename or Move Folder",
+              "id": "66953b99-0a8f-4bad-af9c-133d562cb712",
+              "request": {
+                "method": "PATCH",
+                "url": {
+                  "raw": "{{cloud_base_url}}/api/folders?folderPath=/OldFolder&newPath=/NewFolder",
+                  "host": [
+                    "{{cloud_base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "folders"
+                  ],
+                  "query": [
+                    {
+                      "key": "folderPath",
+                      "value": "/OldFolder"
+                    },
+                    {
+                      "key": "newPath",
+                      "value": "/NewFolder"
+                    }
+                  ]
+                },
+                "description": "Renames or moves a folder to a new path."
+              }
+            },
+            {
+              "name": "Delete Folder",
+              "id": "8eb1be7c-6eef-4ce0-b8d5-caffa86b5d8d",
+              "request": {
+                "method": "DELETE",
+                "url": {
+                  "raw": "{{cloud_base_url}}/api/folders?folderPath=/FolderToDelete",
+                  "host": [
+                    "{{cloud_base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "folders"
+                  ],
+                  "query": [
+                    {
+                      "key": "folderPath",
+                      "value": "/FolderToDelete"
+                    }
+                  ]
+                },
+                "description": "Deletes a folder at the specified path."
+              }
+            }
+          ],
+          "id": "87296aaa-429c-4cc5-8d55-4eedf497a6a9",
+          "description": "Folder operations"
+        },
+        {
+          "name": "Files",
+          "item": [
+            {
+              "name": "Get File Content",
+              "id": "4c448542-3843-4e0a-b799-da27229a8db0",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{cloud_base_url}}/api/files/content?path=/document.txt",
+                  "host": [
+                    "{{cloud_base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "files",
+                    "content"
+                  ],
+                  "query": [
+                    {
+                      "key": "path",
+                      "value": "/document.txt"
+                    }
+                  ]
+                },
+                "description": "Retrieves the content of a file as text."
+              }
+            },
+            {
+              "name": "Upload File",
+              "id": "9c3cc1b2-5add-4ea6-8e8f-e7c89c36e461",
+              "request": {
+                "method": "POST",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{cloud_base_url}}/api/files/upload?folderPath=/",
+                  "host": [
+                    "{{cloud_base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "files",
+                    "upload"
+                  ],
+                  "query": [
+                    {
+                      "key": "folderPath",
+                      "value": "/"
+                    }
+                  ]
+                },
+                "description": "Uploads a file to the specified folder path."
+              }
+            },
+            {
+              "name": "Download File",
+              "id": "887e9bac-c71e-4f29-a28b-74c8ee3e8427",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{cloud_base_url}}/api/files/download?path=/document.pdf",
+                  "host": [
+                    "{{cloud_base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "files",
+                    "download"
+                  ],
+                  "query": [
+                    {
+                      "key": "path",
+                      "value": "/document.pdf"
+                    }
+                  ]
+                },
+                "description": "Downloads a file as a blob."
+              }
+            },
+            {
+              "name": "View File",
+              "id": "3dafc5fc-e3bf-4ca9-8cd8-3adbb932e785",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{cloud_base_url}}/api/files/view?path=/image.jpg",
+                  "host": [
+                    "{{cloud_base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "files",
+                    "view"
+                  ],
+                  "query": [
+                    {
+                      "key": "path",
+                      "value": "/image.jpg"
+                    }
+                  ]
+                },
+                "description": "Views a file (returns as blob for preview)."
+              }
+            },
+            {
+              "name": "Rename or Move File",
+              "id": "de501759-b038-49d3-9c54-edb992651a40",
+              "request": {
+                "method": "PATCH",
+                "url": {
+                  "raw": "{{cloud_base_url}}/api/files/move?filePath=/oldfile.txt&newPath=/newfile.txt",
+                  "host": [
+                    "{{cloud_base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "files",
+                    "move"
+                  ],
+                  "query": [
+                    {
+                      "key": "filePath",
+                      "value": "/oldfile.txt"
+                    },
+                    {
+                      "key": "newPath",
+                      "value": "/newfile.txt"
+                    }
+                  ]
+                },
+                "description": "Renames or moves a file to a new path."
+              }
+            },
+            {
+              "name": "Delete File",
+              "id": "b808af91-cb4d-43dc-af88-2778b7865eee",
+              "request": {
+                "method": "DELETE",
+                "url": {
+                  "raw": "{{cloud_base_url}}/api/files?filePath=/fileToDelete.txt",
+                  "host": [
+                    "{{cloud_base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "files"
+                  ],
+                  "query": [
+                    {
+                      "key": "filePath",
+                      "value": "/fileToDelete.txt"
+                    }
+                  ]
+                },
+                "description": "Deletes a file at the specified path."
+              }
+            }
+          ],
+          "id": "d27c9e70-549e-4b7e-acf9-fa5dde4aab9c",
+          "description": "File operations"
+        }
+      ],
+      "id": "10034958-6c88-40dd-9dbc-57eee8db832f",
+      "description": "File and folder management endpoints for cloud storage functionality"
+    },
+    {
+      "name": "WebSocket Endpoints",
+      "item": [
+        {
+          "name": "Send Group Chat Message",
+          "id": "a464277b-581b-4fa6-8350-df7410de6c55",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Hello group!\",\n  \"groupId\": 1,\n  \"senderId\": 1,\n  \"senderUsername\": \"user1\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/app/chat.send",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "app",
+                "chat.send"
+              ]
+            },
+            "description": "WebSocket endpoint: /app/chat.send - Sends a message to a group chat. Messages are broadcast to /topic/group/{groupId}"
+          }
+        },
+        {
+          "name": "Send Private Chat Message",
+          "id": "d58631b3-a34e-461b-94f0-4bfb61e93939",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Hello privately!\",\n  \"privateChatId\": 1,\n  \"senderId\": 1,\n  \"senderUsername\": \"user1\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/app/chat.private.send",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "app",
+                "chat.private.send"
+              ]
+            },
+            "description": "WebSocket endpoint: /app/chat.private.send - Sends a private message. Messages are sent to /queue/private for both users"
+          }
+        },
+        {
+          "name": "New Request",
+          "id": "514afe94-bed7-4312-a5b6-e9711157192c",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/chat/uploadImage",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "chat",
+                "uploadImage"
+              ]
+            }
+          }
+        }
+      ],
+      "id": "ea329d98-1ba4-4b10-9bf6-58077f0b479c",
+      "description": "WebSocket message mappings for real-time chat functionality"
+    },
+    {
+      "name": "New Request",
+      "id": "80b21dbe-65fd-4b11-8b65-89bc9cfb596c",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": ""
+        }
+      }
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "id": "7afd6f36-796a-4ec4-8ca1-3a53d7d26271",
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "id": "be2e1bd1-6478-400e-8129-150eaa5afad2",
+      "key": "cloud_base_url",
+      "value": "http://localhost:8090",
+      "type": "string"
+    },
+    {
+      "id": "4b125768-d3ab-40b1-8537-44d98a0acd04",
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
