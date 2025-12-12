@@ -20,7 +20,7 @@
     <properties>
         <java.version>21</java.version>
         <springdoc.version>3.0.0</springdoc.version>
-        <spring-framework.version>6.2.12</spring-framework.version>
+        <spring-framework.version>7.0.2</spring-framework.version>
     </properties>
 
     <dependencyManagement>
