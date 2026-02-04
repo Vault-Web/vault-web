@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { map, Observable, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { catchError, of } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -15,7 +16,8 @@ export class AuthService {
     return this.http
       .post<{
         token: string;
-      }>(`${this.apiUrl}/auth/login`, { username, password })
+        // }>(`${this.apiUrl}/auth/login`, { username, password })
+      }>(`${this.apiUrl}user/login`, { username, password })
       .pipe(
         tap((res) => {
           this.saveToken(res.token);
@@ -32,28 +34,42 @@ export class AuthService {
     );
   }
 
+  validateToken(): Observable<boolean> {
+    const token = sessionStorage.getItem('token');
+
+    if (!token) {
+      return of(false);
+    }
+
+    return this.http.get(`${this.apiUrl}/auth/validate`).pipe(
+      map(() => true),
+      catchError(() => of(false)),
+    );
+  }
+
   saveToken(token: string): void {
-    localStorage.setItem('token', token);
+    sessionStorage.setItem('token', token);
   }
 
   saveUsername(username: string): void {
-    localStorage.setItem('username', username);
+    sessionStorage.setItem('username', username);
   }
 
   getToken(): string | null {
-    return localStorage.getItem('token') as string | null;
+    return sessionStorage.getItem('token');
   }
 
   getUsername(): string | null {
-    return localStorage.getItem('username') as string | null;
+    return sessionStorage.getItem('username');
   }
 
   isLoggedIn(): boolean {
-    return !!localStorage.getItem('token');
+    return !!sessionStorage.getItem('token');
   }
 
   logout(): void {
-    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('username');
   }
 
   checkUsernameExists(username: string): Observable<boolean> {
