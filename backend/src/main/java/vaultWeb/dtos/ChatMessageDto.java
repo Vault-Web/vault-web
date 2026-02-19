@@ -1,6 +1,5 @@
 package vaultWeb.dtos;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,7 +8,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatMessageDto {
-  @NotBlank private String content;
+  private String content;
+  private String cipherText;
+  private String iv;
   private String timestamp;
   private Long groupId;
   private Long privateChatId;

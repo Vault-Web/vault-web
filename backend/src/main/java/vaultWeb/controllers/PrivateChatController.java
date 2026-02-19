@@ -13,11 +13,9 @@ import vaultWeb.dtos.ChatMessageDto;
 import vaultWeb.dtos.ClearChatRequestDto;
 import vaultWeb.dtos.CreateGroupFromChatsRequest;
 import vaultWeb.dtos.PrivateChatDto;
-import vaultWeb.exceptions.DecryptionFailedException;
 import vaultWeb.models.ChatMessage;
 import vaultWeb.models.PrivateChat;
 import vaultWeb.repositories.ChatMessageRepository;
-import vaultWeb.security.EncryptionUtil;
 import vaultWeb.services.PrivateChatService;
 
 @RestController
@@ -31,7 +29,6 @@ public class PrivateChatController {
 
   private final PrivateChatService privateChatService;
   private final ChatMessageRepository chatMessageRepository;
-  private final EncryptionUtil encryptionUtil;
 
   @GetMapping("/between")
   @Operation(
@@ -63,8 +60,7 @@ public class PrivateChatController {
                     Retrieves all messages from a specific private chat.
                     - 'privateChatId' is the ID of the private chat.
                     - Messages are ordered chronologically by timestamp.
-                    - The message content is decrypted before being sent to the client.
-                    - Returns a list of ChatMessageDto containing decrypted content, sender info, timestamp, and chat ID.
+                    - Returns a list of ChatMessageDto containing encrypted payload, sender info, timestamp, and chat ID.
                     """)
   @ApiResponse(
       responseCode = "200",
@@ -79,19 +75,14 @@ public class PrivateChatController {
     return messages.stream()
         .map(
             message -> {
-              try {
-                String decryptedContent =
-                    encryptionUtil.decrypt(message.getCipherText(), message.getIv());
-                return new ChatMessageDto(
-                    decryptedContent,
-                    message.getTimestamp().toString(),
-                    null,
-                    privateChatId,
-                    message.getSender().getId(),
-                    message.getSender().getUsername());
-              } catch (Exception e) {
-                throw new DecryptionFailedException("Decryption failed", e);
-              }
+              ChatMessageDto dto = new ChatMessageDto();
+              dto.setCipherText(message.getCipherText());
+              dto.setIv(message.getIv());
+              dto.setTimestamp(message.getTimestamp().toString());
+              dto.setPrivateChatId(privateChatId);
+              dto.setSenderId(message.getSender().getId());
+              dto.setSenderUsername(message.getSender().getUsername());
+              return dto;
             })
         .toList();
   }
