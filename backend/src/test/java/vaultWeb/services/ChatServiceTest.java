@@ -110,6 +110,45 @@ class ChatServiceTest {
     verify(chatMessageRepository).save(any(ChatMessage.class));
   }
 
+
+  @Test
+  void shouldSaveEncryptedPrivateChatMessageSuccessfully() {
+    User sender = createUser(1L, "user1");
+    PrivateChat privateChat = createPrivateChat(5L);
+    ChatMessageDto dto = new ChatMessageDto();
+    dto.setSenderUsername("user1");
+    dto.setPrivateChatId(5L);
+    dto.setCipherText("encryptedPrivate");
+    dto.setIv("privateIV");
+
+    when(userRepository.findByUsername("user1")).thenReturn(Optional.of(sender));
+    when(privateChatRepository.findById(5L)).thenReturn(Optional.of(privateChat));
+    when(chatMessageRepository.save(any(ChatMessage.class))).thenAnswer(i -> i.getArgument(0));
+
+    ChatMessage result = chatService.saveMessage(dto, true);
+
+    assertNotNull(result);
+    assertEquals("encryptedPrivate", result.getCipherText());
+    assertEquals("privateIV", result.getIv());
+    assertEquals(privateChat, result.getPrivateChat());
+    verify(encryptionUtil, never()).encrypt(any());
+    verify(chatMessageRepository).save(any(ChatMessage.class));
+  }
+
+  @Test
+  void shouldFailSaveMessage_WhenEncryptedPayloadMissing() {
+    User sender = createUser(1L, "user1");
+    ChatMessageDto dto = new ChatMessageDto();
+    dto.setSenderId(1L);
+    dto.setPrivateChatId(5L);
+
+    when(userRepository.findById(1L)).thenReturn(Optional.of(sender));
+
+    assertThrows(EncryptionFailedException.class, () -> chatService.saveMessage(dto, true));
+
+    verify(chatMessageRepository, never()).save(any());
+  }
+
   @Test
   void shouldFailSaveMessage_WhenSenderNotFoundById() {
     ChatMessageDto dto = new ChatMessageDto();
