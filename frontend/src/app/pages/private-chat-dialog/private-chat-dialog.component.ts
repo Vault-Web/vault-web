@@ -15,6 +15,7 @@ import { ChatMessageDto } from '../../models/dtos/ChatMessageDto';
 import { WebSocketService } from '../../services/web-socket.service';
 import { PrivateChatService } from '../../services/private-chat.service';
 import { Subscription } from 'rxjs/internal/Subscription';
+import { ChatCryptoService } from '../../services/chat-crypto.service';
 
 @Component({
   selector: 'app-private-chat-dialog',
@@ -42,12 +43,13 @@ export class PrivateChatDialogComponent
   constructor(
     private wsService: WebSocketService,
     private chatService: PrivateChatService,
+    private chatCryptoService: ChatCryptoService,
   ) {}
 
   ngOnInit(): void {
     this.chatService.getMessages(this.privateChatId).subscribe({
-      next: (msgs) => {
-        this.messages = msgs;
+      next: async (msgs) => {
+        this.messages = await Promise.all(msgs.map((msg) => this.decryptMessage(msg)));
         this.shouldScroll = true;
       },
       error: () => {
@@ -57,9 +59,9 @@ export class PrivateChatDialogComponent
 
     this.privateMessageSub = this.wsService
       .subscribeToPrivateMessages()
-      .subscribe((msg) => {
+      .subscribe(async (msg) => {
         if (msg.privateChatId === this.privateChatId) {
-          this.messages.push(msg);
+          this.messages.push(await this.decryptMessage(msg));
           this.shouldScroll = true;
         }
       });
@@ -85,11 +87,13 @@ export class PrivateChatDialogComponent
     }
   }
 
-  sendMessage(): void {
+  async sendMessage(): Promise<void> {
     if (!this.newMessage.trim()) return;
 
+    const encrypted = await this.chatCryptoService.encrypt(this.newMessage);
     const message: ChatMessageDto = {
-      content: this.newMessage,
+      cipherText: encrypted.cipherText,
+      iv: encrypted.iv,
       timestamp: new Date().toISOString(),
       senderUsername: this.currentUsername ? this.currentUsername : 'Unknown',
       privateChatId: this.privateChatId,
@@ -98,6 +102,17 @@ export class PrivateChatDialogComponent
     this.wsService.sendPrivateMessage(message);
 
     this.newMessage = '';
+  }
+
+  private async decryptMessage(message: ChatMessageDto): Promise<ChatMessageDto> {
+    if (!message.cipherText || !message.iv) {
+      return message;
+    }
+
+    return {
+      ...message,
+      content: await this.chatCryptoService.decrypt(message.cipherText, message.iv),
+    };
   }
 
   onClose(): void {

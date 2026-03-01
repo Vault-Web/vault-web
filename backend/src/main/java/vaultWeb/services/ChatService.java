@@ -61,7 +61,7 @@ public class ChatService {
    *     specified group/private chat does not exist.
    * @throws EncryptionFailedException if encryption fails.
    */
-  public ChatMessage saveMessage(ChatMessageDto dto) {
+  public ChatMessage saveMessage(ChatMessageDto dto, boolean contentAlreadyEncrypted) {
     User sender;
 
     if (dto.getSenderId() != null) {
@@ -78,16 +78,31 @@ public class ChatService {
       throw new UserNotFoundException("Sender information missing");
     }
 
-    EncryptionUtil.EncryptResult encrypted;
-    try {
-      encrypted = encryptionUtil.encrypt(dto.getContent());
-    } catch (Exception e) {
-      throw new EncryptionFailedException("Encryption failed", e);
+    String cipherText;
+    String iv;
+
+    if (contentAlreadyEncrypted) {
+      cipherText = dto.getCipherText();
+      iv = dto.getIv();
+
+      if (cipherText == null || cipherText.isBlank() || iv == null || iv.isBlank()) {
+        throw new EncryptionFailedException("Missing encrypted payload");
+      }
+    } else {
+      EncryptionUtil.EncryptResult encrypted;
+      try {
+        encrypted = encryptionUtil.encrypt(dto.getContent());
+      } catch (Exception e) {
+        throw new EncryptionFailedException("Encryption failed", e);
+      }
+
+      cipherText = encrypted.cipherTextBase64;
+      iv = encrypted.ivBase64;
     }
 
     ChatMessage message = new ChatMessage();
-    message.setCipherText(encrypted.cipherTextBase64);
-    message.setIv(encrypted.ivBase64);
+    message.setCipherText(cipherText);
+    message.setIv(iv);
     message.setSender(sender);
 
     if (dto.getTimestamp() != null) {
@@ -116,6 +131,11 @@ public class ChatService {
     }
 
     return chatMessageRepository.save(message);
+  }
+
+
+  public ChatMessage saveMessage(ChatMessageDto dto) {
+    return saveMessage(dto, false);
   }
 
   /**

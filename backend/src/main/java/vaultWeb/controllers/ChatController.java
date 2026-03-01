@@ -1,6 +1,5 @@
 package vaultWeb.controllers;
 
-import jakarta.validation.Valid;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,19 +41,17 @@ public class ChatController {
 
   /**
    * Handles incoming private chat messages from clients and sends them to both users of the private
-   * chat. The message content is decrypted before delivery.
+   * chat. The encrypted payload is forwarded without server-side decryption.
    *
    * @param messageDto DTO containing message content, sender information, and private chat ID
    */
   @MessageMapping("/chat.private.send")
-  public void sendPrivateMessage(@Valid @Payload ChatMessageDto messageDto) {
-    ChatMessage savedMessage = chatService.saveMessage(messageDto);
-
-    String decryptedContent =
-        chatService.decrypt(savedMessage.getCipherText(), savedMessage.getIv());
+  public void sendPrivateMessage(@Payload ChatMessageDto messageDto) {
+    ChatMessage savedMessage = chatService.saveMessage(messageDto, true);
 
     ChatMessageDto responseDto = new ChatMessageDto();
-    responseDto.setContent(decryptedContent);
+    responseDto.setCipherText(savedMessage.getCipherText());
+    responseDto.setIv(savedMessage.getIv());
     responseDto.setTimestamp(savedMessage.getTimestamp().toString());
     responseDto.setSenderUsername(savedMessage.getSender().getUsername());
     responseDto.setPrivateChatId(savedMessage.getPrivateChat().getId());
@@ -62,7 +59,6 @@ public class ChatController {
     String user1 = savedMessage.getPrivateChat().getUser1().getUsername();
     String user2 = savedMessage.getPrivateChat().getUser2().getUsername();
 
-    messagingTemplate.convertAndSendToUser(user1, "/queue/private", responseDto);
     Set<String> recipients = Set.of(user1, user2);
 
     recipients.forEach(
