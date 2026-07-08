@@ -9,6 +9,7 @@ export interface E2eeRecipientPayload {
   iv: string;
   salt: string;
   ciphertext: string;
+  counter?: number;
 }
 
 export interface E2eePayload {
@@ -16,6 +17,14 @@ export interface E2eePayload {
   senderDeviceId: string;
   senderPublicKey: JsonWebKey;
   recipients: Record<string, E2eeRecipientPayload>;
+}
+
+interface RatchetState {
+  sendingChainKey: string;
+  receivingChainKey: string;
+  sendingCounter: number;
+  receivingCounter: number;
+  skippedMessageKeys: Record<number, string>;
 }
 
 interface StoredIdentity {
@@ -153,7 +162,7 @@ export class E2eeService {
       keyPair.publicKey,
     );
     const payload: E2eePayload = {
-      v: 1,
+      v: 2,
       senderDeviceId: deviceId,
       senderPublicKey: publicKeyJwk,
       recipients: {},
@@ -164,8 +173,10 @@ export class E2eeService {
         const recipientPublicKey = await this.importPublicKey(
           JSON.parse(device.publicKey) as JsonWebKey,
         );
-        const encrypted = await this.encryptForRecipient(
+        const encrypted = await this.encryptForRecipientWithRatchet(
           plaintext,
+          deviceId,
+          device.deviceId,
           keyPair.privateKey,
           recipientPublicKey,
           this.buildAad(device.deviceId, deviceId, publicKeyJwk),
@@ -194,16 +205,28 @@ export class E2eeService {
         const senderPublicKey = await this.importPublicKey(
           payload.senderPublicKey,
         );
-        return this.decryptForRecipient(
-          entry,
-          keyPair.privateKey,
-          senderPublicKey,
-          this.buildAad(
+        const aad = this.buildAad(
+          deviceId,
+          payload.senderDeviceId,
+          payload.senderPublicKey,
+        );
+        if (payload.v === 1 || !payload.v) {
+          return await this.decryptForRecipient(
+            entry,
+            keyPair.privateKey,
+            senderPublicKey,
+            aad,
+          );
+        } else {
+          return await this.decryptForRecipientWithRatchet(
+            entry,
             deviceId,
             payload.senderDeviceId,
-            payload.senderPublicKey,
-          ),
-        );
+            keyPair.privateKey,
+            senderPublicKey,
+            aad,
+          );
+        }
       }
       this.migrateLegacyIdentity(username);
       const identities = this.loadIdentities(username);
@@ -220,16 +243,29 @@ export class E2eeService {
             username,
             identity,
           );
-          const plaintext = await this.decryptForRecipient(
-            entry,
-            keyPair.privateKey,
-            senderPublicKey,
-            this.buildAad(
+          const aad = this.buildAad(
+            identity.deviceId,
+            payload.senderDeviceId,
+            payload.senderPublicKey,
+          );
+          let plaintext: string;
+          if (payload.v === 1 || !payload.v) {
+            plaintext = await this.decryptForRecipient(
+              entry,
+              keyPair.privateKey,
+              senderPublicKey,
+              aad,
+            );
+          } else {
+            plaintext = await this.decryptForRecipientWithRatchet(
+              entry,
               identity.deviceId,
               payload.senderDeviceId,
-              payload.senderPublicKey,
-            ),
-          );
+              keyPair.privateKey,
+              senderPublicKey,
+              aad,
+            );
+          }
           this.setActiveIdentityDeviceId(username, identity.deviceId);
           return plaintext;
         } catch {
@@ -642,5 +678,258 @@ export class E2eeService {
       }
     }
     return { registered: false, lastError };
+  }
+
+  private async encryptForRecipientWithRatchet(
+    plaintext: string,
+    ourDeviceId: string,
+    remoteDeviceId: string,
+    ourPrivateKey: CryptoKey,
+    remotePublicKey: CryptoKey,
+    aad: Uint8Array,
+  ): Promise<E2eeRecipientPayload> {
+    let state = this.loadRatchetState(ourDeviceId, remoteDeviceId);
+    if (!state) {
+      state = await this.initRatchetState(
+        ourPrivateKey,
+        remotePublicKey,
+        ourDeviceId,
+        remoteDeviceId,
+      );
+    }
+
+    const currentChainKey = this.base64ToArrayBuffer(state.sendingChainKey);
+    const { nextChainKey, messageKey } = await this.kdf(currentChainKey);
+
+    const counter = state.sendingCounter;
+
+    state.sendingChainKey = this.arrayBufferToBase64(nextChainKey);
+    state.sendingCounter = counter + 1;
+    this.saveRatchetState(ourDeviceId, remoteDeviceId, state);
+
+    const { iv, ciphertext } = await this.encryptWithKey(
+      plaintext,
+      messageKey,
+      aad,
+    );
+
+    return {
+      iv,
+      salt: '',
+      ciphertext,
+      counter,
+    };
+  }
+
+  private async decryptForRecipientWithRatchet(
+    entry: E2eeRecipientPayload,
+    ourDeviceId: string,
+    remoteDeviceId: string,
+    ourPrivateKey: CryptoKey,
+    remotePublicKey: CryptoKey,
+    aad: Uint8Array,
+  ): Promise<string> {
+    let state = this.loadRatchetState(ourDeviceId, remoteDeviceId);
+    if (!state) {
+      state = await this.initRatchetState(
+        ourPrivateKey,
+        remotePublicKey,
+        ourDeviceId,
+        remoteDeviceId,
+      );
+    }
+
+    const messageCounter = entry.counter ?? 0;
+
+    if (state.skippedMessageKeys[messageCounter]) {
+      const messageKey = this.base64ToArrayBuffer(
+        state.skippedMessageKeys[messageCounter],
+      );
+      const plaintext = await this.decryptWithKey(
+        entry.ciphertext,
+        entry.iv,
+        messageKey,
+        aad,
+      );
+      delete state.skippedMessageKeys[messageCounter];
+      this.saveRatchetState(ourDeviceId, remoteDeviceId, state);
+      return plaintext;
+    }
+
+    if (messageCounter > state.receivingCounter) {
+      let currentChainKey = this.base64ToArrayBuffer(state.receivingChainKey);
+      while (state.receivingCounter < messageCounter) {
+        const { nextChainKey, messageKey } = await this.kdf(currentChainKey);
+        state.skippedMessageKeys[state.receivingCounter] =
+          this.arrayBufferToBase64(messageKey);
+        currentChainKey = nextChainKey;
+        state.receivingCounter++;
+      }
+      state.receivingChainKey = this.arrayBufferToBase64(currentChainKey);
+    }
+
+    if (messageCounter === state.receivingCounter) {
+      const currentChainKey = this.base64ToArrayBuffer(state.receivingChainKey);
+      const { nextChainKey, messageKey } = await this.kdf(currentChainKey);
+
+      state.receivingChainKey = this.arrayBufferToBase64(nextChainKey);
+      state.receivingCounter++;
+      this.saveRatchetState(ourDeviceId, remoteDeviceId, state);
+
+      return this.decryptWithKey(entry.ciphertext, entry.iv, messageKey, aad);
+    }
+
+    throw new Error('Duplicate or expired message key');
+  }
+
+  private async initRatchetState(
+    ourPrivateKey: CryptoKey,
+    remotePublicKey: CryptoKey,
+    ourDeviceId: string,
+    remoteDeviceId: string,
+  ): Promise<RatchetState> {
+    const sharedSecret = await crypto.subtle.deriveBits(
+      { name: 'ECDH', public: remotePublicKey },
+      ourPrivateKey,
+      256,
+    );
+    const hkdfKey = await crypto.subtle.importKey(
+      'raw',
+      sharedSecret,
+      'HKDF',
+      false,
+      ['deriveBits'],
+    );
+    const derivedBits = await crypto.subtle.deriveBits(
+      {
+        name: 'HKDF',
+        hash: 'SHA-256',
+        salt: new Uint8Array(32),
+        info: this.encoder.encode('vault-web-ratchet-init'),
+      },
+      hkdfKey,
+      512,
+    );
+
+    const firstHalf = derivedBits.slice(0, 32);
+    const secondHalf = derivedBits.slice(32, 64);
+
+    const isFirst = ourDeviceId < remoteDeviceId;
+    const sendingChainKey = isFirst ? firstHalf : secondHalf;
+    const receivingChainKey = isFirst ? secondHalf : firstHalf;
+
+    return {
+      sendingChainKey: this.arrayBufferToBase64(sendingChainKey),
+      receivingChainKey: this.arrayBufferToBase64(receivingChainKey),
+      sendingCounter: 0,
+      receivingCounter: 0,
+      skippedMessageKeys: {},
+    };
+  }
+
+  private getRatchetStateKey(
+    ourDeviceId: string,
+    remoteDeviceId: string,
+  ): string {
+    return `vault.web.ratchet.${ourDeviceId}.${remoteDeviceId}`;
+  }
+
+  private loadRatchetState(
+    ourDeviceId: string,
+    remoteDeviceId: string,
+  ): RatchetState | null {
+    const raw = localStorage.getItem(
+      this.getRatchetStateKey(ourDeviceId, remoteDeviceId),
+    );
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as RatchetState;
+    } catch {
+      return null;
+    }
+  }
+
+  private saveRatchetState(
+    ourDeviceId: string,
+    remoteDeviceId: string,
+    state: RatchetState,
+  ): void {
+    localStorage.setItem(
+      this.getRatchetStateKey(ourDeviceId, remoteDeviceId),
+      JSON.stringify(state),
+    );
+  }
+
+  private async kdf(
+    chainKey: ArrayBuffer,
+  ): Promise<{ nextChainKey: ArrayBuffer; messageKey: ArrayBuffer }> {
+    const hkdfKey = await crypto.subtle.importKey(
+      'raw',
+      chainKey,
+      'HKDF',
+      false,
+      ['deriveBits'],
+    );
+    const derivedBits = await crypto.subtle.deriveBits(
+      {
+        name: 'HKDF',
+        hash: 'SHA-256',
+        salt: new Uint8Array(32),
+        info: this.encoder.encode('vault-web-ratchet-kdf'),
+      },
+      hkdfKey,
+      512,
+    );
+    return {
+      nextChainKey: derivedBits.slice(0, 32),
+      messageKey: derivedBits.slice(32, 64),
+    };
+  }
+
+  private async encryptWithKey(
+    plaintext: string,
+    messageKey: ArrayBuffer,
+    aad: Uint8Array,
+  ): Promise<{ iv: string; ciphertext: string }> {
+    const aesKey = await crypto.subtle.importKey(
+      'raw',
+      messageKey,
+      'AES-GCM',
+      false,
+      ['encrypt'],
+    );
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ciphertext = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv, additionalData: aad },
+      aesKey,
+      this.encoder.encode(plaintext),
+    );
+    return {
+      iv: this.arrayBufferToBase64(iv.buffer),
+      ciphertext: this.arrayBufferToBase64(ciphertext),
+    };
+  }
+
+  private async decryptWithKey(
+    ciphertextBase64: string,
+    ivBase64: string,
+    messageKey: ArrayBuffer,
+    aad: Uint8Array,
+  ): Promise<string> {
+    const aesKey = await crypto.subtle.importKey(
+      'raw',
+      messageKey,
+      'AES-GCM',
+      false,
+      ['decrypt'],
+    );
+    const iv = new Uint8Array(this.base64ToArrayBuffer(ivBase64));
+    const ciphertext = this.base64ToArrayBuffer(ciphertextBase64);
+    const plaintext = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv, additionalData: aad },
+      aesKey,
+      ciphertext,
+    );
+    return this.decoder.decode(plaintext);
   }
 }
