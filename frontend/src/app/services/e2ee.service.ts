@@ -757,6 +757,10 @@ export class E2eeService {
     }
 
     if (messageCounter > state.receivingCounter) {
+      const MAX_SKIP = 1000;
+      if (messageCounter - state.receivingCounter > MAX_SKIP) {
+        throw new Error('Message counter exceeds maximum skip window');
+      }
       let currentChainKey = this.base64ToArrayBuffer(state.receivingChainKey);
       while (state.receivingCounter < messageCounter) {
         const { nextChainKey, messageKey } = await this.kdf(currentChainKey);
@@ -772,11 +776,18 @@ export class E2eeService {
       const currentChainKey = this.base64ToArrayBuffer(state.receivingChainKey);
       const { nextChainKey, messageKey } = await this.kdf(currentChainKey);
 
+      const plaintext = await this.decryptWithKey(
+        entry.ciphertext,
+        entry.iv,
+        messageKey,
+        aad,
+      );
+
       state.receivingChainKey = this.arrayBufferToBase64(nextChainKey);
       state.receivingCounter++;
       this.saveRatchetState(ourDeviceId, remoteDeviceId, state);
 
-      return this.decryptWithKey(entry.ciphertext, entry.iv, messageKey, aad);
+      return plaintext;
     }
 
     throw new Error('Duplicate or expired message key');
