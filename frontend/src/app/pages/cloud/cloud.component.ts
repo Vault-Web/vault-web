@@ -2,6 +2,9 @@ import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import { MenuItem, ConfirmationService } from 'primeng/api';
 import { BreadcrumbModule } from 'primeng/breadcrumb';
 import { ButtonModule } from 'primeng/button';
@@ -74,6 +77,8 @@ export class CloudComponent implements OnInit {
   editingFile: FileDto | null = null;
   newFileName = '';
   fileContent = '';
+  editorMode: 'edit' | 'preview' | 'split' = 'edit';
+  previewHtml: SafeHtml = '';
 
   showCreateFolderDialog = false;
   showRenameFolderDialog = false;
@@ -111,6 +116,7 @@ export class CloudComponent implements OnInit {
     private confirmationService: ConfirmationService,
     private toast: UiToastService,
     private router: Router,
+    private sanitizer: DomSanitizer,
   ) {}
 
   private getErrorMessage(err: unknown): string {
@@ -462,6 +468,8 @@ export class CloudComponent implements OnInit {
     this.editingFile = null;
     this.newFileName = '';
     this.fileContent = '';
+    this.editorMode = 'edit';
+    this.previewHtml = '';
     this.showFileEditor = true;
   }
 
@@ -510,6 +518,8 @@ export class CloudComponent implements OnInit {
     this.cloudService.getFileContent(relativePath).subscribe({
       next: (content) => {
         this.fileContent = content;
+        this.editorMode = 'edit';
+        this.updatePreview();
         this.showFileEditor = true;
       },
       error: (err) => {
@@ -790,6 +800,42 @@ export class CloudComponent implements OnInit {
     this.editingFile = null;
     this.newFileName = '';
     this.fileContent = '';
+    this.editorMode = 'edit';
+    this.previewHtml = '';
+  }
+
+  isMarkdownFile(fileName: string): boolean {
+    if (!fileName) return false;
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    return ext === 'md' || ext === 'markdown';
+  }
+
+  updatePreview() {
+    if (!this.isMarkdownFile(this.newFileName)) return;
+    const rawMarkdown = this.fileContent || '';
+    try {
+      const dirtyHtml = marked.parse(rawMarkdown) as string;
+      const cleanHtml = DOMPurify.sanitize(dirtyHtml);
+      this.previewHtml = this.sanitizer.bypassSecurityTrustHtml(cleanHtml);
+    } catch (e) {
+      console.error('Error rendering markdown', e);
+      this.previewHtml = '';
+    }
+  }
+
+  setEditorMode(mode: 'edit' | 'preview' | 'split') {
+    this.editorMode = mode;
+    if (mode === 'preview' || mode === 'split') {
+      this.updatePreview();
+    }
+  }
+
+  onFileNameChange() {
+    if (this.isMarkdownFile(this.newFileName)) {
+      this.updatePreview();
+    } else {
+      this.editorMode = 'edit';
+    }
   }
 
   private getParentRelativePath(fullPath: string): string {

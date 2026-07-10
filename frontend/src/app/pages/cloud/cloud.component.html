@@ -324,7 +324,13 @@
     [closable]="true"
     [draggable]="false"
     [resizable]="false"
-    [style]="{ width: '44rem', maxWidth: '96vw' }"
+    [style]="{
+      width:
+        isMarkdownFile(newFileName) && editorMode === 'split'
+          ? '78rem'
+          : '44rem',
+      maxWidth: '96vw',
+    }"
     [header]="editingFile ? 'Edit File' : 'Create New File'"
     styleClass="cloud-dialog"
   >
@@ -333,14 +339,88 @@
       <input
         pInputText
         [(ngModel)]="newFileName"
+        (ngModelChange)="onFileNameChange()"
         class="w-full text-xxs sm:text-xs"
         placeholder="filename.txt"
       />
-      <label class="text-xxs sm:text-xs">Content</label>
-      <textarea
-        [(ngModel)]="fileContent"
-        class="cloud-editor text-xxs sm:text-xs"
-      ></textarea>
+
+      <!-- Markdown Tabs -->
+      <div class="markdown-tabs-bar" *ngIf="isMarkdownFile(newFileName)">
+        <div class="markdown-tabs">
+          <button
+            type="button"
+            class="markdown-tab-btn"
+            [class.active]="editorMode === 'edit'"
+            (click)="setEditorMode('edit')"
+          >
+            <i class="pi pi-pencil"></i> Edit
+          </button>
+          <button
+            type="button"
+            class="markdown-tab-btn"
+            [class.active]="editorMode === 'preview'"
+            (click)="setEditorMode('preview')"
+          >
+            <i class="pi pi-eye"></i> Preview
+          </button>
+          <button
+            type="button"
+            class="markdown-tab-btn split-tab"
+            [class.active]="editorMode === 'split'"
+            (click)="setEditorMode('split')"
+          >
+            <i class="pi pi-columns"></i> Split View
+          </button>
+        </div>
+      </div>
+
+      <div
+        class="cloud-editor-container"
+        [class.split-layout]="
+          isMarkdownFile(newFileName) && editorMode === 'split'
+        "
+      >
+        <!-- Edit Pane -->
+        <div
+          class="editor-pane"
+          *ngIf="
+            !isMarkdownFile(newFileName) ||
+            editorMode === 'edit' ||
+            editorMode === 'split'
+          "
+        >
+          <label
+            class="text-xxs sm:text-xs editor-pane-label"
+            *ngIf="isMarkdownFile(newFileName) && editorMode === 'split'"
+            >Edit</label
+          >
+          <textarea
+            [(ngModel)]="fileContent"
+            (ngModelChange)="updatePreview()"
+            class="cloud-editor text-xxs sm:text-xs"
+            placeholder="Write markdown content here..."
+          ></textarea>
+        </div>
+
+        <!-- Preview Pane -->
+        <div
+          class="preview-pane"
+          *ngIf="
+            isMarkdownFile(newFileName) &&
+            (editorMode === 'preview' || editorMode === 'split')
+          "
+        >
+          <label
+            class="text-xxs sm:text-xs editor-pane-label"
+            *ngIf="editorMode === 'split'"
+            >Preview</label
+          >
+          <div
+            [innerHTML]="previewHtml"
+            class="markdown-preview text-xxs sm:text-xs"
+          ></div>
+        </div>
+      </div>
     </div>
     <ng-template pTemplate="footer">
       <p-button

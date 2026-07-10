@@ -437,3 +437,230 @@
     max-width: 5.5rem;
   }
 }
+
+/* Markdown Preview Styles */
+.markdown-tabs-bar {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0.5rem;
+}
+
+.markdown-tabs {
+  display: flex;
+  gap: 0.35rem;
+  background: var(--color-background-secondary);
+  padding: 0.2rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+}
+
+.markdown-tab-btn {
+  background: transparent;
+  border: none;
+  border-radius: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease-in-out;
+}
+
+.markdown-tab-btn:hover {
+  color: var(--color-text-primary);
+  background: var(--color-surface-hover);
+}
+
+.markdown-tab-btn.active {
+  color: var(--color-primary);
+  background: var(--color-surface);
+  box-shadow: 0 1px 3px var(--color-shadow-sm);
+  font-weight: 600;
+}
+
+.cloud-editor-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.cloud-editor-container.split-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+.editor-pane,
+.preview-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.editor-pane-label {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.15rem;
+}
+
+.cloud-editor-container.split-layout .cloud-editor {
+  height: 24rem;
+  resize: none;
+}
+
+.markdown-preview {
+  width: 100%;
+  height: 100%;
+  min-height: 14rem;
+  border: 1px solid var(--color-input-border);
+  border-radius: 0.5rem;
+  background: var(--color-background-secondary);
+  color: var(--color-text-primary);
+  padding: 0.8rem 1rem;
+  overflow-y: auto;
+  box-sizing: border-box;
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: var(--color-text-primary);
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  h1 {
+    font-size: 1.4rem;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0.3rem;
+  }
+  h2 {
+    font-size: 1.2rem;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0.2rem;
+  }
+  h3 {
+    font-size: 1.05rem;
+  }
+  h4 {
+    font-size: 0.95rem;
+  }
+
+  p {
+    margin-top: 0;
+    margin-bottom: 0.8rem;
+    line-height: 1.5;
+  }
+
+  a {
+    color: var(--color-primary);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  ul,
+  ol {
+    margin-top: 0;
+    margin-bottom: 0.8rem;
+    padding-left: 1.5rem;
+  }
+
+  ul {
+    list-style-type: disc;
+  }
+
+  ol {
+    list-style-type: decimal;
+  }
+
+  li {
+    margin-bottom: 0.25rem;
+  }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 85%;
+    background-color: var(--color-surface-hover);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    color: var(--color-primary);
+  }
+
+  pre {
+    background-color: var(--color-surface-hover);
+    padding: 0.8rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin-top: 0;
+    margin-bottom: 0.8rem;
+    border: 1px solid var(--color-border);
+
+    code {
+      background-color: transparent;
+      padding: 0;
+      font-size: 90%;
+      color: inherit;
+    }
+  }
+
+  blockquote {
+    margin: 0 0 0.8rem 0;
+    padding: 0 1rem;
+    color: var(--color-text-secondary);
+    border-left: 0.25rem solid var(--color-border);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0.8rem;
+
+    th,
+    td {
+      border: 1px solid var(--color-border);
+      padding: 0.4rem 0.6rem;
+    }
+
+    th {
+      background-color: var(--color-surface-hover);
+      font-weight: 600;
+    }
+  }
+}
+
+.cloud-editor-container.split-layout .markdown-preview {
+  height: 24rem;
+}
+
+@media (max-width: 768px) {
+  .cloud-editor-container.split-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cloud-editor-container.split-layout .markdown-preview,
+  .cloud-editor-container.split-layout .cloud-editor {
+    height: 16rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .markdown-tab-btn.split-tab {
+    display: none !important;
+  }
+}
