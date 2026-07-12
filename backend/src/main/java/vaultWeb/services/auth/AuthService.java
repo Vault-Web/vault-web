@@ -1,8 +1,12 @@
 package vaultWeb.services.auth;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.Map;
-
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -15,12 +19,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
-
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
 import vaultWeb.exceptions.notfound.UserNotFoundException;
 import vaultWeb.models.RefreshToken;
 import vaultWeb.models.User;

@@ -1,14 +1,12 @@
 package vaultWeb.repositories;
 
+import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.Optional;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
-import jakarta.transaction.Transactional;
 import vaultWeb.models.RefreshToken;
 
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
@@ -23,6 +21,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
   void revokeAllByUser(@Param("userId") Long userId);
 
   Optional<RefreshToken> findByTokenIdAndRevokedFalse(String tokenId);
+
   /**
    * Looks up a refresh token by its jti without filtering on revoked status. Required to
    * distinguish a replayed (revoked) token from a token that never existed.

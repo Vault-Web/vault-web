@@ -1,0 +1,142 @@
+[1mdiff --git a/backend/src/main/java/vaultWeb/repositories/RefreshTokenRepository.java b/backend/src/main/java/vaultWeb/repositories/RefreshTokenRepository.java[m
+[1mindex e7aa3c3..a018619 100644[m
+[1m--- a/backend/src/main/java/vaultWeb/repositories/RefreshTokenRepository.java[m
+[1m+++ b/backend/src/main/java/vaultWeb/repositories/RefreshTokenRepository.java[m
+[36m@@ -1,14 +1,12 @@[m
+ package vaultWeb.repositories;[m
+ [m
+[32m+[m[32mimport jakarta.transaction.Transactional;[m
+ import java.time.Instant;[m
+ import java.util.Optional;[m
+[31m-[m
+ import org.springframework.data.jpa.repository.JpaRepository;[m
+ import org.springframework.data.jpa.repository.Modifying;[m
+ import org.springframework.data.jpa.repository.Query;[m
+ import org.springframework.data.repository.query.Param;[m
+[31m-[m
+[31m-import jakarta.transaction.Transactional;[m
+ import vaultWeb.models.RefreshToken;[m
+ [m
+ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {[m
+[36m@@ -23,6 +21,7 @@[m [mpublic interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long[m
+   void revokeAllByUser(@Param("userId") Long userId);[m
+ [m
+   Optional<RefreshToken> findByTokenIdAndRevokedFalse(String tokenId);[m
+[32m+[m
+   /**[m
+    * Looks up a refresh token by its jti without filtering on revoked status. Required to[m
+    * distinguish a replayed (revoked) token from a token that never existed.[m
+[1mdiff --git a/backend/src/main/java/vaultWeb/repositories/UserRepository.java b/backend/src/main/java/vaultWeb/repositories/UserRepository.java[m
+[1mindex 8897f31..a851b98 100644[m
+[1m--- a/backend/src/main/java/vaultWeb/repositories/UserRepository.java[m
+[1m+++ b/backend/src/main/java/vaultWeb/repositories/UserRepository.java[m
+[36m@@ -2,10 +2,8 @@[m [mpackage vaultWeb.repositories;[m
+ [m
+ import java.util.Optional;[m
+ import org.springframework.data.jpa.repository.JpaRepository;[m
+[31m-import org.springframework.stereotype.Repository;[m
+ import vaultWeb.models.User;[m
+ [m
+[31m-@Repository[m
+ public interface UserRepository extends JpaRepository<User, Long> {[m
+   Optional<User> findByUsername(String username);[m
+ [m
+[1mdiff --git a/backend/src/main/java/vaultWeb/services/auth/AuthService.java b/backend/src/main/java/vaultWeb/services/auth/AuthService.java[m
+[1mindex d8644c9..b0c6924 100644[m
+[1m--- a/backend/src/main/java/vaultWeb/services/auth/AuthService.java[m
+[1m+++ b/backend/src/main/java/vaultWeb/services/auth/AuthService.java[m
+[36m@@ -1,8 +1,12 @@[m
+ package vaultWeb.services.auth;[m
+ [m
+[32m+[m[32mimport io.jsonwebtoken.Claims;[m
+[32m+[m[32mimport io.jsonwebtoken.JwtException;[m
+[32m+[m[32mimport jakarta.servlet.http.HttpServletResponse;[m
+[32m+[m[32mimport jakarta.transaction.Transactional;[m
+ import java.time.Instant;[m
+ import java.util.Map;[m
+[31m-[m
+[32m+[m[32mimport lombok.RequiredArgsConstructor;[m
+ import org.slf4j.Logger;[m
+ import org.slf4j.LoggerFactory;[m
+ import org.springframework.http.HttpHeaders;[m
+[36m@@ -15,12 +19,6 @@[m [mimport org.springframework.security.core.Authentication;[m
+ import org.springframework.security.core.context.SecurityContextHolder;[m
+ import org.springframework.security.core.userdetails.UserDetails;[m
+ import org.springframework.stereotype.Service;[m
+[31m-[m
+[31m-import io.jsonwebtoken.Claims;[m
+[31m-import io.jsonwebtoken.JwtException;[m
+[31m-import jakarta.servlet.http.HttpServletResponse;[m
+[31m-import jakarta.transaction.Transactional;[m
+[31m-import lombok.RequiredArgsConstructor;[m
+ import vaultWeb.exceptions.notfound.UserNotFoundException;[m
+ import vaultWeb.models.RefreshToken;[m
+ import vaultWeb.models.User;[m
+[36m@@ -264,4 +262,4 @@[m [mpublic class AuthService {[m
+ [m
+     response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());[m
+   }[m
+[31m-}[m
+\ No newline at end of file[m
+[32m+[m[32m}[m
+[1mdiff --git a/backend/src/test/java/vaultWeb/services/auth/AuthServiceTest.java b/backend/src/test/java/vaultWeb/services/auth/AuthServiceTest.java[m
+[1mindex 0eb4136..ab89c29 100644[m
+[1m--- a/backend/src/test/java/vaultWeb/services/auth/AuthServiceTest.java[m
+[1m+++ b/backend/src/test/java/vaultWeb/services/auth/AuthServiceTest.java[m
+[36m@@ -1,20 +1,22 @@[m
+ package vaultWeb.services.auth;[m
+ [m
+[31m-import java.time.Instant;[m
+[31m-import java.util.Optional;[m
+[31m-[m
+ import static org.junit.jupiter.api.Assertions.assertEquals;[m
+ import static org.junit.jupiter.api.Assertions.assertNotNull;[m
+ import static org.junit.jupiter.api.Assertions.assertThrows;[m
+[31m-import org.junit.jupiter.api.Test;[m
+[31m-import org.junit.jupiter.api.extension.ExtendWith;[m
+ import static org.mockito.ArgumentMatchers.any;[m
+[31m-import org.mockito.InjectMocks;[m
+[31m-import org.mockito.Mock;[m
+ import static org.mockito.Mockito.mock;[m
+ import static org.mockito.Mockito.never;[m
+ import static org.mockito.Mockito.verify;[m
+ import static org.mockito.Mockito.when;[m
+[32m+[m
+[32m+[m[32mimport io.jsonwebtoken.Claims;[m
+[32m+[m[32mimport jakarta.servlet.http.HttpServletResponse;[m
+[32m+[m[32mimport java.time.Instant;[m
+[32m+[m[32mimport java.util.Optional;[m
+[32m+[m[32mimport org.junit.jupiter.api.Test;[m
+[32m+[m[32mimport org.junit.jupiter.api.extension.ExtendWith;[m
+[32m+[m[32mimport org.mockito.InjectMocks;[m
+[32m+[m[32mimport org.mockito.Mock;[m
+ import org.mockito.junit.jupiter.MockitoExtension;[m
+ import org.springframework.http.HttpStatus;[m
+ import org.springframework.http.ResponseEntity;[m
+[36m@@ -22,9 +24,6 @@[m [mimport org.springframework.security.authentication.AuthenticationManager;[m
+ import org.springframework.security.authentication.BadCredentialsException;[m
+ import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;[m
+ import org.springframework.security.core.Authentication;[m
+[31m-[m
+[31m-import io.jsonwebtoken.Claims;[m
+[31m-import jakarta.servlet.http.HttpServletResponse;[m
+ import vaultWeb.models.RefreshToken;[m
+ import vaultWeb.models.User;[m
+ import vaultWeb.repositories.RefreshTokenRepository;[m
+[36m@@ -163,8 +162,7 @@[m [mclass AuthServiceTest {[m
+     when(validToken.isRevoked()).thenReturn(false);[m
+     when(validToken.getUser()).thenReturn(user);[m
+     when(validToken.getExpiresAt()).thenReturn(Instant.now().plusSeconds(3600));[m
+[31m-    when(validToken.getTokenHash())[m
+[31m-        .thenReturn(vaultWeb.security.TokenHashUtil.sha256(rawToken));[m
+[32m+[m[32m    when(validToken.getTokenHash()).thenReturn(vaultWeb.security.TokenHashUtil.sha256(rawToken));[m
+ [m
+     when(refreshTokenRepository.findByTokenId(tokenId)).thenReturn(Optional.of(validToken));[m
+     when(jwtUtil.generateToken(user)).thenReturn("new-access-token");[m
+[36m@@ -179,4 +177,4 @@[m [mclass AuthServiceTest {[m
+     verify(refreshTokenService).create(user, response);[m
+     verify(refreshTokenRepository, never()).revokeAllByUser(any());[m
+   }[m
+[31m-}[m
+\ No newline at end of file[m
+[32m+[m[32m}[m

@@ -1,20 +1,22 @@
 package vaultWeb.services.auth;
 
-import java.time.Instant;
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServletResponse;
+import java.time.Instant;
+import java.util.Optional;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,9 +24,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-
-import io.jsonwebtoken.Claims;
-import jakarta.servlet.http.HttpServletResponse;
 import vaultWeb.models.RefreshToken;
 import vaultWeb.models.User;
 import vaultWeb.repositories.RefreshTokenRepository;
@@ -163,8 +162,7 @@ class AuthServiceTest {
     when(validToken.isRevoked()).thenReturn(false);
     when(validToken.getUser()).thenReturn(user);
     when(validToken.getExpiresAt()).thenReturn(Instant.now().plusSeconds(3600));
-    when(validToken.getTokenHash())
-        .thenReturn(vaultWeb.security.TokenHashUtil.sha256(rawToken));
+    when(validToken.getTokenHash()).thenReturn(vaultWeb.security.TokenHashUtil.sha256(rawToken));
 
     when(refreshTokenRepository.findByTokenId(tokenId)).thenReturn(Optional.of(validToken));
     when(jwtUtil.generateToken(user)).thenReturn("new-access-token");
