@@ -1,12 +1,10 @@
 package vaultWeb.services.auth;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.Map;
-import lombok.RequiredArgsConstructor;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -17,6 +15,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import vaultWeb.exceptions.notfound.UserNotFoundException;
 import vaultWeb.models.RefreshToken;
 import vaultWeb.models.User;
@@ -51,6 +55,8 @@ import vaultWeb.security.TokenHashUtil;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+
+  private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
   private final AuthenticationManager authenticationManager;
   private final JwtUtil jwtUtil;
@@ -155,6 +161,8 @@ public class AuthService {
    *   <li>Refresh tokens are stored using a one-way SHA-256 hash.
    *   <li>Rotation ensures stolen refresh tokens cannot be reused.
    *   <li>Revoked tokens may be retained temporarily to allow replay-attack detection and auditing.
+   *   <li>Reuse of a revoked token is treated as a confirmed replay attack: it is logged and all
+   *       active sessions for that user are revoked as a defense-in-depth measure.
    * </ul>
    *
    * <p><b>Error scenarios:</b>
@@ -180,11 +188,26 @@ public class AuthService {
 
     String tokenId = claims.getId();
 
-    RefreshToken storedToken =
-        refreshTokenRepository.findByTokenIdAndRevokedFalse(tokenId).orElse(null);
+    RefreshToken storedToken = refreshTokenRepository.findByTokenId(tokenId).orElse(null);
+
+    if (storedToken == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    if (storedToken.isRevoked()) {
+      // Reuse of a revoked refresh token — strong signal of token theft.
+      log.warn(
+          "SECURITY: Refresh token replay detected — tokenId={}, userId={}",
+          tokenId,
+          storedToken.getUser().getId());
+
+      refreshTokenRepository.revokeAllByUser(storedToken.getUser().getId());
+
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
     String incomingHash = TokenHashUtil.sha256(rawRefreshToken);
-    if (storedToken == null
-        || !TokenHashUtil.constantTimeEquals(incomingHash, storedToken.getTokenHash())
+    if (!TokenHashUtil.constantTimeEquals(incomingHash, storedToken.getTokenHash())
         || storedToken.getExpiresAt().isBefore(Instant.now())) {
 
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
