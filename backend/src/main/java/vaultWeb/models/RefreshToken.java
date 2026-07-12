@@ -1,34 +1,53 @@
 package vaultWeb.models;
 
-import jakarta.persistence.*;
 import java.time.Instant;
-import lombok.Data;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
-@Data
+@Table(name = "refresh_tokens")
+@Getter
+@Setter
 public class RefreshToken {
 
-  @Id @GeneratedValue private Long id;
+  public enum RevokeReason {
+    ROTATED,
+    REPLACED_BY_NEW_LOGIN,
+    LOGOUT
+  }
 
-  @Column(nullable = false, unique = true)
-  private String tokenId; // jti
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-  @ManyToOne(optional = false, fetch = FetchType.LAZY)
+  @Column(name = "token_id", nullable = false, unique = true)
+  private String tokenId;
+
+  @ManyToOne
+  @JoinColumn(name = "user_id", nullable = false)
   private User user;
 
-  @Column(nullable = false)
+  @Column(name = "token_hash", nullable = false)
   private String tokenHash;
 
-  @Column(nullable = false)
+  @Column(name = "expires_at", nullable = false)
   private Instant expiresAt;
 
+  @Column(nullable = false)
   private boolean revoked;
 
-  @Column(nullable = false, updatable = false)
-  private Instant createdAt;
-
-  @PrePersist
-  protected void onCreate() {
-    this.createdAt = Instant.now();
-  }
+  @Enumerated(EnumType.STRING)
+  @Column(name = "revoke_reason")
+  private RevokeReason revokeReason;
 }
