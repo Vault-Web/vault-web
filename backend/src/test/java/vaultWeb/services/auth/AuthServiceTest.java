@@ -111,6 +111,7 @@ class AuthServiceTest {
     RefreshToken revokedToken = mock(RefreshToken.class);
     when(revokedToken.isRevoked()).thenReturn(true);
     when(revokedToken.getUser()).thenReturn(user);
+    when(revokedToken.getRevokeReason()).thenReturn(RefreshToken.RevokeReason.ROTATED);
 
     when(refreshTokenRepository.findByTokenId(tokenId)).thenReturn(Optional.of(revokedToken));
 
@@ -120,7 +121,7 @@ class AuthServiceTest {
 
     assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
     // Defense-in-depth: all sessions for that user must be revoked
-    verify(refreshTokenRepository).revokeAllByUser(userId);
+    verify(refreshTokenRepository).revokeAllByUser(userId, RefreshToken.RevokeReason.ROTATED);
     // Rotation must NOT happen for a replayed token
     verify(refreshTokenRepository, never()).save(any());
     verify(refreshTokenService, never()).create(any(), any());
@@ -142,7 +143,7 @@ class AuthServiceTest {
 
     assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
     // No user to revoke sessions for — must not be called
-    verify(refreshTokenRepository, never()).revokeAllByUser(any());
+    verify(refreshTokenRepository, never()).revokeAllByUser(any(), any());
     verify(refreshTokenRepository, never()).save(any());
   }
 
@@ -175,6 +176,6 @@ class AuthServiceTest {
     verify(validToken).setRevoked(true);
     verify(refreshTokenRepository).save(validToken);
     verify(refreshTokenService).create(user, response);
-    verify(refreshTokenRepository, never()).revokeAllByUser(any());
+    verify(refreshTokenRepository, never()).revokeAllByUser(any(), any());
   }
 }
