@@ -1,19 +1,21 @@
 package vaultWeb.services.auth;
 
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServletResponse;
+import java.util.Optional;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,9 +23,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-
-import io.jsonwebtoken.Claims;
-import jakarta.servlet.http.HttpServletResponse;
 import vaultWeb.models.RefreshToken;
 import vaultWeb.models.User;
 import vaultWeb.repositories.RefreshTokenRepository;
@@ -98,32 +97,33 @@ class AuthServiceTest {
 
   // Only showing modified parts for replay detection
 
-@Test
-void shouldDetectReplay_WhenRevokedTokenIsReused() {
-  String tokenId = "jti-123";
-  Long userId = 42L;
+  @Test
+  void shouldDetectReplay_WhenRevokedTokenIsReused() {
+    String tokenId = "jti-123";
+    Long userId = 42L;
 
-  Claims claims = mock(Claims.class);
-  when(claims.getId()).thenReturn(tokenId);
-  when(jwtUtil.parseRefreshToken("stolen-token")).thenReturn(claims);
+    Claims claims = mock(Claims.class);
+    when(claims.getId()).thenReturn(tokenId);
+    when(jwtUtil.parseRefreshToken("stolen-token")).thenReturn(claims);
 
-  User user = createUser("victim", "hashedPwd");
-  user.setId(userId);
+    User user = createUser("victim", "hashedPwd");
+    user.setId(userId);
 
-  RefreshToken revokedToken = mock(RefreshToken.class);
-  when(revokedToken.isRevoked()).thenReturn(true);
-  when(revokedToken.getUser()).thenReturn(user);
-  when(revokedToken.getRevokeReason()).thenReturn(RefreshToken.RevokeReason.LOGOUT);
+    RefreshToken revokedToken = mock(RefreshToken.class);
+    when(revokedToken.isRevoked()).thenReturn(true);
+    when(revokedToken.getUser()).thenReturn(user);
+    when(revokedToken.getRevokeReason()).thenReturn(RefreshToken.RevokeReason.LOGOUT);
 
-  when(refreshTokenRepository.findByTokenId(tokenId)).thenReturn(Optional.of(revokedToken));
+    when(refreshTokenRepository.findByTokenId(tokenId)).thenReturn(Optional.of(revokedToken));
 
-  HttpServletResponse response = mock(HttpServletResponse.class);
+    HttpServletResponse response = mock(HttpServletResponse.class);
 
-  ResponseEntity<?> result = authService.refresh("stolen-token", response);
+    ResponseEntity<?> result = authService.refresh("stolen-token", response);
 
-  assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
-  verify(refreshTokenRepository).revokeAllByUser(userId, RefreshToken.RevokeReason.REPLAY_DETECTED);
-  verify(refreshTokenRepository, never()).save(any());
-  verify(refreshTokenService, never()).create(any(), any());
-}
+    assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+    verify(refreshTokenRepository)
+        .revokeAllByUser(userId, RefreshToken.RevokeReason.REPLAY_DETECTED);
+    verify(refreshTokenRepository, never()).save(any());
+    verify(refreshTokenService, never()).create(any(), any());
+  }
 }
