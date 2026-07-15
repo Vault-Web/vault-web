@@ -1,12 +1,8 @@
 package vaultWeb.services.auth;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.Map;
-import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -19,6 +15,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import vaultWeb.exceptions.notfound.UserNotFoundException;
 import vaultWeb.models.RefreshToken;
 import vaultWeb.models.User;
@@ -57,20 +59,6 @@ public class AuthService {
     return new LoginResult(user, accessToken);
   }
 
-  public User getCurrentUser() {
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    if (authentication == null || !authentication.isAuthenticated()) {
-      return null;
-    }
-
-    Object principal = authentication.getPrincipal();
-    if (principal instanceof UserDetails userDetails) {
-      return userRepository.findByUsername(userDetails.getUsername()).orElse(null);
-    }
-
-    return null;
-  }
-
   @Transactional
   public ResponseEntity<?> refresh(String rawRefreshToken, HttpServletResponse response) {
 
@@ -82,7 +70,6 @@ public class AuthService {
     }
 
     String tokenId = claims.getId();
-
     RefreshToken storedToken = refreshTokenRepository.findByTokenId(tokenId).orElse(null);
 
     if (storedToken == null) {
@@ -90,15 +77,14 @@ public class AuthService {
     }
 
     if (storedToken.isRevoked()) {
-      if (storedToken.getRevokeReason() == RefreshToken.RevokeReason.ROTATED) {
-        log.warn(
-            "SECURITY: Refresh token replay detected — tokenId={}, userId={}",
-            tokenId,
-            storedToken.getUser().getId());
+      log.warn(
+          "SECURITY: Replay attack detected — tokenId={}, userId={}, originalReason={}",
+          tokenId,
+          storedToken.getUser().getId(),
+          storedToken.getRevokeReason());
 
-        refreshTokenRepository.revokeAllByUser(
-            storedToken.getUser().getId(), RefreshToken.RevokeReason.ROTATED);
-      }
+      refreshTokenRepository.revokeAllByUser(
+          storedToken.getUser().getId(), RefreshToken.RevokeReason.REPLAY_DETECTED);
 
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
@@ -106,7 +92,6 @@ public class AuthService {
     String incomingHash = TokenHashUtil.sha256(rawRefreshToken);
     if (!TokenHashUtil.constantTimeEquals(incomingHash, storedToken.getTokenHash())
         || storedToken.getExpiresAt().isBefore(Instant.now())) {
-
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
@@ -115,21 +100,17 @@ public class AuthService {
     refreshTokenRepository.save(storedToken);
 
     User user = storedToken.getUser();
-
     refreshTokenService.create(user, response);
 
     String newAccessToken = jwtUtil.generateToken(user);
-
     return ResponseEntity.ok(Map.of("token", newAccessToken));
   }
 
   @Transactional
   public void logout(String rawRefreshToken, HttpServletResponse response) {
-
     if (rawRefreshToken != null) {
       try {
         String tokenId = jwtUtil.extractTokenId(rawRefreshToken);
-
         refreshTokenRepository
             .findByTokenIdAndRevokedFalse(tokenId)
             .ifPresent(
@@ -138,7 +119,6 @@ public class AuthService {
                   token.setRevokeReason(RefreshToken.RevokeReason.LOGOUT);
                   refreshTokenRepository.save(token);
                 });
-
       } catch (JwtException ignored) {
         // Token already invalid / expired — nothing to revoke
       }
@@ -155,4 +135,17 @@ public class AuthService {
 
     response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
   }
+  public User getCurrentUser() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication == null || !authentication.isAuthenticated()) {
+      return null;
+    }
+
+    Object principal = authentication.getPrincipal();
+    if (principal instanceof UserDetails userDetails) {
+      return userRepository.findByUsername(userDetails.getUsername()).orElse(null);
+    }
+
+    return null;
+}
 }

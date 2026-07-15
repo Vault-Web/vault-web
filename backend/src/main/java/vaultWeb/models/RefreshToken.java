@@ -1,5 +1,7 @@
 package vaultWeb.models;
 
+import java.time.Instant;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -10,7 +12,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.time.Instant;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -23,7 +24,8 @@ public class RefreshToken {
   public enum RevokeReason {
     ROTATED,
     REPLACED_BY_NEW_LOGIN,
-    LOGOUT
+    LOGOUT,
+    REPLAY_DETECTED // new reason for confirmed replay attacks
   }
 
   @Id
