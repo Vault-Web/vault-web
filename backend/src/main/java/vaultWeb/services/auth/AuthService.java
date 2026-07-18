@@ -30,125 +30,130 @@ import vaultWeb.security.TokenHashUtil;
 /**
  * Service class responsible for handling authentication and user session-related operations.
  *
- * Provides functionality for:
- * - Authenticating users with username and password.
- * - Generating JWT tokens for authenticated users.
- * - Retrieving the currently authenticated user from the security context.
+ * <p>Provides functionality for: - Authenticating users with username and password. - Generating
+ * JWT tokens for authenticated users. - Retrieving the currently authenticated user from the
+ * security context.
  *
- * Security considerations:
- * - Passwords are never stored or transmitted in plaintext.
- * - Authentication uses BCryptPasswordEncoder for secure password hashing.
- * - JWT tokens are signed and include necessary claims (e.g., username, role) for stateless authentication.
+ * <p>Security considerations: - Passwords are never stored or transmitted in plaintext. -
+ * Authentication uses BCryptPasswordEncoder for secure password hashing. - JWT tokens are signed
+ * and include necessary claims (e.g., username, role) for stateless authentication.
  */
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
-    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+  private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
-    private final AuthenticationManager authenticationManager;
-    private final JwtUtil jwtUtil;
-    private final UserRepository userRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
-    private final RefreshTokenService refreshTokenService;
+  private final AuthenticationManager authenticationManager;
+  private final JwtUtil jwtUtil;
+  private final UserRepository userRepository;
+  private final RefreshTokenRepository refreshTokenRepository;
+  private final RefreshTokenService refreshTokenService;
 
-    /**
-     * Authenticates a user using their username and password and returns a JWT token upon successful authentication.
-     */
-    public LoginResult login(String username, String password) {
-        Authentication authentication = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(username, password)
-        );
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+  /**
+   * Authenticates a user using their username and password and returns a JWT token upon successful
+   * authentication.
+   */
+  public LoginResult login(String username, String password) {
+    Authentication authentication =
+        authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(username, password));
+    SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+    UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-        User user = userRepository.findByUsername(userDetails.getUsername())
-            .orElseThrow(() -> new UserNotFoundException("User not found: " + userDetails.getUsername()));
+    User user =
+        userRepository
+            .findByUsername(userDetails.getUsername())
+            .orElseThrow(
+                () -> new UserNotFoundException("User not found: " + userDetails.getUsername()));
 
-        String accessToken = jwtUtil.generateToken(user);
-        return new LoginResult(user, accessToken);
+    String accessToken = jwtUtil.generateToken(user);
+    return new LoginResult(user, accessToken);
+  }
+
+  /** Retrieves the currently authenticated user from the SecurityContext. */
+  public User getCurrentUser() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication == null || !authentication.isAuthenticated()) {
+      return null;
     }
 
-    /**
-     * Retrieves the currently authenticated user from the SecurityContext.
-     */
-    public User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return null;
-        }
-
-        Object principal = authentication.getPrincipal();
-        if (principal instanceof UserDetails userDetails) {
-            return userRepository.findByUsername(userDetails.getUsername()).orElse(null);
-        }
-
-        return null;
+    Object principal = authentication.getPrincipal();
+    if (principal instanceof UserDetails userDetails) {
+      return userRepository.findByUsername(userDetails.getUsername()).orElse(null);
     }
 
-    /**
-     * Refreshes the access token using a valid refresh token and performs refresh token rotation.
-     */
-    @Transactional
-    public ResponseEntity<?> refresh(String rawRefreshToken, HttpServletResponse response) {
-        Claims claims;
-        try {
-            claims = jwtUtil.parseRefreshToken(rawRefreshToken);
-        } catch (JwtException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+    return null;
+  }
 
-        String tokenId = claims.getId();
-        RefreshToken storedToken = refreshTokenRepository.findByTokenId(tokenId).orElse(null);
-
-        if (storedToken == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        if (storedToken.isRevoked()) {
-            log.warn("SECURITY_ALERT: refresh token replay detected. userId={}, tokenId={}, timestamp={}",
-                storedToken.getUser().getId(), tokenId, Instant.now());
-
-            refreshTokenRepository.revokeAllByUser(storedToken.getUser().getId());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        String incomingHash = TokenHashUtil.sha256(rawRefreshToken);
-        if (!TokenHashUtil.constantTimeEquals(incomingHash, storedToken.getTokenHash())
-            || storedToken.getExpiresAt().isBefore(Instant.now())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        storedToken.setRevoked(true);
-        refreshTokenRepository.save(storedToken);
-
-        User user = storedToken.getUser();
-        refreshTokenService.create(user, response);
-
-        String newAccessToken = jwtUtil.generateToken(user);
-        return ResponseEntity.ok(Map.of("token", newAccessToken));
+  /** Refreshes the access token using a valid refresh token and performs refresh token rotation. */
+  @Transactional
+  public ResponseEntity<?> refresh(String rawRefreshToken, HttpServletResponse response) {
+    Claims claims;
+    try {
+      claims = jwtUtil.parseRefreshToken(rawRefreshToken);
+    } catch (JwtException e) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
-    /**
-     * Logs out the current session by revoking the active refresh token and deleting the refresh token cookie.
-     */
-    @Transactional
-    public void logout(String rawRefreshToken, HttpServletResponse response) {
-        if (rawRefreshToken != null) {
-            try {
-                String tokenId = jwtUtil.extractTokenId(rawRefreshToken);
-                refreshTokenRepository.findByTokenIdAndRevokedFalse(tokenId)
-                    .ifPresent(token -> {
-                        token.setRevoked(true);
-                        refreshTokenRepository.save(token);
-                    });
-            } catch (JwtException ignored) {
-                // Token already invalid / expired — nothing to revoke
-            }
-        }
+    String tokenId = claims.getId();
+    RefreshToken storedToken = refreshTokenRepository.findByTokenId(tokenId).orElse(null);
 
-        ResponseCookie deleteCookie = ResponseCookie.from("refresh_token", "")
+    if (storedToken == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    if (storedToken.isRevoked()) {
+      log.warn(
+          "SECURITY_ALERT: refresh token replay detected. userId={}, tokenId={}, timestamp={}",
+          storedToken.getUser().getId(),
+          tokenId,
+          Instant.now());
+
+      refreshTokenRepository.revokeAllByUser(storedToken.getUser().getId());
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    String incomingHash = TokenHashUtil.sha256(rawRefreshToken);
+    if (!TokenHashUtil.constantTimeEquals(incomingHash, storedToken.getTokenHash())
+        || storedToken.getExpiresAt().isBefore(Instant.now())) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    storedToken.setRevoked(true);
+    refreshTokenRepository.save(storedToken);
+
+    User user = storedToken.getUser();
+    refreshTokenService.create(user, response);
+
+    String newAccessToken = jwtUtil.generateToken(user);
+    return ResponseEntity.ok(Map.of("token", newAccessToken));
+  }
+
+  /**
+   * Logs out the current session by revoking the active refresh token and deleting the refresh
+   * token cookie.
+   */
+  @Transactional
+  public void logout(String rawRefreshToken, HttpServletResponse response) {
+    if (rawRefreshToken != null) {
+      try {
+        String tokenId = jwtUtil.extractTokenId(rawRefreshToken);
+        refreshTokenRepository
+            .findByTokenIdAndRevokedFalse(tokenId)
+            .ifPresent(
+                token -> {
+                  token.setRevoked(true);
+                  refreshTokenRepository.save(token);
+                });
+      } catch (JwtException ignored) {
+        // Token already invalid / expired — nothing to revoke
+      }
+    }
+
+    ResponseCookie deleteCookie =
+        ResponseCookie.from("refresh_token", "")
             .httpOnly(true)
             .secure(true)
             .sameSite("None")
@@ -156,6 +161,6 @@ public class AuthService {
             .maxAge(0)
             .build();
 
-        response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
-    }
+    response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
+  }
 }
