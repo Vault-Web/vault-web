@@ -111,7 +111,6 @@ public class AuthService {
           tokenId,
           Instant.now());
 
-      refreshTokenRepository.revokeAllByUser(storedToken.getUser().getId());
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
