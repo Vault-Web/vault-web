@@ -1,13 +1,24 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { FolderDto } from '../models/dtos/FolderDto';
 import { FolderContentItemDto } from '../models/dtos/FolderContentItemDto';
 import { PageResponseDto } from '../models/dtos/PageResponseDto';
 import { TrashEntryDto } from '../models/dtos/TrashEntryDto';
 import { SearchResultDto } from '../models/dtos/SearchResultDto';
 import { ScanJobDto } from '../models/dtos/ScanJobDto';
+import { StorageQuotaDto } from '../models/dtos/StorageQuotaDto';
 import { environment } from '../../environments/environment';
+
+interface RawQuotaResponse {
+  usedBytes?: number;
+  used?: number;
+  usedSpace?: number;
+  totalBytes?: number;
+  quotaBytes?: number;
+  total?: number;
+  totalSpace?: number;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -171,8 +182,6 @@ export class CloudService {
   }
 
   startFolderScan(relativePath?: string): Observable<ScanJobDto> {
-    // The backend treats a blank path as "scan the whole root", so the folder
-    // root ('/') is sent as an empty value rather than a literal slash.
     const path =
       !relativePath || relativePath === '/' ? '' : relativePath.trim();
     const params = new HttpParams().set('path', path);
@@ -184,6 +193,21 @@ export class CloudService {
   getScanJob(jobId: string): Observable<ScanJobDto> {
     return this.http.get<ScanJobDto>(
       `${this.apiUrl}/files/scan/${encodeURIComponent(jobId)}`,
+    );
+  }
+
+  getStorageQuota(): Observable<StorageQuotaDto> {
+    return this.http.get<RawQuotaResponse>(`${this.apiUrl}/storage/quota`).pipe(
+      map((res) => ({
+        usedBytes: Number(res?.usedBytes ?? res?.used ?? res?.usedSpace ?? 0),
+        totalBytes: Number(
+          res?.totalBytes ??
+            res?.quotaBytes ??
+            res?.total ??
+            res?.totalSpace ??
+            10 * 1024 * 1024 * 1024,
+        ),
+      })),
     );
   }
 }

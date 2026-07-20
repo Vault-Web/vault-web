@@ -16,6 +16,27 @@
         </ng-container>
       </p>
     </div>
+    <div class="cloud-quota-section" *ngIf="storageQuota">
+      <div class="quota-header text-xxs sm:text-xs">
+        <span class="quota-title">
+          <i class="pi pi-database"></i> Storage
+        </span>
+        <span class="quota-usage-text">
+          {{ usedSpaceLabel }} / {{ totalSpaceLabel }} ({{ quotaPercentage }}%)
+        </span>
+      </div>
+      <div
+        class="quota-progress-bg"
+        [pTooltip]="usedSpaceLabel + ' of ' + totalSpaceLabel + ' used'"
+        tooltipPosition="bottom"
+      >
+        <div
+          class="quota-progress-bar"
+          [style.width.%]="quotaPercentage"
+          [ngClass]="quotaStatusClass"
+        ></div>
+      </div>
+    </div>
     <div class="cloud-headline-actions">
       <p-button
         label="Scan"

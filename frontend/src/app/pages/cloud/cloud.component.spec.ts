@@ -1,16 +1,15 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { Router } from '@angular/router';
 import { of, throwError, Subject } from 'rxjs';
+import { ConfirmationService } from 'primeng/api';
 import { CloudComponent } from './cloud.component';
 import { CloudService } from '../../services/cloud.service';
+import { UiToastService } from '../../core/services/ui-toast.service';
 import { ScanJobDto } from '../../models/dtos/ScanJobDto';
 
-/**
- * Exercises the folder virus-scan state machine end to end with a mocked
- * CloudService and Jasmine's fake clock driving the poll timer. Covers the
- * running/completed transitions, disabled/unreachable-scanner detection, the
- * clean result, rate-limit and expired-job errors, and that polling stops on a
- * terminal status or when the dialog closes (including a close that races the
- * initial start request).
- */
 describe('CloudComponent virus scan', () => {
   let component: CloudComponent;
   let cloudMock: jasmine.SpyObj<CloudService>;
@@ -170,21 +169,18 @@ describe('CloudComponent virus scan', () => {
 
   it('keeps the scan alive when polling is rate limited, and still completes', () => {
     cloudMock.startFolderScan.and.returnValue(of({ ...runningJob }));
-    // throttled once, then the backend lets us through again
     cloudMock.getScanJob.and.returnValues(
       throwError(() => ({ status: 429 })),
       of({ ...runningJob, status: 'COMPLETED', findings: [] }),
     );
 
     component.scanCurrentFolder();
-    jasmine.clock().tick(1200); // first poll -> 429
+    jasmine.clock().tick(1200);
 
-    // a throttled poll says nothing about the scan: it must not be reported as
-    // failed, and the dialog must stay in its running state
     expect(component.scanning).toBeTrue();
     expect(component.scanError).toBeUndefined();
 
-    jasmine.clock().tick(5000); // backoff elapses -> poll succeeds
+    jasmine.clock().tick(5000);
     expect(component.scanning).toBeFalse();
     expect(component.scanError).toBeUndefined();
     expect(component.scanJob?.status).toBe('COMPLETED');
@@ -195,12 +191,12 @@ describe('CloudComponent virus scan', () => {
     cloudMock.getScanJob.and.returnValue(throwError(() => ({ status: 429 })));
 
     component.scanCurrentFolder();
-    jasmine.clock().tick(1200); // first poll
-    jasmine.clock().tick(5000 * 5); // exhaust the retries
+    jasmine.clock().tick(1200);
+    jasmine.clock().tick(5000 * 5);
 
     expect(component.scanning).toBeFalse();
     expect(component.scanError).toContain('may still be running');
-    expect(cloudMock.getScanJob).toHaveBeenCalledTimes(6); // initial + 5 retries
+    expect(cloudMock.getScanJob).toHaveBeenCalledTimes(6);
   });
 
   it('handles an expired job (404) during polling', () => {
@@ -216,7 +212,7 @@ describe('CloudComponent virus scan', () => {
 
   it('stops polling once the dialog is closed mid-scan', () => {
     cloudMock.startFolderScan.and.returnValue(of({ ...runningJob }));
-    cloudMock.getScanJob.and.returnValue(of({ ...runningJob })); // never terminal
+    cloudMock.getScanJob.and.returnValue(of({ ...runningJob }));
 
     component.scanCurrentFolder();
     jasmine.clock().tick(1200);
@@ -233,12 +229,100 @@ describe('CloudComponent virus scan', () => {
     cloudMock.startFolderScan.and.returnValue(start$.asObservable());
     cloudMock.getScanJob.and.returnValue(of({ ...runningJob }));
 
-    component.scanCurrentFolder(); // POST in flight
-    component.onScanDialogHide(); // user closes before it resolves
-    start$.next({ ...runningJob }); // POST resolves late
+    component.scanCurrentFolder();
+    component.onScanDialogHide();
+    start$.next({ ...runningJob });
     start$.complete();
     jasmine.clock().tick(6000);
 
     expect(cloudMock.getScanJob).not.toHaveBeenCalled();
+  });
+});
+
+describe('CloudComponent Storage Quota', () => {
+  let component: CloudComponent;
+  let fixture: ComponentFixture<CloudComponent>;
+  let cloudServiceSpy: jasmine.SpyObj<CloudService>;
+  let toastSpy: jasmine.SpyObj<UiToastService>;
+
+  beforeEach(async () => {
+    cloudServiceSpy = jasmine.createSpyObj('CloudService', [
+      'getRootFolder',
+      'getFolderContent',
+      'getStorageQuota',
+      'uploadFile',
+      'deleteFile',
+    ]);
+    toastSpy = jasmine.createSpyObj('UiToastService', [
+      'success',
+      'error',
+      'info',
+    ]);
+
+    cloudServiceSpy.getRootFolder.and.returnValue(
+      of({ name: 'Root', path: '/', folders: [], files: [], lastModifiedAt: 0 } as any),
+    );
+    cloudServiceSpy.getFolderContent.and.returnValue(
+      of({ content: [], totalElements: 0, totalPages: 1, pageNumber: 0, pageSize: 50 } as any),
+    );
+    cloudServiceSpy.getStorageQuota.and.returnValue(
+      of({ usedBytes: 500, totalBytes: 1000 }),
+    );
+
+    await TestBed.configureTestingModule({
+      imports: [CloudComponent, HttpClientTestingModule, RouterTestingModule, NoopAnimationsModule],
+      providers: [
+        { provide: CloudService, useValue: cloudServiceSpy },
+        { provide: UiToastService, useValue: toastSpy },
+        { provide: Router, useValue: { navigate: jasmine.createSpy('navigate') } },
+        ConfirmationService,
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(CloudComponent);
+    component = fixture.componentInstance;
+  });
+
+  it('should initialize and load storage quota', () => {
+    fixture.detectChanges();
+    expect(component.storageQuota).toEqual({ usedBytes: 500, totalBytes: 1000 });
+    expect(component.quotaPercentage).toBe(50);
+    expect(component.usedSpaceLabel).toBe('500 Bytes');
+    expect(component.totalSpaceLabel).toBe('1000 Bytes');
+    expect(component.quotaStatusClass).toBe('quota-normal');
+  });
+
+  it('should set warning and danger status classes based on quota percentage', () => {
+    component.storageQuota = { usedBytes: 800, totalBytes: 1000 };
+    expect(component.quotaPercentage).toBe(80);
+    expect(component.quotaStatusClass).toBe('quota-warning');
+
+    component.storageQuota = { usedBytes: 950, totalBytes: 1000 };
+    expect(component.quotaPercentage).toBe(95);
+    expect(component.quotaStatusClass).toBe('quota-danger');
+  });
+
+  it('should detect quota-exceeded errors correctly', () => {
+    expect(component.isQuotaExceededError({ status: 413 })).toBeTrue();
+    expect(component.isQuotaExceededError({ status: 507 })).toBeTrue();
+    expect(
+      component.isQuotaExceededError({
+        error: { message: 'Storage quota exceeded' },
+      }),
+    ).toBeTrue();
+    expect(
+      component.isQuotaExceededError({
+        message: 'User is out of space',
+      }),
+    ).toBeTrue();
+    expect(component.isQuotaExceededError({ status: 400, message: 'Invalid format' })).toBeFalse();
+  });
+
+  it('should hide storage quota widget when storage quota endpoint fails', () => {
+    cloudServiceSpy.getStorageQuota.and.returnValue(
+      throwError(() => new Error('Quota endpoint unavailable')),
+    );
+    component.loadStorageQuota();
+    expect(component.storageQuota).toBeUndefined();
   });
 });
