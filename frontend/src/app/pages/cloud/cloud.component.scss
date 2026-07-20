@@ -63,7 +63,9 @@
   .quota-progress-bar {
     height: 100%;
     border-radius: 999px;
-    transition: width 0.3s ease, background-color 0.3s ease;
+    transition:
+      width 0.3s ease,
+      background-color 0.3s ease;
 
     &.quota-normal {
       background: linear-gradient(90deg, #3b82f6, #6366f1);

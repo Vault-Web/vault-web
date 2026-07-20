@@ -65,17 +65,17 @@ describe('CloudComponent virus scan', () => {
     expect(component.scanning).toBeTrue();
     expect(component.scanJob?.status).toBe('RUNNING');
 
-    jasmine.clock().tick(1200); // first poll -> still running -> reschedule
+    jasmine.clock().tick(1200);
     expect(component.scanning).toBeTrue();
 
-    jasmine.clock().tick(1200); // second poll -> completed
+    jasmine.clock().tick(1200);
     expect(component.scanning).toBeFalse();
     expect(component.scanJob?.status).toBe('COMPLETED');
     expect(component.scanInfectedFindings.length).toBe(1);
     expect(component.scanNoThreats).toBeFalse();
 
     const callsSoFar = cloudMock.getScanJob.calls.count();
-    jasmine.clock().tick(6000); // terminal: must not poll again
+    jasmine.clock().tick(6000);
     expect(cloudMock.getScanJob.calls.count()).toBe(callsSoFar);
   });
 
@@ -260,21 +260,41 @@ describe('CloudComponent Storage Quota', () => {
     ]);
 
     cloudServiceSpy.getRootFolder.and.returnValue(
-      of({ name: 'Root', path: '/', folders: [], files: [], lastModifiedAt: 0 } as any),
+      of({
+        name: 'Root',
+        path: '/',
+        folders: [],
+        files: [],
+        lastModifiedAt: 0,
+      } as any),
     );
     cloudServiceSpy.getFolderContent.and.returnValue(
-      of({ content: [], totalElements: 0, totalPages: 1, pageNumber: 0, pageSize: 50 } as any),
+      of({
+        content: [],
+        totalElements: 0,
+        totalPages: 1,
+        pageNumber: 0,
+        pageSize: 50,
+      } as any),
     );
     cloudServiceSpy.getStorageQuota.and.returnValue(
       of({ usedBytes: 500, totalBytes: 1000 }),
     );
 
     await TestBed.configureTestingModule({
-      imports: [CloudComponent, HttpClientTestingModule, RouterTestingModule, NoopAnimationsModule],
+      imports: [
+        CloudComponent,
+        HttpClientTestingModule,
+        RouterTestingModule,
+        NoopAnimationsModule,
+      ],
       providers: [
         { provide: CloudService, useValue: cloudServiceSpy },
         { provide: UiToastService, useValue: toastSpy },
-        { provide: Router, useValue: { navigate: jasmine.createSpy('navigate') } },
+        {
+          provide: Router,
+          useValue: { navigate: jasmine.createSpy('navigate') },
+        },
         ConfirmationService,
       ],
     }).compileComponents();
@@ -285,7 +305,10 @@ describe('CloudComponent Storage Quota', () => {
 
   it('should initialize and load storage quota', () => {
     fixture.detectChanges();
-    expect(component.storageQuota).toEqual({ usedBytes: 500, totalBytes: 1000 });
+    expect(component.storageQuota).toEqual({
+      usedBytes: 500,
+      totalBytes: 1000,
+    });
     expect(component.quotaPercentage).toBe(50);
     expect(component.usedSpaceLabel).toBe('500 Bytes');
     expect(component.totalSpaceLabel).toBe('1000 Bytes');
@@ -315,7 +338,12 @@ describe('CloudComponent Storage Quota', () => {
         message: 'User is out of space',
       }),
     ).toBeTrue();
-    expect(component.isQuotaExceededError({ status: 400, message: 'Invalid format' })).toBeFalse();
+    expect(
+      component.isQuotaExceededError({
+        status: 400,
+        message: 'Invalid format',
+      }),
+    ).toBeFalse();
   });
 
   it('should hide storage quota widget when storage quota endpoint fails', () => {
