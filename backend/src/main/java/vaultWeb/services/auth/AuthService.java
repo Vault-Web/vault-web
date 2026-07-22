@@ -30,13 +30,25 @@ import vaultWeb.security.TokenHashUtil;
 /**
  * Service class responsible for handling authentication and user session-related operations.
  *
- * <p>Provides functionality for: - Authenticating users with username and password. - Generating
- * JWT tokens for authenticated users. - Retrieving the currently authenticated user from the
- * security context.
+ * <p>Provides functionality for:
  *
- * <p>Security considerations: - Passwords are never stored or transmitted in plaintext. -
- * Authentication uses BCryptPasswordEncoder for secure password hashing. - JWT tokens are signed
- * and include necessary claims (e.g., username, role) for stateless authentication.
+ * <ul>
+ *   <li>Authenticating users with username and password.
+ *   <li>Generating JWT tokens for authenticated users.
+ *   <li>Retrieving the currently authenticated user from the security context.
+ * </ul>
+ *
+ * <p>This service integrates with Spring Security's AuthenticationManager for authentication,
+ * UserRepository for fetching user entities, and JwtUtil for generating JWT tokens.
+ *
+ * <p>Security considerations:
+ *
+ * <ul>
+ *   <li>Passwords are never stored or transmitted in plaintext.
+ *   <li>Authentication uses BCryptPasswordEncoder for secure password hashing.
+ *   <li>JWT tokens are signed and include necessary claims (e.g., username, role) for stateless
+ *       authentication.
+ * </ul>
  */
 @Service
 @RequiredArgsConstructor
@@ -53,6 +65,31 @@ public class AuthService {
   /**
    * Authenticates a user using their username and password and returns a JWT token upon successful
    * authentication.
+   *
+   * <p>Workflow:
+   *
+   * <ol>
+   *   <li>The AuthenticationManager validates the username and password against the stored hash.
+   *   <li>If authentication succeeds, the Authentication object is stored in the SecurityContext.
+   *   <li>UserDetails are retrieved from the Authentication object, containing basic security info
+   *       (username, roles).
+   *   <li>The full User entity is then loaded from the database for additional details.
+   *   <li>A JWT token is generated for the user, signed and valid for a specific duration.
+   * </ol>
+   *
+   * <p>Detailed notes on {@code authenticationManager.authenticate(...)}:
+   *
+   * <ul>
+   *   <li>Spring Security calls the UserDetailsService to fetch user info by username.
+   *   <li>The provided password is compared with the stored hashed password using PasswordEncoder.
+   *   <li>If the password matches, a fully authenticated Authentication object is returned.
+   *   <li>If the password does not match, a BadCredentialsException is thrown.
+   * </ul>
+   *
+   * @param username the username provided by the client
+   * @param password the plaintext password provided by the client
+   * @return a signed JWT token representing the authenticated user
+   * @throws UserNotFoundException if the user does not exist in the database
    */
   public LoginResult login(String username, String password) {
     Authentication authentication =
@@ -72,7 +109,14 @@ public class AuthService {
     return new LoginResult(user, accessToken);
   }
 
-  /** Retrieves the currently authenticated user from the SecurityContext. */
+  /**
+   * Retrieves the currently authenticated user from the SecurityContext.
+   *
+   * <p>If no user is authenticated, this method returns {@code null}. Otherwise, it fetches the
+   * full {@link User} entity from the database based on the username.
+   *
+   * @return the currently authenticated {@link User}, or {@code null} if no user is authenticated
+   */
   public User getCurrentUser() {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     if (authentication == null || !authentication.isAuthenticated()) {
@@ -87,9 +131,53 @@ public class AuthService {
     return null;
   }
 
-  /** Refreshes the access token using a valid refresh token and performs refresh token rotation. */
+  /**
+   * Refreshes the access token using a valid refresh token and performs refresh token rotation.
+   *
+   * <p><b>Workflow:</b>
+   *
+   * <ol>
+   *   <li>Parses and verifies the refresh JWT using the refresh signing key, including signature
+   *       and expiration validation.
+   *   <li>Extracts the token identifier (<code>jti</code>) from the refresh token.
+   *   <li>Looks up the corresponding refresh token record in the database using the extracted
+   *       <code>jti</code>, including already-revoked tokens, so reuse can be detected.
+   *   <li>If the token is found, already revoked, and the raw token's hash still matches the stored
+   *       hash, this is treated as a confirmed replay attack: a security event is logged and all
+   *       other active sessions for that user are revoked as a defense-in-depth measure.
+   *   <li>Otherwise, verifies the refresh token by comparing the SHA-256 hash of the provided token
+   *       with the stored hash, and checks expiry.
+   *   <li>If valid, revokes the existing refresh token to prevent reuse (refresh token rotation).
+   *   <li>Issues a new refresh token, stores its hash in the database, and sends it to the client
+   *       as a secure, HttpOnly cookie.
+   *   <li>Generates and returns a new short-lived access token.
+   * </ol>
+   *
+   * <p><b>Security considerations:</b>
+   *
+   * <ul>
+   *   <li>Refresh tokens are JWTs signed with a dedicated refresh signing key.
+   *   <li>Only a non-secret identifier (<code>jti</code>) is used for database lookup; the refresh
+   *       token itself is never stored in plaintext.
+   *   <li>Refresh tokens are stored using a one-way SHA-256 hash.
+   *   <li>Rotation ensures stolen refresh tokens cannot be reused.
+   *   <li>Revoked tokens are retained temporarily to allow replay-attack detection and auditing.
+   * </ul>
+   *
+   * <p><b>Error scenarios:</b>
+   *
+   * <ul>
+   *   <li>{@code 401 Unauthorized} if the refresh token is missing, expired, revoked, invalid, or
+   *       reused.
+   * </ul>
+   *
+   * @param rawRefreshToken the refresh JWT provided by the client (via HttpOnly cookie)
+   * @param response HTTP response used to set the rotated refresh token cookie
+   * @return a response containing a new access token if the refresh succeeds
+   */
   @Transactional
   public ResponseEntity<?> refresh(String rawRefreshToken, HttpServletResponse response) {
+
     Claims claims;
     try {
       claims = jwtUtil.parseRefreshToken(rawRefreshToken);
@@ -98,47 +186,64 @@ public class AuthService {
     }
 
     String tokenId = claims.getId();
+
     RefreshToken storedToken = refreshTokenRepository.findByTokenId(tokenId).orElse(null);
 
     if (storedToken == null) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
-    if (storedToken.isRevoked()) {
+    String incomingHash = TokenHashUtil.sha256(rawRefreshToken);
+
+    // REPLAY ATTACK: token exists, is already revoked, AND the raw token still matches
+    // the stored hash — this means the exact same token that was rotated away is being
+    // reused, which is a strong signal of theft (not just a benign retry or race).
+    if (storedToken.isRevoked()
+        && TokenHashUtil.constantTimeEquals(incomingHash, storedToken.getTokenHash())) {
       log.warn(
           "SECURITY_ALERT: refresh token replay detected. userId={}, tokenId={}, timestamp={}",
           storedToken.getUser().getId(),
           tokenId,
           Instant.now());
 
+      refreshTokenRepository.revokeAllByUser(storedToken.getUser().getId());
+
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
-    String incomingHash = TokenHashUtil.sha256(rawRefreshToken);
-    if (!TokenHashUtil.constantTimeEquals(incomingHash, storedToken.getTokenHash())
+    if (storedToken.isRevoked()
+        || !TokenHashUtil.constantTimeEquals(incomingHash, storedToken.getTokenHash())
         || storedToken.getExpiresAt().isBefore(Instant.now())) {
+
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
+    // rotate
     storedToken.setRevoked(true);
     refreshTokenRepository.save(storedToken);
 
     User user = storedToken.getUser();
+
     refreshTokenService.create(user, response);
 
     String newAccessToken = jwtUtil.generateToken(user);
+
     return ResponseEntity.ok(Map.of("token", newAccessToken));
   }
 
   /**
-   * Logs out the current session by revoking the active refresh token and deleting the refresh
-   * token cookie.
+   * Logs out the current session by revoking the active refresh token (identified via its jti) and
+   * deleting the refresh token cookie.
+   *
+   * <p>This ensures the refresh token cannot be reused even if it was previously leaked or stolen.
    */
   @Transactional
   public void logout(String rawRefreshToken, HttpServletResponse response) {
+
     if (rawRefreshToken != null) {
       try {
         String tokenId = jwtUtil.extractTokenId(rawRefreshToken);
+
         refreshTokenRepository
             .findByTokenIdAndRevokedFalse(tokenId)
             .ifPresent(
@@ -146,11 +251,13 @@ public class AuthService {
                   token.setRevoked(true);
                   refreshTokenRepository.save(token);
                 });
+
       } catch (JwtException ignored) {
         // Token already invalid / expired — nothing to revoke
       }
     }
 
+    // Always delete cookie (even if token was invalid)
     ResponseCookie deleteCookie =
         ResponseCookie.from("refresh_token", "")
             .httpOnly(true)
