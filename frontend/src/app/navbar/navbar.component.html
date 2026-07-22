@@ -56,15 +56,29 @@
           routerLinkActive="is-active"
           >Dashboard</a
         >
-        <a routerLink="/cloud" class="navbar-link" routerLinkActive="is-active"
-          >Cloud</a
-        >
-        <a
-          routerLink="/passwords"
-          class="navbar-link"
-          routerLinkActive="is-active"
-          >Password Manager</a
-        >
+        <ng-container *ngFor="let service of services">
+          <a
+            *ngIf="service.isAvailable; else offlineLink"
+            [routerLink]="service.route"
+            class="navbar-link"
+            routerLinkActive="is-active"
+          >
+            {{ service.displayName }}
+          </a>
+          <ng-template #offlineLink>
+            <span
+              class="navbar-link opacity-50 cursor-not-allowed flex items-center"
+              [title]="service.displayName + ' is currently offline'"
+            >
+              {{ service.displayName }}
+              <span
+                class="bg-red-500 text-white rounded ml-1"
+                style="font-size: 0.6rem; padding: 1px 4px; line-height: 1"
+                >offline</span
+              >
+            </span>
+          </ng-template>
+        </ng-container>
         <a
           routerLink="/security-activity"
           class="navbar-link"
@@ -146,20 +160,30 @@
       routerLinkActive="is-active"
       >Dashboard</a
     >
-    <a
-      routerLink="/cloud"
-      (click)="closeMobileMenu()"
-      class="mobile-link block py-2"
-      routerLinkActive="is-active"
-      >Cloud</a
-    >
-    <a
-      routerLink="/passwords"
-      (click)="closeMobileMenu()"
-      class="mobile-link block py-2"
-      routerLinkActive="is-active"
-      >Password Manager</a
-    >
+    <ng-container *ngFor="let service of services">
+      <a
+        *ngIf="service.isAvailable; else offlineMobileLink"
+        [routerLink]="service.route"
+        (click)="closeMobileMenu()"
+        class="mobile-link block py-2"
+        routerLinkActive="is-active"
+      >
+        {{ service.displayName }}
+      </a>
+      <ng-template #offlineMobileLink>
+        <span
+          class="mobile-link block py-2 opacity-50 cursor-not-allowed"
+          [title]="service.displayName + ' is currently offline'"
+        >
+          {{ service.displayName }}
+          <span
+            class="bg-red-500 text-white rounded ml-1"
+            style="font-size: 0.6rem; padding: 1px 4px; line-height: 1"
+            >offline</span
+          >
+        </span>
+      </ng-template>
+    </ng-container>
     <a
       routerLink="/security-activity"
       (click)="closeMobileMenu()"

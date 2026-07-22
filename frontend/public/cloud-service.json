@@ -1,0 +1,14 @@
+{
+  "name": "cloud",
+  "displayName": "Cloud",
+  "icon": "pi-cloud",
+  "route": "/cloud",
+  "baseUrl": "http://localhost:8090",
+  "healthEndpoint": "http://localhost:8090/api/health",
+  "requiredScopes": ["cloud:read", "cloud:write"],
+  "tokenForwarding": {
+    "enabled": true,
+    "type": "header",
+    "name": "Authorization"
+  }
+}
