@@ -42,7 +42,9 @@ export class NavbarComponent implements OnInit {
    * Loads the profile picture when the navbar initializes.
    */
   ngOnInit(): void {
-    this.services = this.serviceRegistry.getServices();
+    this.serviceRegistry.services$.subscribe((services) => {
+      this.services = services;
+    });
     if (this.authService.isLoggedIn()) {
       // Subscribe to reactive profile picture updates
       this.userService.profilePicUrl$.subscribe((url) => {
@@ -55,6 +57,10 @@ export class NavbarComponent implements OnInit {
         },
       });
     }
+  }
+
+  isExternalUrl(url: string): boolean {
+    return !!url && (url.startsWith('http://') || url.startsWith('https://'));
   }
 
   /**

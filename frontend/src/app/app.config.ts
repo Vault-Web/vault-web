@@ -16,7 +16,9 @@ import { firstValueFrom } from 'rxjs';
 export function initializeServices(registry: ServiceRegistryService) {
   return () =>
     firstValueFrom(registry.loadServices())
-      .then(() => firstValueFrom(registry.checkServicesHealth()))
+      .then(() => {
+        registry.checkServicesHealth().subscribe();
+      })
       .catch((err) => {
         console.error('Service registry initialization failed', err);
       });

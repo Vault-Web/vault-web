@@ -57,14 +57,24 @@
           >Dashboard</a
         >
         <ng-container *ngFor="let service of services">
-          <a
-            *ngIf="service.isAvailable; else offlineLink"
-            [routerLink]="service.route"
-            class="navbar-link"
-            routerLinkActive="is-active"
-          >
-            {{ service.displayName }}
-          </a>
+          <ng-container *ngIf="service.isAvailable; else offlineLink">
+            <a
+              *ngIf="isExternalUrl(service.route); else internalLink"
+              [href]="service.route"
+              class="navbar-link"
+            >
+              {{ service.displayName }}
+            </a>
+            <ng-template #internalLink>
+              <a
+                [routerLink]="service.route"
+                class="navbar-link"
+                routerLinkActive="is-active"
+              >
+                {{ service.displayName }}
+              </a>
+            </ng-template>
+          </ng-container>
           <ng-template #offlineLink>
             <span
               class="navbar-link opacity-50 cursor-not-allowed flex items-center"
@@ -161,15 +171,26 @@
       >Dashboard</a
     >
     <ng-container *ngFor="let service of services">
-      <a
-        *ngIf="service.isAvailable; else offlineMobileLink"
-        [routerLink]="service.route"
-        (click)="closeMobileMenu()"
-        class="mobile-link block py-2"
-        routerLinkActive="is-active"
-      >
-        {{ service.displayName }}
-      </a>
+      <ng-container *ngIf="service.isAvailable; else offlineMobileLink">
+        <a
+          *ngIf="isExternalUrl(service.route); else internalMobileLink"
+          [href]="service.route"
+          (click)="closeMobileMenu()"
+          class="mobile-link block py-2"
+        >
+          {{ service.displayName }}
+        </a>
+        <ng-template #internalMobileLink>
+          <a
+            [routerLink]="service.route"
+            (click)="closeMobileMenu()"
+            class="mobile-link block py-2"
+            routerLinkActive="is-active"
+          >
+            {{ service.displayName }}
+          </a>
+        </ng-template>
+      </ng-container>
       <ng-template #offlineMobileLink>
         <span
           class="mobile-link block py-2 opacity-50 cursor-not-allowed"

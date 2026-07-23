@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, forkJoin, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { HttpClient, HttpBackend } from '@angular/common/http';
+import { Observable, BehaviorSubject, forkJoin, of } from 'rxjs';
+import { catchError, map, timeout } from 'rxjs/operators';
 
 export interface ServiceManifest {
   name: string;
@@ -24,10 +24,41 @@ export interface ServiceManifest {
   providedIn: 'root',
 })
 export class ServiceRegistryService {
-  private services: ServiceManifest[] = [];
-  private isLoaded = false;
+  private servicesSubject = new BehaviorSubject<ServiceManifest[]>([]);
+  public services$ = this.servicesSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  private isLoaded = false;
+  private rawHttpClient: HttpClient;
+
+  constructor(
+    private http: HttpClient,
+    handler: HttpBackend,
+  ) {
+    // Uses un-intercepted HttpClient to bypass tokenInterceptor and error handling banners during health checks
+    this.rawHttpClient = new HttpClient(handler);
+  }
+
+  resolveUrl(url: string): string {
+    if (!url) return '';
+    if (url.startsWith('/')) {
+      if (typeof window !== 'undefined' && window.location?.origin) {
+        return `${window.location.origin}${url}`;
+      }
+      return url;
+    }
+    if (typeof window !== 'undefined' && window.location?.hostname) {
+      const currentHost = window.location.hostname;
+      const currentProtocol = window.location.protocol;
+      let resolved = url
+        .replace('{host}', currentHost)
+        .replace('localhost', currentHost);
+      if (currentProtocol === 'https:' && resolved.startsWith('http:')) {
+        resolved = resolved.replace('http:', 'https:');
+      }
+      return resolved;
+    }
+    return url;
+  }
 
   loadServices(): Observable<ServiceManifest[]> {
     const manifests = [
@@ -37,7 +68,8 @@ export class ServiceRegistryService {
     ];
 
     const requests = manifests.map((url) =>
-      this.http.get<ServiceManifest>(url).pipe(
+      this.rawHttpClient.get<ServiceManifest>(url).pipe(
+        timeout(3000),
         catchError((err) => {
           console.warn(`Failed to load service manifest from ${url}`, err);
           return of(null);
@@ -50,23 +82,32 @@ export class ServiceRegistryService {
         const loadedServices: ServiceManifest[] = [];
         for (const res of results) {
           if (res && this.isValidManifest(res)) {
-            loadedServices.push(res);
+            const resolved: ServiceManifest = {
+              ...res,
+              baseUrl: this.resolveUrl(res.baseUrl),
+              apiUrl: this.resolveUrl(res.apiUrl),
+              healthEndpoint: this.resolveUrl(res.healthEndpoint),
+              route: this.resolveUrl(res.route),
+            };
+            loadedServices.push(resolved);
           }
         }
-        this.services = loadedServices;
+        this.servicesSubject.next(loadedServices);
         this.isLoaded = true;
-        return this.services;
+        return loadedServices;
       }),
     );
   }
 
   checkServicesHealth(): Observable<ServiceManifest[]> {
-    if (this.services.length === 0) {
+    const currentServices = this.servicesSubject.getValue();
+    if (currentServices.length === 0) {
       return of([]);
     }
 
-    const checks = this.services.map((service) =>
-      this.http.get(service.healthEndpoint).pipe(
+    const checks = currentServices.map((service) =>
+      this.rawHttpClient.get(service.healthEndpoint).pipe(
+        timeout(3000),
         map(() => {
           service.isAvailable = true;
           return service;
@@ -81,17 +122,18 @@ export class ServiceRegistryService {
 
     return forkJoin(checks).pipe(
       map(() => {
-        return this.services;
+        this.servicesSubject.next([...currentServices]);
+        return currentServices;
       }),
     );
   }
 
   getServices(): ServiceManifest[] {
-    return this.services;
+    return this.servicesSubject.getValue();
   }
 
   getServiceByName(name: string): ServiceManifest | undefined {
-    return this.services.find((s) => s.name === name);
+    return this.servicesSubject.getValue().find((s) => s.name === name);
   }
 
   private isValidManifest(manifest: unknown): boolean {
@@ -105,6 +147,7 @@ export class ServiceRegistryService {
       typeof candidate['icon'] === 'string' &&
       typeof candidate['route'] === 'string' &&
       typeof candidate['baseUrl'] === 'string' &&
+      typeof candidate['apiUrl'] === 'string' &&
       typeof candidate['healthEndpoint'] === 'string'
     );
   }

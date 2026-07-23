@@ -29,15 +29,15 @@ describe('ServiceRegistryService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should load service manifests dynamically', () => {
+  it('should load service manifests dynamically and resolve templated host URLs', () => {
     const mockCloudManifest: ServiceManifest = {
       name: 'cloud',
       displayName: 'Cloud',
       icon: 'pi-cloud',
       route: '/cloud',
-      baseUrl: 'http://localhost:8090',
-      apiUrl: 'http://localhost:8090/api',
-      healthEndpoint: 'http://localhost:8090/api/health',
+      baseUrl: 'http://{host}:8090',
+      apiUrl: 'http://{host}:8090/api',
+      healthEndpoint: 'http://{host}:8090/api/health',
     };
 
     const mockPMManifest: ServiceManifest = {
@@ -45,19 +45,19 @@ describe('ServiceRegistryService', () => {
       displayName: 'Password Manager',
       icon: 'pi-key',
       route: '/passwords',
-      baseUrl: 'http://localhost:8091',
-      apiUrl: 'http://localhost:8091/api',
-      healthEndpoint: 'http://localhost:8091/api/health',
+      baseUrl: 'http://{host}:8091',
+      apiUrl: 'http://{host}:8091/api',
+      healthEndpoint: 'http://{host}:8091/api/health',
     };
 
     const mockHabitsManifest: ServiceManifest = {
       name: 'habits',
       displayName: 'Habits',
       icon: 'pi-calendar-plus',
-      route: '/habits',
-      baseUrl: 'http://localhost:8092',
-      apiUrl: 'http://localhost:8092/api',
-      healthEndpoint: 'http://localhost:8092/api/health',
+      route: 'http://{host}:8092',
+      baseUrl: 'http://{host}:8092',
+      apiUrl: 'http://{host}:8092/api',
+      healthEndpoint: 'http://{host}:8092/api/health',
     };
 
     service.loadServices().subscribe((loaded) => {
@@ -65,6 +65,7 @@ describe('ServiceRegistryService', () => {
       expect(loaded[0].name).toBe('cloud');
       expect(loaded[1].name).toBe('passwords');
       expect(loaded[2].name).toBe('habits');
+      expect(loaded[0].baseUrl).toContain(window.location.hostname);
     });
 
     const reqs = [
@@ -78,7 +79,7 @@ describe('ServiceRegistryService', () => {
     reqs[2].flush(mockHabitsManifest);
   });
 
-  it('should handle manifest load failure gracefully by filtering them out', () => {
+  it('should handle manifest load failure gracefully by filtering invalid/failed manifests', () => {
     service.loadServices().subscribe((loaded) => {
       expect(loaded.length).toBe(1);
       expect(loaded[0].name).toBe('passwords');
@@ -97,6 +98,7 @@ describe('ServiceRegistryService', () => {
       icon: 'pi-key',
       route: '/passwords',
       baseUrl: 'http://localhost:8091',
+      apiUrl: 'http://localhost:8091/api',
       healthEndpoint: 'http://localhost:8091/api/health',
     });
     reqs[2].flush('Server Error', {
@@ -106,36 +108,39 @@ describe('ServiceRegistryService', () => {
   });
 
   it('should update availability states during health checks', () => {
+    const cloudHealthUrl = service.resolveUrl('http://{host}:8090/api/health');
+    const pmHealthUrl = service.resolveUrl('http://{host}:8091/api/health');
+
     const services: ServiceManifest[] = [
       {
         name: 'cloud',
         displayName: 'Cloud',
         icon: 'pi-cloud',
         route: '/cloud',
-        baseUrl: 'http://localhost:8090',
-        apiUrl: 'http://localhost:8090/api',
-        healthEndpoint: 'http://localhost:8090/api/health',
+        baseUrl: service.resolveUrl('http://{host}:8090'),
+        apiUrl: service.resolveUrl('http://{host}:8090/api'),
+        healthEndpoint: cloudHealthUrl,
       },
       {
         name: 'passwords',
         displayName: 'Password Manager',
         icon: 'pi-key',
         route: '/passwords',
-        baseUrl: 'http://localhost:8091',
-        apiUrl: 'http://localhost:8091/api',
-        healthEndpoint: 'http://localhost:8091/api/health',
+        baseUrl: service.resolveUrl('http://{host}:8091'),
+        apiUrl: service.resolveUrl('http://{host}:8091/api'),
+        healthEndpoint: pmHealthUrl,
       },
     ];
 
-    (service as any).services = services;
+    (service as any).servicesSubject.next(services);
 
     service.checkServicesHealth().subscribe((checked) => {
       expect(checked[0].isAvailable).toBeTrue();
       expect(checked[1].isAvailable).toBeFalse();
     });
 
-    const reqCloud = httpMock.expectOne('http://localhost:8090/api/health');
-    const reqPM = httpMock.expectOne('http://localhost:8091/api/health');
+    const reqCloud = httpMock.expectOne(cloudHealthUrl);
+    const reqPM = httpMock.expectOne(pmHealthUrl);
 
     reqCloud.flush({ status: 'UP' });
     reqPM.flush('Service Unavailable', {

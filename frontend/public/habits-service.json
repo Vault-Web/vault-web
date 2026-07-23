@@ -2,9 +2,10 @@
   "name": "habits",
   "displayName": "Habits",
   "icon": "pi-calendar-plus",
-  "route": "/habits",
-  "baseUrl": "http://localhost:8092",
-  "healthEndpoint": "http://localhost:8092/api/health",
+  "route": "http://{host}:8092",
+  "baseUrl": "http://{host}:8092",
+  "apiUrl": "http://{host}:8092/api",
+  "healthEndpoint": "http://{host}:8092/api/health",
   "requiredScopes": ["habits:read"],
   "tokenForwarding": {
     "enabled": true,
