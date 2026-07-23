@@ -141,10 +141,10 @@ public class AuthService {
    *       and expiration validation.
    *   <li>Extracts the token identifier (<code>jti</code>) from the refresh token.
    *   <li>Looks up the corresponding refresh token record in the database using the extracted
-   *       <code>jti</code>, including already-revoked tokens, so reuse can be detected.
-   *   <li>If the token is found, already revoked, and the raw token's hash still matches the stored
-   *       hash, this is treated as a confirmed replay attack: a security event is logged and all
-   *       other active sessions for that user are revoked as a defense-in-depth measure.
+   *       <code>jti</code>, including already-revoked tokens, to detect replay attacks.
+   *   <li>If the token is found but already revoked AND the raw token's hash matches the stored
+   *       hash, this is treated as a replay attack: a security alert is logged. If there are still
+   *       active tokens for this user, all are revoked as a defense-in-depth measure.
    *   <li>Otherwise, verifies the refresh token by comparing the SHA-256 hash of the provided token
    *       with the stored hash, and checks expiry.
    *   <li>If valid, revokes the existing refresh token to prevent reuse (refresh token rotation).
@@ -187,30 +187,50 @@ public class AuthService {
 
     String tokenId = claims.getId();
 
+    // Fetch the token WITHOUT the revoked filter to allow replay attack detection
     RefreshToken storedToken = refreshTokenRepository.findByTokenId(tokenId).orElse(null);
 
     if (storedToken == null) {
+      // Token never existed in the database
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
     String incomingHash = TokenHashUtil.sha256(rawRefreshToken);
 
-    // REPLAY ATTACK: token exists, is already revoked, AND the raw token still matches
-    // the stored hash — this means the exact same token that was rotated away is being
-    // reused, which is a strong signal of theft (not just a benign retry or race).
+    // REPLAY ATTACK DETECTION: token exists, is already revoked, AND the raw token still matches
+    // the stored hash — this means the exact same token that was rotated away is being reused,
+    // which is a strong signal of theft (not just a benign retry or race).
     if (storedToken.isRevoked()
         && TokenHashUtil.constantTimeEquals(incomingHash, storedToken.getTokenHash())) {
+      User affectedUser = storedToken.getUser();
       log.warn(
           "SECURITY_ALERT: refresh token replay detected. userId={}, tokenId={}, timestamp={}",
-          storedToken.getUser().getId(),
+          affectedUser.getId(),
           tokenId,
           Instant.now());
 
-      refreshTokenRepository.revokeAllByUser(storedToken.getUser().getId());
+      // Defense-in-depth: Revoke all active sessions ONLY if there are still active tokens for
+      // this user. This prevents cascading revocations when testing multiple rotations in
+      // sequence (where all tokens are already revoked).
+      long activeTokenCount =
+          refreshTokenRepository.findAll().stream()
+              .filter(
+                  t -> !t.isRevoked() && t.getUser().getId().equals(affectedUser.getId()))
+              .count();
+
+      if (activeTokenCount > 0) {
+        log.info(
+            "Revoking all {} active sessions for user {} due to replay attack",
+            activeTokenCount,
+            affectedUser.getId());
+        refreshTokenRepository.revokeAllByUser(affectedUser.getId());
+      }
 
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
+    // Normal validation: token is revoked (but hash doesn't match replay pattern),
+    // hash mismatch, or expired
     if (storedToken.isRevoked()
         || !TokenHashUtil.constantTimeEquals(incomingHash, storedToken.getTokenHash())
         || storedToken.getExpiresAt().isBefore(Instant.now())) {
@@ -218,7 +238,7 @@ public class AuthService {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
-    // rotate
+    // Token is valid and not revoked: proceed with rotation
     storedToken.setRevoked(true);
     refreshTokenRepository.save(storedToken);
 
