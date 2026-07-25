@@ -35,7 +35,15 @@ export const routes: Routes = [
     component: RegisterComponent,
     data: { hideNavbar: true },
   },
-  { path: 'cloud', component: CloudComponent, canActivate: [authGuard] },
+  {
+    path: 'cloud',
+    component: CloudComponent,
+    canActivate: [authGuard],
+    canDeactivate: [
+      (component: CloudComponent) =>
+        component.canDeactivate ? component.canDeactivate() : true,
+    ],
+  },
   { path: 'cloud/trash', component: TrashComponent, canActivate: [authGuard] },
   {
     path: 'not-found',

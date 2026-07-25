@@ -8,6 +8,10 @@ import { TrashEntryDto } from '../models/dtos/TrashEntryDto';
 import { SearchResultDto } from '../models/dtos/SearchResultDto';
 import { ScanJobDto } from '../models/dtos/ScanJobDto';
 import { StorageQuotaDto } from '../models/dtos/StorageQuotaDto';
+import {
+  SecureSendLinkDto,
+  CreateSecureSendRequestDto,
+} from '../models/dtos/SecureSendLinkDto';
 import { environment } from '../../environments/environment';
 
 interface RawQuotaResponse {
@@ -18,6 +22,27 @@ interface RawQuotaResponse {
   quotaBytes?: number;
   total?: number;
   totalSpace?: number;
+}
+
+interface RawSecureSendResponse {
+  id?: string;
+  linkId?: string;
+  token?: string;
+  shareToken?: string;
+  filePath?: string;
+  path?: string;
+  fileName?: string;
+  name?: string;
+  url?: string;
+  shareUrl?: string;
+  expiresAt?: string;
+  passwordProtected?: boolean;
+  hasPassword?: boolean;
+  protected?: boolean;
+  revoked?: boolean;
+  isRevoked?: boolean;
+  revokedAt?: string | null;
+  createdAt?: string;
 }
 
 @Injectable({
@@ -209,5 +234,78 @@ export class CloudService {
         ),
       })),
     );
+  }
+
+  createSecureSendLink(
+    filePath: string,
+    expiryMinutes = 1440,
+    password?: string,
+  ): Observable<SecureSendLinkDto> {
+    const normPath = this.normalizePath(filePath);
+    const expiresAt = new Date(
+      Date.now() + expiryMinutes * 60_000,
+    ).toISOString();
+    const payload: CreateSecureSendRequestDto = {
+      filePath: normPath,
+      expiresAt,
+      password: password && password.trim() ? password.trim() : undefined,
+    };
+
+    return this.http
+      .post<RawSecureSendResponse>(`${this.apiUrl}/secure-sends`, payload)
+      .pipe(map((res) => this.mapSecureSendLink(res, normPath, password)));
+  }
+
+  listSecureSendLinks(): Observable<SecureSendLinkDto[]> {
+    return this.http
+      .get<RawSecureSendResponse[]>(`${this.apiUrl}/secure-sends`)
+      .pipe(
+        map((resList) =>
+          Array.isArray(resList)
+            ? resList.map((item) => this.mapSecureSendLink(item))
+            : [],
+        ),
+      );
+  }
+
+  revokeSecureSendLink(id: string): Observable<void> {
+    const encodedId = encodeURIComponent(id);
+    return this.http.delete<void>(`${this.apiUrl}/secure-sends/${encodedId}`);
+  }
+
+  private mapSecureSendLink(
+    res: RawSecureSendResponse,
+    defaultPath = '',
+    password?: string,
+  ): SecureSendLinkDto {
+    const rawPath = res?.filePath || res?.path || defaultPath;
+    const fileName =
+      res?.fileName ||
+      res?.name ||
+      (rawPath ? rawPath.substring(rawPath.lastIndexOf('/') + 1) : 'File');
+    const id = res?.id || res?.linkId || res?.token || '';
+    const token = res?.token || res?.shareToken || id;
+
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const shareUrl =
+      res?.url || res?.shareUrl || (token ? `${origin}/share/${token}` : '');
+
+    return {
+      id,
+      filePath: rawPath,
+      fileName,
+      shareUrl,
+      token,
+      expiresAt: res?.expiresAt || '',
+      hasPassword: Boolean(
+        res?.passwordProtected ??
+        res?.hasPassword ??
+        res?.protected ??
+        !!password,
+      ),
+      isRevoked: Boolean(res?.revoked ?? res?.isRevoked ?? false),
+      revokedAt: res?.revokedAt || null,
+      createdAt: res?.createdAt || '',
+    };
   }
 }

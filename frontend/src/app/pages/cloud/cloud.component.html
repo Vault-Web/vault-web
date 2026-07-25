@@ -48,6 +48,16 @@
         (click)="scanCurrentFolder()"
       ></p-button>
       <p-button
+        label="Shared Links"
+        icon="pi pi-link"
+        [outlined]="true"
+        styleClass="p-button-sm cloud-accent-btn text-xxs sm:text-xs"
+        (click)="openSharedLinksDialog()"
+        pTooltip="View and manage active share links"
+        tooltipPosition="top"
+        ariaLabel="View and manage active share links"
+      ></p-button>
+      <p-button
         label="Trash"
         icon="pi pi-trash"
         [outlined]="true"
@@ -237,6 +247,15 @@
             <div class="cloud-actions">
               <p-button
                 *ngIf="entry.kind === 'file'"
+                icon="pi pi-share-alt"
+                styleClass="p-button-rounded p-button-text p-button-sm cloud-icon-btn"
+                (click)="openCreateShareDialog(entry.path, entry.name)"
+                pTooltip="Create share link"
+                tooltipPosition="top"
+                ariaLabel="Create share link"
+              ></p-button>
+              <p-button
+                *ngIf="entry.kind === 'file'"
                 icon="pi pi-download"
                 styleClass="p-button-rounded p-button-text p-button-sm cloud-icon-btn"
                 [loading]="isDownloading(entry.path)"
@@ -369,28 +388,50 @@
 
   <p-dialog
     [(visible)]="showFileEditor"
-    (onHide)="closeFileEditor()"
+    (onHide)="onFileEditorHide()"
     [modal]="true"
     [closable]="true"
     [draggable]="false"
     [resizable]="false"
     [style]="{
-      width:
-        isMarkdownFile(newFileName) && editorMode === 'split'
-          ? '78rem'
-          : '44rem',
+      width: isMarkdownFile(newFileName) ? '78rem' : '44rem',
       maxWidth: '96vw',
     }"
     [header]="editingFile ? 'Edit File' : 'Create New File'"
     styleClass="cloud-dialog"
   >
     <div class="cloud-dialog-body">
-      <label class="text-xxs sm:text-xs">File name</label>
+      <div
+        class="editor-header-bar flex justify-between align-items-center mb-1"
+      >
+        <label class="text-xxs sm:text-xs font-semibold">File name</label>
+        <span
+          *ngIf="isMarkdownFile(newFileName)"
+          class="save-status-badge text-xxs"
+          [ngClass]="saveStatus"
+        >
+          <i
+            class="pi"
+            [ngClass]="{
+              'pi-check-circle': saveStatus === 'saved',
+              'pi-spin pi-spinner': saveStatus === 'saving',
+              'pi-pencil': saveStatus === 'unsaved',
+            }"
+          ></i>
+          {{
+            saveStatus === "saved"
+              ? "Saved"
+              : saveStatus === "saving"
+                ? "Saving..."
+                : "Unsaved changes"
+          }}
+        </span>
+      </div>
       <input
         pInputText
         [(ngModel)]="newFileName"
-        (ngModelChange)="onFileNameChange()"
-        class="w-full text-xxs sm:text-xs"
+        (ngModelChange)="onContentChange()"
+        class="w-full text-xxs sm:text-xs mb-2"
         placeholder="filename.txt"
       />
 
@@ -424,51 +465,84 @@
         </div>
       </div>
 
-      <div
-        class="cloud-editor-container"
-        [class.split-layout]="
-          isMarkdownFile(newFileName) && editorMode === 'split'
-        "
-      >
-        <!-- Edit Pane -->
-        <div
-          class="editor-pane"
-          *ngIf="
-            !isMarkdownFile(newFileName) ||
-            editorMode === 'edit' ||
-            editorMode === 'split'
-          "
+      <div class="markdown-workspace-layout">
+        <!-- Outline Pane -->
+        <aside
+          class="markdown-outline-sidebar"
+          *ngIf="isMarkdownFile(newFileName)"
         >
-          <label
-            class="text-xxs sm:text-xs editor-pane-label"
-            *ngIf="isMarkdownFile(newFileName) && editorMode === 'split'"
-            >Edit</label
-          >
-          <textarea
-            [(ngModel)]="fileContent"
-            (ngModelChange)="updatePreview()"
-            class="cloud-editor text-xxs sm:text-xs"
-            placeholder="Write markdown content here..."
-          ></textarea>
-        </div>
-
-        <!-- Preview Pane -->
-        <div
-          class="preview-pane"
-          *ngIf="
-            isMarkdownFile(newFileName) &&
-            (editorMode === 'preview' || editorMode === 'split')
-          "
-        >
-          <label
-            class="text-xxs sm:text-xs editor-pane-label"
-            *ngIf="editorMode === 'split'"
-            >Preview</label
-          >
           <div
-            [innerHTML]="previewHtml"
-            class="markdown-preview text-xxs sm:text-xs"
-          ></div>
+            class="outline-title font-semibold mb-2 text-xxs sm:text-xs text-secondary uppercase tracking-wider"
+          >
+            Outline
+          </div>
+          <ul class="outline-list text-xxs sm:text-xs">
+            <li
+              *ngFor="let h of outline; let i = index"
+              [class]="'outline-level-' + h.level"
+              (click)="scrollToHeading(i)"
+              class="outline-item cursor-pointer py-1 px-2 rounded hover:bg-surface-hover hover:text-primary transition-colors"
+              title="{{ h.text }}"
+            >
+              {{ h.text }}
+            </li>
+          </ul>
+          <div
+            *ngIf="outline.length === 0"
+            class="outline-empty text-xxs sm:text-xs text-secondary italic px-2"
+          >
+            No headings
+          </div>
+        </aside>
+
+        <!-- Editor Container -->
+        <div
+          class="cloud-editor-container"
+          [class.split-layout]="
+            isMarkdownFile(newFileName) && editorMode === 'split'
+          "
+        >
+          <!-- Edit Pane -->
+          <div
+            class="editor-pane"
+            *ngIf="
+              !isMarkdownFile(newFileName) ||
+              editorMode === 'edit' ||
+              editorMode === 'split'
+            "
+          >
+            <label
+              class="text-xxs sm:text-xs editor-pane-label font-semibold"
+              *ngIf="isMarkdownFile(newFileName) && editorMode === 'split'"
+              >Edit</label
+            >
+            <textarea
+              [(ngModel)]="fileContent"
+              (ngModelChange)="onContentChange()"
+              class="cloud-editor text-xxs sm:text-xs"
+              placeholder="Write markdown content here..."
+            ></textarea>
+          </div>
+
+          <!-- Preview Pane -->
+          <div
+            class="preview-pane"
+            *ngIf="
+              isMarkdownFile(newFileName) &&
+              (editorMode === 'preview' || editorMode === 'split')
+            "
+          >
+            <label
+              class="text-xxs sm:text-xs editor-pane-label font-semibold"
+              *ngIf="editorMode === 'split'"
+              >Preview</label
+            >
+            <div
+              [innerHTML]="previewHtml"
+              (click)="handlePreviewClick($event)"
+              class="markdown-preview text-xxs sm:text-xs"
+            ></div>
+          </div>
         </div>
       </div>
     </div>
@@ -476,7 +550,7 @@
       <p-button
         label="Cancel"
         styleClass="p-button-text p-button-sm text-xxs sm:text-xs"
-        (click)="closeFileEditor()"
+        (click)="requestCloseFileEditor()"
       ></p-button>
       <p-button
         label="Save"
@@ -655,7 +729,6 @@
         </div>
       </ng-container>
     </div>
-
     <ng-template pTemplate="footer">
       <p-button
         label="Close"
@@ -668,6 +741,219 @@
         styleClass="p-button-sm text-xxs sm:text-xs"
         [disabled]="scanning"
         (click)="scanCurrentFolder()"
+      ></p-button>
+    </ng-template>
+  </p-dialog>
+
+  <p-dialog
+    [(visible)]="showCreateShareDialog"
+    [modal]="true"
+    [closable]="true"
+    [draggable]="false"
+    [resizable]="false"
+    header="Create Secure Send Link"
+    styleClass="cloud-dialog"
+    [style]="{ width: '28rem', maxWidth: '95vw' }"
+  >
+    <div class="cloud-dialog-body" *ngIf="selectedFileForShare">
+      <p class="text-xxs sm:text-xs cloud-muted mb-3">
+        Create an expiring link to share
+        <strong>{{ selectedFileForShare.name }}</strong> safely.
+      </p>
+
+      <div class="field mb-3">
+        <label
+          for="shareExpiry"
+          class="text-xxs sm:text-xs font-semibold block mb-1"
+          >Expiration Period</label
+        >
+        <select
+          id="shareExpiry"
+          [(ngModel)]="shareExpiryMinutes"
+          class="p-inputtext p-component text-xxs sm:text-xs w-full"
+        >
+          <option *ngFor="let opt of expiryOptions" [value]="opt.value">
+            {{ opt.label }}
+          </option>
+        </select>
+      </div>
+
+      <div class="field mb-3">
+        <label
+          for="sharePass"
+          class="text-xxs sm:text-xs font-semibold block mb-1"
+          >Password Protection (Optional)</label
+        >
+        <input
+          id="sharePass"
+          type="password"
+          pInputText
+          [(ngModel)]="sharePassword"
+          placeholder="Leave empty for public access"
+          class="w-full text-xxs sm:text-xs"
+        />
+      </div>
+    </div>
+    <ng-template pTemplate="footer">
+      <p-button
+        label="Cancel"
+        styleClass="p-button-text p-button-sm text-xxs sm:text-xs"
+        (click)="showCreateShareDialog = false"
+      ></p-button>
+      <p-button
+        label="Create Link"
+        icon="pi pi-check"
+        [loading]="creatingShareLink"
+        styleClass="p-button-sm text-xxs sm:text-xs"
+        (click)="submitCreateShareLink()"
+      ></p-button>
+    </ng-template>
+  </p-dialog>
+
+  <p-dialog
+    [(visible)]="showGeneratedLinkDialog"
+    [modal]="true"
+    [closable]="true"
+    [draggable]="false"
+    [resizable]="false"
+    header="Secure Link Created"
+    styleClass="cloud-dialog"
+    [style]="{ width: '32rem', maxWidth: '95vw' }"
+  >
+    <div class="cloud-dialog-body">
+      <div class="cloud-info-box mb-3 text-xxs sm:text-xs">
+        <i class="pi pi-exclamation-triangle"></i>
+        <span
+          ><strong>Notice:</strong> This share link is displayed only once.
+          Please copy and save it now.</span
+        >
+      </div>
+      <div class="flex gap-2 align-items-center">
+        <input
+          type="text"
+          readonly
+          pInputText
+          [value]="createdShareUrl"
+          class="w-full text-xxs sm:text-xs font-mono"
+        />
+        <p-button
+          icon="pi pi-copy"
+          label="Copy"
+          styleClass="p-button-sm text-xxs sm:text-xs"
+          (click)="copyShareUrlToClipboard()"
+          pTooltip="Copy link"
+          tooltipPosition="top"
+          ariaLabel="Copy link to clipboard"
+        ></p-button>
+      </div>
+    </div>
+    <ng-template pTemplate="footer">
+      <p-button
+        label="Done"
+        styleClass="p-button-sm text-xxs sm:text-xs"
+        (click)="showGeneratedLinkDialog = false"
+      ></p-button>
+    </ng-template>
+  </p-dialog>
+
+  <p-dialog
+    [(visible)]="showSharedLinksDialog"
+    [modal]="true"
+    [closable]="true"
+    [draggable]="false"
+    [resizable]="false"
+    header="Manage Secure Send Links"
+    styleClass="cloud-dialog"
+    [style]="{ width: '46rem', maxWidth: '95vw' }"
+  >
+    <div class="cloud-dialog-body">
+      <div
+        *ngIf="loadingSharedLinks"
+        class="cloud-state text-xxs sm:text-xs my-3"
+      >
+        <i class="pi pi-spin pi-spinner"></i> Loading share links...
+      </div>
+
+      <div
+        *ngIf="!loadingSharedLinks && sharedLinks.length === 0"
+        class="cloud-state text-xxs sm:text-xs my-3"
+      >
+        No active share links found.
+      </div>
+
+      <div
+        *ngIf="!loadingSharedLinks && sharedLinks.length > 0"
+        class="cloud-table-wrap"
+      >
+        <p-table
+          [value]="sharedLinks"
+          styleClass="text-xxs sm:text-xs"
+          [tableStyle]="{ 'min-width': '100%' }"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th>File</th>
+              <th>Created</th>
+              <th>Expires</th>
+              <th>Security</th>
+              <th>Status</th>
+              <th class="text-right">Action</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-link>
+            <tr>
+              <td>{{ link.fileName }}</td>
+              <td class="cloud-muted">{{ link.createdAt | date: "short" }}</td>
+              <td class="cloud-muted">{{ link.expiresAt | date: "short" }}</td>
+              <td>
+                <span
+                  class="cloud-badge"
+                  [class.badge-protected]="link.hasPassword"
+                  [class.badge-public]="!link.hasPassword"
+                >
+                  <i
+                    class="pi"
+                    [class.pi-lock]="link.hasPassword"
+                    [class.pi-unlock]="!link.hasPassword"
+                  ></i>
+                  {{ link.hasPassword ? "Password" : "Public" }}
+                </span>
+              </td>
+              <td>
+                <span
+                  class="cloud-badge"
+                  [class.badge-revoked]="link.isRevoked"
+                  [class.badge-active]="!link.isRevoked"
+                >
+                  {{ link.isRevoked ? "Revoked" : "Active" }}
+                </span>
+              </td>
+              <td class="text-right">
+                <p-button
+                  *ngIf="!link.isRevoked"
+                  icon="pi pi-ban"
+                  severity="danger"
+                  styleClass="p-button-rounded p-button-text p-button-sm"
+                  [loading]="revokingLinkId === link.id"
+                  (click)="revokeShareLink(link)"
+                  pTooltip="Revoke share link"
+                  tooltipPosition="top"
+                  ariaLabel="Revoke share link"
+                ></p-button>
+                <span *ngIf="link.isRevoked" class="cloud-muted text-xxs"
+                  >Revoked</span
+                >
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+    </div>
+    <ng-template pTemplate="footer">
+      <p-button
+        label="Close"
+        styleClass="p-button-text p-button-sm text-xxs sm:text-xs"
+        (click)="showSharedLinksDialog = false"
       ></p-button>
     </ng-template>
   </p-dialog>
