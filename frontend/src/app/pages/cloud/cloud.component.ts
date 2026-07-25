@@ -29,6 +29,7 @@ import { FolderContentItemDto } from '../../models/dtos/FolderContentItemDto';
 import { SearchResultDto } from '../../models/dtos/SearchResultDto';
 import { ScanJobDto } from '../../models/dtos/ScanJobDto';
 import { FileScanResultDto } from '../../models/dtos/FileScanResultDto';
+import { StorageQuotaDto } from '../../models/dtos/StorageQuotaDto';
 import { SecureSendLinkDto } from '../../models/dtos/SecureSendLinkDto';
 import { CloudService } from '../../services/cloud.service';
 import { finalize, firstValueFrom } from 'rxjs';
@@ -176,6 +177,31 @@ export class CloudComponent implements OnInit, OnDestroy {
     private sanitizer: DomSanitizer,
   ) {}
 
+  storageQuota?: StorageQuotaDto;
+
+  get usedSpaceLabel(): string {
+    return this.formatFileSize(this.storageQuota?.usedBytes || 0);
+  }
+
+  get totalSpaceLabel(): string {
+    return this.formatFileSize(this.storageQuota?.totalBytes || 0);
+  }
+
+  get quotaPercentage(): number {
+    if (!this.storageQuota || !this.storageQuota.totalBytes) return 0;
+    const pct = Math.round(
+      (this.storageQuota.usedBytes / this.storageQuota.totalBytes) * 100,
+    );
+    return Math.min(100, Math.max(0, pct));
+  }
+
+  get quotaStatusClass(): string {
+    const pct = this.quotaPercentage;
+    if (pct >= 90) return 'quota-danger';
+    if (pct >= 75) return 'quota-warning';
+    return 'quota-normal';
+  }
+
   private getErrorMessage(err: unknown): string {
     const candidate = err as {
       message?: string;
@@ -186,6 +212,53 @@ export class CloudComponent implements OnInit, OnDestroy {
       candidate?.message ||
       'Request failed. Please try again.'
     );
+  }
+
+  isQuotaExceededError(err: unknown): boolean {
+    const candidate = err as {
+      status?: number;
+      error?:
+        | { message?: string; error?: string; code?: string; details?: string }
+        | string;
+      message?: string;
+    };
+
+    if (candidate?.status === 413 || candidate?.status === 507) {
+      return true;
+    }
+
+    const body =
+      typeof candidate?.error === 'string'
+        ? candidate.error
+        : candidate?.error?.message ||
+          candidate?.error?.error ||
+          candidate?.error?.code ||
+          candidate?.message ||
+          '';
+
+    const normalized = body.toString().toLowerCase();
+    return (
+      normalized.includes('quota') ||
+      normalized.includes('out of space') ||
+      normalized.includes('insufficient storage') ||
+      normalized.includes('insufficient space') ||
+      normalized.includes('storage limit') ||
+      normalized.includes('storage_quota_exceeded') ||
+      normalized.includes('quota_exceeded') ||
+      (normalized.includes('storage') &&
+        (normalized.includes('full') || normalized.includes('exceed')))
+    );
+  }
+
+  loadStorageQuota() {
+    this.cloudService.getStorageQuota().subscribe({
+      next: (quota) => {
+        this.storageQuota = quota;
+      },
+      error: () => {
+        this.storageQuota = undefined;
+      },
+    });
   }
 
   ngOnInit(): void {
@@ -239,6 +312,7 @@ export class CloudComponent implements OnInit, OnDestroy {
       },
     ];
     this.loadRootFolder();
+    this.loadStorageQuota();
   }
 
   get breadcrumbItems(): MenuItem[] {
@@ -798,8 +872,16 @@ export class CloudComponent implements OnInit, OnDestroy {
         this.editingFile ? 'File updated' : 'File created',
         `"${nameToSave}" was saved.`,
       );
+      this.loadStorageQuota();
     } catch (err: unknown) {
-      this.toast.error('Save failed', this.getErrorMessage(err));
+      if (this.isQuotaExceededError(err)) {
+        this.toast.error(
+          'Storage quota exceeded',
+          `Cannot save "${nameToSave}". Your storage quota has been reached. Please delete some files to free up space.`,
+        );
+      } else {
+        this.toast.error('Save failed', this.getErrorMessage(err));
+      }
     }
   }
 
@@ -812,9 +894,18 @@ export class CloudComponent implements OnInit, OnDestroy {
           'Upload complete',
           `"${file.name}" uploaded successfully.`,
         );
+        this.loadStorageQuota();
       },
-      error: (err) =>
-        this.toast.error('Upload failed', this.getErrorMessage(err)),
+      error: (err) => {
+        if (this.isQuotaExceededError(err)) {
+          this.toast.error(
+            'Storage quota exceeded',
+            `Cannot upload "${file.name}". Your storage quota has been reached. Please delete some files to free up space.`,
+          );
+        } else {
+          this.toast.error('Upload failed', this.getErrorMessage(err));
+        }
+      },
     });
   }
 
@@ -897,6 +988,7 @@ export class CloudComponent implements OnInit, OnDestroy {
           'Folder deleted',
           `"${this.getNameFromPath(folderPath)}" removed.`,
         );
+        this.loadStorageQuota();
       },
       error: (err) =>
         this.toast.error('Delete failed', this.getErrorMessage(err)),
@@ -924,6 +1016,7 @@ export class CloudComponent implements OnInit, OnDestroy {
           'File deleted',
           `"${this.getNameFromPath(filePath)}" removed.`,
         );
+        this.loadStorageQuota();
       },
       error: (err) =>
         this.toast.error('Delete failed', this.getErrorMessage(err)),
