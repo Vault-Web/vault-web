@@ -18,6 +18,18 @@
     </div>
     <div class="cloud-headline-actions">
       <p-button
+        *ngIf="currentFolder && !sharedMode"
+        label="Download"
+        icon="pi pi-download"
+        [outlined]="true"
+        styleClass="p-button-sm cloud-accent-btn text-xxs sm:text-xs"
+        pTooltip="Download current folder as ZIP"
+        tooltipPosition="bottom"
+        [loading]="isDownloading(currentFolder.path)"
+        [disabled]="isDownloading(currentFolder.path)"
+        (click)="downloadCurrentFolder()"
+      ></p-button>
+      <p-button
         label="Scan"
         icon="pi pi-shield"
         [outlined]="true"
@@ -306,15 +318,27 @@
                 ariaLabel="Share with a Vault Web member"
               ></p-button>
               <p-button
-                *ngIf="entry.kind === 'file' && canDownloadHere"
+                *ngIf="canDownloadHere"
                 icon="pi pi-download"
                 styleClass="p-button-rounded p-button-text p-button-sm cloud-icon-btn"
                 [loading]="isDownloading(entry.path)"
                 [disabled]="isDownloading(entry.path)"
-                (click)="downloadFileByPath(entry.path, entry.name)"
-                pTooltip="Download file"
+                (click)="
+                  entry.kind === 'folder'
+                    ? downloadFolder(entry.path, entry.name)
+                    : downloadFileByPath(entry.path, entry.name)
+                "
+                [pTooltip]="
+                  entry.kind === 'folder'
+                    ? 'Download folder as ZIP'
+                    : 'Download file'
+                "
                 tooltipPosition="top"
-                ariaLabel="Download file"
+                [ariaLabel]="
+                  entry.kind === 'folder'
+                    ? 'Download folder as ZIP'
+                    : 'Download file'
+                "
               ></p-button>
               <p-button
                 *ngIf="!sharedMode && entry.kind === 'file'"

@@ -898,4 +898,106 @@ describe('CloudComponent unsaved-edit guard', () => {
     component.warnBeforeUnload(dirty);
     expect(dirty.preventDefault).toHaveBeenCalled();
   });
+
+  describe('folder download', () => {
+    let component: CloudComponent;
+    let cloudMock: jasmine.SpyObj<CloudService>;
+    let toastMock: jasmine.SpyObj<UiToastService>;
+
+    beforeEach(() => {
+      jasmine.clock().uninstall();
+      cloudMock = jasmine.createSpyObj<CloudService>('CloudService', [
+        'getFolderArchive',
+      ]);
+      toastMock = jasmine.createSpyObj<UiToastService>('UiToastService', [
+        'success',
+        'info',
+        'warn',
+        'error',
+      ]);
+      component = new CloudComponent(
+        cloudMock,
+        {} as never,
+        toastMock as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+      );
+      component.rootPath = '/root';
+      component.currentFolder = { path: '/root/sub', name: 'sub' } as never;
+    });
+
+    it('downloads the folder as a zip archive and triggers browser download', () => {
+      const mockBlob = new Blob(['zip content'], { type: 'application/zip' });
+      cloudMock.getFolderArchive.and.returnValue(of(mockBlob));
+
+      const mockAnchor = jasmine.createSpyObj<HTMLAnchorElement>(
+        'HTMLAnchorElement',
+        ['click'],
+      );
+      spyOn(document, 'createElement').and.returnValue(mockAnchor as any);
+      spyOn(URL, 'createObjectURL').and.returnValue('blob:mock-url');
+      spyOn(URL, 'revokeObjectURL');
+
+      component.downloadFolder('/root/sub', 'sub');
+
+      expect(cloudMock.getFolderArchive).toHaveBeenCalledWith('sub');
+      expect(document.createElement).toHaveBeenCalledWith('a');
+      expect(mockAnchor.href).toBe('blob:mock-url');
+      expect(mockAnchor.download).toBe('sub.zip');
+      expect(mockAnchor.click).toHaveBeenCalled();
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+      expect(toastMock.info).toHaveBeenCalledWith(
+        'Download started',
+        '"sub.zip" is downloading.',
+      );
+    });
+
+    it('surfaces folder archive backend errors using toast notifications', (done) => {
+      const mockErrorResponse = {
+        error: new Blob([JSON.stringify({ message: 'Rate limit exceeded' })], {
+          type: 'application/json',
+        }),
+      };
+      spyOn<any>(component, 'getErrorMessage').and.returnValue(
+        'Rate limit exceeded',
+      );
+      cloudMock.getFolderArchive.and.returnValue(
+        throwError(() => mockErrorResponse),
+      );
+
+      component.downloadFolder('/root/sub', 'sub');
+
+      setTimeout(() => {
+        expect(toastMock.error).toHaveBeenCalledWith(
+          'Download failed',
+          'Rate limit exceeded',
+        );
+        done();
+      }, 50);
+    });
+
+    it('falls back to generic error message if error blob is not parseable', (done) => {
+      const mockErrorResponse = {
+        error: new Blob(['invalid json'], { type: 'application/json' }),
+      };
+      spyOn<any>(component, 'getErrorMessage').and.returnValue(
+        'Request failed. Please try again.',
+      );
+      cloudMock.getFolderArchive.and.returnValue(
+        throwError(() => mockErrorResponse),
+      );
+
+      component.downloadFolder('/root/sub', 'sub');
+
+      setTimeout(() => {
+        expect(toastMock.error).toHaveBeenCalledWith(
+          'Download failed',
+          'Request failed. Please try again.',
+        );
+        done();
+      }, 50);
+    });
+  });
 });

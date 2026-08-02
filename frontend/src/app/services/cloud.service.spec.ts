@@ -163,4 +163,13 @@ describe('CloudService Secure Send', () => {
     expect(req.request.method).toBe('DELETE');
     req.flush(null);
   });
+
+  it('should request folders/download with path query param for folder archive', () => {
+    service.getFolderArchive('test-folder').subscribe();
+
+    const req = httpMock.expectOne((r) => r.url.endsWith('/folders/download'));
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.get('path')).toBe('test-folder');
+    req.flush(new Blob(['zip'], { type: 'application/zip' }));
+  });
 });

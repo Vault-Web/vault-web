@@ -1602,6 +1602,24 @@ export class CloudComponent implements OnInit, OnDestroy {
       });
   }
 
+  /**
+   * Hands a downloaded blob to the browser. The anchor has to be in the document
+   * for Firefox to act on the click, and the object URL has to outlive it:
+   * revoking in the same tick cuts larger downloads off, which for a folder
+   * archive means a truncated, unreadable ZIP.
+   */
+  private saveBlob(blob: Blob, fileName: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName;
+    anchor.rel = 'noopener';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+  }
+
   downloadFile(file: FileDto) {
     const pathKey = file.path;
     this.downloadingPaths.add(pathKey);
@@ -1619,12 +1637,7 @@ export class CloudComponent implements OnInit, OnDestroy {
       )
       .subscribe({
         next: (blob) => {
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = file.name;
-          a.click();
-          window.URL.revokeObjectURL(url);
+          this.saveBlob(blob, file.name);
           this.toast.info('Download started', `"${file.name}" is downloading.`);
         },
         error: (err) =>
@@ -1642,6 +1655,75 @@ export class CloudComponent implements OnInit, OnDestroy {
 
   downloadFileByPath(path: string, name: string) {
     this.downloadFile(this.toFileRef(path, name));
+  }
+
+  /**
+   * Downloads a folder as a ZIP. Inside a share the archive has to come from the
+   * share API: the path is relative to the shared folder, and the owner's
+   * storage is not the recipient's to read from.
+   */
+  downloadFolder(folderPath: string, folderName: string) {
+    const pathKey = folderPath;
+    const ctx = this.shareCtx;
+    const archive$ = ctx
+      ? this.resourceShareService.downloadFolder(ctx.share.id, folderPath)
+      : this.cloudService.getFolderArchive(this.getRelativePath(folderPath));
+    this.downloadingPaths.add(pathKey);
+
+    archive$
+      .pipe(
+        finalize(() => {
+          this.downloadingPaths.delete(pathKey);
+        }),
+      )
+      .subscribe({
+        next: (blob) => {
+          const zipName = folderName ? `${folderName}.zip` : 'archive.zip';
+          this.saveBlob(blob, zipName);
+          this.toast.info('Download started', `"${zipName}" is downloading.`);
+        },
+        error: (err) => {
+          this.parseBlobError(err).subscribe((msg) => {
+            this.toast.error('Download failed', msg);
+          });
+        },
+      });
+  }
+
+  downloadCurrentFolder() {
+    if (this.currentFolder) {
+      const folderName =
+        this.currentFolder.path === this.rootPath
+          ? 'cloud-root'
+          : this.getNameFromPath(this.currentFolder.path);
+      this.downloadFolder(this.currentFolder.path, folderName);
+    }
+  }
+
+  private parseBlobError(err: unknown): Observable<string> {
+    const candidate = err as { error?: unknown };
+    if (candidate && candidate.error instanceof Blob) {
+      const reader = new FileReader();
+      return new Observable<string>((observer) => {
+        reader.onload = () => {
+          try {
+            const parsed = JSON.parse(reader.result as string);
+            observer.next(
+              parsed.message || 'Request failed. Please try again.',
+            );
+          } catch {
+            observer.next('Request failed. Please try again.');
+          }
+          observer.complete();
+        };
+        reader.onerror = () => {
+          observer.next('Request failed. Please try again.');
+          observer.complete();
+        };
+        reader.readAsText(candidate.error as Blob);
+      });
+    }
+    return of(this.getErrorMessage(err));
   }
 
   previewFileByPath(path: string, name: string) {

@@ -182,6 +182,14 @@ export class CloudService {
     });
   }
 
+  getFolderArchive(relativePath: string): Observable<Blob> {
+    const path = this.normalizePath(relativePath);
+    return this.http.get(`${this.apiUrl}/folders/download`, {
+      params: new HttpParams().set('path', path),
+      responseType: 'blob',
+    });
+  }
+
   getFileView(path: string) {
     return this.http.get(`${this.apiUrl}/files/view`, {
       params: { path },
