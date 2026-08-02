@@ -4,7 +4,6 @@ export interface ChatSticker {
   src: string;
 }
 
-
 export const CHAT_STICKERS: ChatSticker[] = [
   {
     id: 'spark',

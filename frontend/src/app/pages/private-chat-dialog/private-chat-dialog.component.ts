@@ -28,11 +28,7 @@ import { GroupService } from '../../services/group.service';
 import { UserService } from '../../services/user.service';
 import { GroupDto } from '../../models/dtos/GroupDto';
 import { UserDto } from '../../models/dtos/UserDto';
-import {
-  CHAT_STICKERS,
-  ChatSticker,
-  findChatSticker,
-} from './chat-reactions';
+import { CHAT_STICKERS, ChatSticker, findChatSticker } from './chat-reactions';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import DOMPurify from 'dompurify';
 import 'emoji-picker-element';
@@ -426,7 +422,7 @@ export class PrivateChatDialogComponent
       eventOrEmoji && eventOrEmoji.detail && eventOrEmoji.detail.unicode
         ? eventOrEmoji.detail.unicode
         : eventOrEmoji;
-    
+
     const input = this.messageInput?.nativeElement;
     if (!input) {
       this.newMessage += emoji;
@@ -443,12 +439,13 @@ export class PrivateChatDialogComponent
       input.focus();
       const cursorPosition = start + emoji.length;
       input.setSelectionRange(cursorPosition, cursorPosition);
-      setTimeout(() => this.preventFocusClose = false, 100);
+      setTimeout(() => (this.preventFocusClose = false), 100);
     }, 0);
   }
 
-  onEmojiPickerKeydown(event: KeyboardEvent): void {
-    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+  onEmojiPickerKeydown(event: Event): void {
+    const kbEvent = event as KeyboardEvent;
+    if (kbEvent.key === 'ArrowLeft' || kbEvent.key === 'ArrowRight') {
       const picker = event.target as HTMLElement;
       // Allow the web component's own keydown handler to move focus first
       setTimeout(() => {
