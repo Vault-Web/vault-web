@@ -282,28 +282,18 @@ button {
   z-index: 2;
 }
 
-.emoji-grid {
-  display: grid;
-  grid-template-columns: repeat(8, minmax(2rem, 1fr));
-  gap: 0.35rem;
-}
-
-.emoji-option {
-  aspect-ratio: 1;
-  border-radius: 0.5rem;
-  border: 1px solid transparent;
-  background: transparent;
-  font-size: 1.35rem;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover,
-  &:focus-visible {
-    border-color: var(--color-border-hover);
-    background: var(--color-surface-hover);
-  }
+emoji-picker {
+  width: 100%;
+  height: 320px;
+  --background: transparent;
+  --border-color: var(--color-border);
+  --input-border-color: var(--color-input-border);
+  --input-font-color: var(--color-text-primary);
+  --category-font-color: var(--color-text-secondary);
+  --indicator-color: var(--color-primary);
+  --button-hover-background: var(--color-surface-hover);
+  --num-columns: 8;
+  --emoji-size: 1.5rem;
 }
 
 .sticker-grid {
@@ -364,8 +354,8 @@ button {
     right: 0.75rem;
   }
 
-  .emoji-grid {
-    grid-template-columns: repeat(4, minmax(2.4rem, 1fr));
+  emoji-picker {
+    --num-columns: 6;
   }
 
   .sticker-grid {

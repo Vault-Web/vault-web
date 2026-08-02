@@ -4,24 +4,6 @@ export interface ChatSticker {
   src: string;
 }
 
-export const CHAT_EMOJIS = [
-  '😀',
-  '😂',
-  '😊',
-  '😍',
-  '😎',
-  '🥳',
-  '🤔',
-  '👍',
-  '🙏',
-  '🔥',
-  '✨',
-  '💙',
-  '🎉',
-  '✅',
-  '👀',
-  '💡',
-];
 
 export const CHAT_STICKERS: ChatSticker[] = [
   {

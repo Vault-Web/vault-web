@@ -25,6 +25,7 @@
     "@stomp/stompjs": "^7.1.1",
     "@tailwindcss/postcss": "^4.1.10",
     "dompurify": "^3.4.11",
+    "emoji-picker-element": "^1.29.1",
     "marked": "^18.0.6",
     "ngx-toastr": "^19.1.0",
     "postcss": "^8.5.6",

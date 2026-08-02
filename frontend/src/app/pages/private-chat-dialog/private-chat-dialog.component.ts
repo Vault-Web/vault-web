@@ -11,6 +11,8 @@ import {
   ViewChildren,
   AfterViewChecked,
   OnDestroy,
+  CUSTOM_ELEMENTS_SCHEMA,
+  HostListener,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ChatMessageDto } from '../../models/dtos/ChatMessageDto';
@@ -27,13 +29,13 @@ import { UserService } from '../../services/user.service';
 import { GroupDto } from '../../models/dtos/GroupDto';
 import { UserDto } from '../../models/dtos/UserDto';
 import {
-  CHAT_EMOJIS,
   CHAT_STICKERS,
   ChatSticker,
   findChatSticker,
 } from './chat-reactions';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import DOMPurify from 'dompurify';
+import 'emoji-picker-element';
 
 interface ChatMessageView {
   kind: 'text' | 'sticker';
@@ -82,6 +84,7 @@ type ParsedDecryptedMessageBody = {
   imports: [CommonModule, FormsModule],
   templateUrl: './private-chat-dialog.component.html',
   styleUrls: ['./private-chat-dialog.component.scss'],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class PrivateChatDialogComponent
   implements OnInit, OnDestroy, AfterViewChecked
@@ -118,10 +121,10 @@ export class PrivateChatDialogComponent
   matchedMessageIndexes: number[] = [];
   private matchedMessageIndexSet = new Set<number>();
   activeMatchPosition = -1;
-  readonly emojis = CHAT_EMOJIS;
   readonly stickers = CHAT_STICKERS;
   isEmojiPickerOpen = false;
   isStickerPickerOpen = false;
+  private preventFocusClose = false;
   private isTyping = false;
   private typingIdleTimer: ReturnType<typeof setTimeout> | null = null;
   private typingStaleSweepTimer: ReturnType<typeof setInterval> | null = null;
@@ -418,7 +421,12 @@ export class PrivateChatDialogComponent
     };
   }
 
-  insertEmoji(emoji: string): void {
+  insertEmoji(eventOrEmoji: any): void {
+    const emoji =
+      eventOrEmoji && eventOrEmoji.detail && eventOrEmoji.detail.unicode
+        ? eventOrEmoji.detail.unicode
+        : eventOrEmoji;
+    
     const input = this.messageInput?.nativeElement;
     if (!input) {
       this.newMessage += emoji;
@@ -429,13 +437,34 @@ export class PrivateChatDialogComponent
     const end = input.selectionEnd ?? start;
     this.newMessage =
       this.newMessage.slice(0, start) + emoji + this.newMessage.slice(end);
-    this.closeReactionPickers();
 
+    this.preventFocusClose = true;
     setTimeout(() => {
       input.focus();
       const cursorPosition = start + emoji.length;
       input.setSelectionRange(cursorPosition, cursorPosition);
+      setTimeout(() => this.preventFocusClose = false, 100);
     }, 0);
+  }
+
+  onEmojiPickerKeydown(event: KeyboardEvent): void {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      const picker = event.target as HTMLElement;
+      // Allow the web component's own keydown handler to move focus first
+      setTimeout(() => {
+        if (picker.shadowRoot) {
+          const activeEl = picker.shadowRoot.activeElement as HTMLElement;
+          if (activeEl && activeEl.getAttribute('role') === 'tab') {
+            activeEl.click();
+          }
+        }
+      }, 0);
+    }
+  }
+
+  onInputFocus(): void {
+    if (this.preventFocusClose) return;
+    this.closeReactionPickers();
   }
 
   sendSticker(sticker: ChatSticker): void {
@@ -451,6 +480,20 @@ export class PrivateChatDialogComponent
   toggleStickerPicker(): void {
     this.isStickerPickerOpen = !this.isStickerPickerOpen;
     this.isEmojiPickerOpen = false;
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.isEmojiPickerOpen && !this.isStickerPickerOpen) {
+      return;
+    }
+    const target = event.target as HTMLElement;
+    if (
+      !target.closest('.reaction-popover') &&
+      !target.closest('.composer-tool-btn')
+    ) {
+      this.closeReactionPickers();
+    }
   }
 
   closeReactionPickers(): void {

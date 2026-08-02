@@ -202,21 +202,12 @@
         *ngIf="isEmojiPickerOpen || isStickerPickerOpen"
         class="reaction-popover"
       >
-        <div
+        <emoji-picker
           *ngIf="isEmojiPickerOpen"
-          class="emoji-grid"
-          aria-label="Emoji picker"
-        >
-          <button
-            *ngFor="let emoji of emojis"
-            type="button"
-            class="emoji-option"
-            (click)="insertEmoji(emoji)"
-            [attr.aria-label]="'Insert ' + emoji"
-          >
-            {{ emoji }}
-          </button>
-        </div>
+          class="light"
+          (emoji-click)="insertEmoji($event)"
+          (keydown)="onEmojiPickerKeydown($event)"
+        ></emoji-picker>
 
         <div
           *ngIf="isStickerPickerOpen"
@@ -264,7 +255,7 @@
         class="chat-input flex-1 px-3 py-2 outline-none border bg-[var(--surface-b)] text-[var(--text-color)]"
         placeholder="Type a message..."
         autocomplete="off"
-        (focus)="closeReactionPickers()"
+        (focus)="onInputFocus()"
       />
       <button
         type="submit"
