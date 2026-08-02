@@ -1,3 +1,5 @@
+/// <reference types="jasmine" />
+
 import {
   ComponentFixture,
   TestBed,
@@ -144,4 +146,160 @@ describe('PrivateChatDialogComponent typing indicators', () => {
     expect(component.typingIndicatorLabel).toBe('');
     discardPeriodicTasks();
   }));
+});
+
+describe('PrivateChatDialogComponent formatMessage', () => {
+  let fixture: ComponentFixture<PrivateChatDialogComponent>;
+  let component: PrivateChatDialogComponent;
+
+  beforeEach(async () => {
+    const typingEvents = new Subject<TypingIndicatorDto>();
+    const wsService = jasmine.createSpyObj<WebSocketService>(
+      'WebSocketService',
+      [
+        'subscribeToPrivateMessages',
+        'subscribeToTypingIndicators',
+        'sendTypingIndicator',
+        'ensureConnected',
+        'sendPrivateMessage',
+        'sendGroupMessage',
+        'subscribeToGroupMessages',
+      ],
+    );
+    wsService.subscribeToPrivateMessages.and.returnValue(of<ChatMessageDto>());
+    wsService.subscribeToGroupMessages.and.returnValue(of<ChatMessageDto>());
+    wsService.subscribeToTypingIndicators.and.returnValue(
+      typingEvents.asObservable(),
+    );
+    wsService.sendTypingIndicator.and.returnValue(true);
+    wsService.ensureConnected.and.resolveTo(true);
+    wsService.sendPrivateMessage.and.returnValue(true);
+    wsService.sendGroupMessage.and.returnValue(true);
+
+    const chatService = jasmine.createSpyObj<PrivateChatService>(
+      'PrivateChatService',
+      ['getMessages', 'getDevices'],
+    );
+    chatService.getMessages.and.returnValue(of([]));
+    chatService.getDevices.and.returnValue(of<DeviceDto[]>([]));
+
+    const groupChatService = jasmine.createSpyObj<GroupChatService>(
+      'GroupChatService',
+      ['getMessages', 'getDevices'],
+    );
+    groupChatService.getMessages.and.returnValue(of([]));
+    groupChatService.getDevices.and.returnValue(of<DeviceDto[]>([]));
+
+    const e2eeService = jasmine.createSpyObj<E2eeService>('E2eeService', [
+      'ensureDeviceRegistered',
+      'encryptForDevices',
+      'decryptPayload',
+    ]);
+    e2eeService.ensureDeviceRegistered.and.resolveTo();
+
+    const toast = jasmine.createSpyObj<UiToastService>('UiToastService', [
+      'error',
+      'warn',
+    ]);
+
+    const groupService = jasmine.createSpyObj<GroupService>('GroupService', [
+      'getGroupDetails',
+    ]);
+    const userService = jasmine.createSpyObj<UserService>('UserService', [
+      'getProfilePictureUrl',
+    ]);
+
+    await TestBed.configureTestingModule({
+      imports: [PrivateChatDialogComponent],
+      providers: [
+        { provide: WebSocketService, useValue: wsService },
+        { provide: PrivateChatService, useValue: chatService },
+        { provide: GroupChatService, useValue: groupChatService },
+        { provide: E2eeService, useValue: e2eeService },
+        { provide: UiToastService, useValue: toast },
+        { provide: GroupService, useValue: groupService },
+        { provide: UserService, useValue: userService },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(PrivateChatDialogComponent);
+    component = fixture.componentInstance;
+    component.username = 'bob';
+    component.currentUsername = 'alice';
+    component.privateChatId = 10;
+    fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    fixture.destroy();
+  });
+
+  /** Helper: extract the raw HTML string from SafeHtml. */
+  function toHtml(safeHtml: unknown): string {
+    // SafeHtml wraps the value; coerce to string via a temp element
+    const div = document.createElement('div');
+    div.innerHTML =
+      (safeHtml as any)?.changingThisBreaksApplicationSecurity ??
+      String(safeHtml);
+    return div.innerHTML;
+  }
+
+  it('returns empty string for undefined input', () => {
+    expect(component.formatMessage(undefined) as string).toBe('');
+  });
+
+  it('returns empty string for empty string input', () => {
+    expect(component.formatMessage('') as string).toBe('');
+  });
+
+  it('renders plain text without any link markup', () => {
+    const html = toHtml(component.formatMessage('hello world'));
+    expect(html).not.toContain('<a');
+    expect(html).toContain('hello world');
+  });
+
+  it('converts a single URL into a clickable link', () => {
+    const html = toHtml(component.formatMessage('https://example.com'));
+    expect(html).toContain('<a');
+    expect(html).toContain('href="https://example.com"');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noopener noreferrer"');
+  });
+
+  it('keeps surrounding text as plain text', () => {
+    const html = toHtml(
+      component.formatMessage('visit https://example.com now'),
+    );
+    expect(html).toContain('visit ');
+    expect(html).toContain(' now');
+    expect(html).toContain('href="https://example.com"');
+  });
+
+  it('handles multiple URLs in one message', () => {
+    const html = toHtml(
+      component.formatMessage('see https://a.com and http://b.com'),
+    );
+    const anchors = html.match(/<a /g);
+    expect(anchors?.length).toBe(2);
+  });
+
+  it('strips trailing punctuation from URLs', () => {
+    const html = toHtml(component.formatMessage('go to https://example.com.'));
+    expect(html).toContain('href="https://example.com"');
+    // The trailing period should be outside the anchor
+    expect(html).not.toContain('href="https://example.com."');
+  });
+
+  it('escapes HTML entities in plain text to prevent XSS', () => {
+    const html = toHtml(
+      component.formatMessage('<script>alert("xss")</script>'),
+    );
+    expect(html).not.toContain('<script>');
+    expect(html).toContain('&lt;script&gt;');
+  });
+
+  it('does not linkify javascript: scheme URLs', () => {
+    const html = toHtml(component.formatMessage('javascript:alert(1)'));
+    expect(html).not.toContain('<a');
+  });
 });
