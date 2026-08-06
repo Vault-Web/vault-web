@@ -34,6 +34,7 @@ To start the development server:
 npm install
 npm start -- --ssl false
 ```
+
 Open your browser at:
 
 `http://localhost:4200`
@@ -41,6 +42,7 @@ Open your browser at:
 Note: In this project, `npm start` defaults to running with SSL (`ng serve --ssl`). For HTTP development, explicitly pass `--ssl false`.
 
 ### HTTPS Dev Mode (Optional)
+
 If your backend is running in HTTPS mode (`-Dspring-boot.run.profiles=dev`), update your environment file:
 
 Set `useHttps = true` in `src/environments/environment.ts`.
@@ -58,6 +60,7 @@ Open your browser at:
 ## Vault Web Runtime Configuration
 
 ### External Links (Navbar Dropdown / Mobile Menu)
+
 External links are loaded dynamically at runtime from: public/runtime-config.local.js (gitignored).
 
 Edit public/runtime-config.local.js to configure your custom external links.
@@ -102,6 +105,7 @@ Create a production build with:
 ```bash
 npm run build
 ```
+
 The generated build artifacts are stored in the dist/ directory.
 
 ## Folder Structure
