@@ -205,6 +205,7 @@
         <emoji-picker
           *ngIf="isEmojiPickerOpen"
           class="light"
+          aria-label="Emoji picker"
           (emoji-click)="insertEmoji($event)"
           (keydown)="onEmojiPickerKeydown($event)"
         ></emoji-picker>

@@ -423,6 +423,10 @@ export class PrivateChatDialogComponent
         ? eventOrEmoji.detail.unicode
         : eventOrEmoji;
 
+    if (typeof emoji !== 'string') {
+      return;
+    }
+
     const input = this.messageInput?.nativeElement;
     if (!input) {
       this.newMessage += emoji;
@@ -439,21 +443,19 @@ export class PrivateChatDialogComponent
       input.focus();
       const cursorPosition = start + emoji.length;
       input.setSelectionRange(cursorPosition, cursorPosition);
-      setTimeout(() => (this.preventFocusClose = false), 100);
+      this.preventFocusClose = false;
     }, 0);
   }
 
   onEmojiPickerKeydown(event: Event): void {
     const kbEvent = event as KeyboardEvent;
     if (kbEvent.key === 'ArrowLeft' || kbEvent.key === 'ArrowRight') {
-      const picker = event.target as HTMLElement;
+      const picker = event.currentTarget as HTMLElement;
       // Allow the web component's own keydown handler to move focus first
       setTimeout(() => {
-        if (picker.shadowRoot) {
-          const activeEl = picker.shadowRoot.activeElement as HTMLElement;
-          if (activeEl && activeEl.getAttribute('role') === 'tab') {
-            activeEl.click();
-          }
+        const activeEl = picker.shadowRoot?.activeElement as HTMLElement | null;
+        if (activeEl?.getAttribute('role') === 'tab') {
+          activeEl.click();
         }
       }, 0);
     }
