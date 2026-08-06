@@ -55,7 +55,7 @@ npm start
 
 Open your browser at:
 
-`http://localhost:4200`
+`https://localhost:4200`
 
 ## Vault Web Runtime Configuration
 
@@ -68,7 +68,7 @@ Edit public/runtime-config.local.js to configure your custom external links.
 Links can opt in to forwarding the current Vault Web access token in the URL
 fragment. The target service must explicitly support this handoff:
 
-```javaScript
+```javascript
 {
   name: "Habits",
   url: "http://localhost:9001/vault-web-login",
