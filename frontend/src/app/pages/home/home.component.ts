@@ -155,7 +155,7 @@ export class HomeComponent implements OnInit {
     this.selectedUsername = username;
 
     this.privateChatService
-      .getOrCreatePrivateChat(this.currentUsername, username)
+      .getOrCreatePrivateChat(username)
       .subscribe({
         next: (chat: PrivateChatDto) => {
           this.privateChatId = chat.id;
