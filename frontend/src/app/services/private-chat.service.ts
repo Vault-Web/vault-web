@@ -17,9 +17,7 @@ export class PrivateChatService {
 
   constructor(private http: HttpClient) {}
 
-  getOrCreatePrivateChat(
-    username2: string,
-  ): Observable<PrivateChatDto> {
+  getOrCreatePrivateChat(username2: string): Observable<PrivateChatDto> {
     return this.http.get<PrivateChatDto>(
       `${this.apiUrl}/private-chats/between?receiver=${encodeURIComponent(username2)}`,
     );
