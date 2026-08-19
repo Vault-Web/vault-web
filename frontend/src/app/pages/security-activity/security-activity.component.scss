@@ -68,6 +68,10 @@
 .timeline-wrap {
   position: relative;
   padding-left: 2rem;
+  max-height: min(65vh, 720px);
+  overflow-y: auto;
+  padding-right: 0.75rem;
+  scrollbar-gutter: stable;
 }
 
 .timeline {
