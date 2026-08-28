@@ -95,7 +95,11 @@ export class SecurityActivityComponent implements OnInit {
 
   isFailedStatus(status: string): boolean {
     const normalized = status.toUpperCase();
-    return normalized === 'FAILURE' || normalized === 'FAILED' || normalized === 'ERROR';
+    return (
+      normalized === 'FAILURE' ||
+      normalized === 'FAILED' ||
+      normalized === 'ERROR'
+    );
   }
 
   clearFilters(): void {
