@@ -20,7 +20,9 @@
             security.
           </p>
         </div>
-        <span class="badge">{{ filteredEvents.length }} of {{ events.length }} events</span>
+        <span class="badge"
+          >{{ filteredEvents.length }} of {{ events.length }} events</span
+        >
       </header>
 
       <div class="filters" *ngIf="events.length > 0">
@@ -53,7 +55,11 @@
         </button>
       </div>
 
-      <div *ngIf="hasFailedLoginStreak" class="failed-login-alert" role="status">
+      <div
+        *ngIf="hasFailedLoginStreak"
+        class="failed-login-alert"
+        role="status"
+      >
         <i class="pi pi-exclamation-triangle"></i>
         <div>
           <strong>Repeated failed login attempts</strong>
@@ -68,7 +74,10 @@
         <p>No security activity logged yet.</p>
       </div>
 
-      <div *ngIf="events.length > 0 && filteredEvents.length === 0" class="empty-state">
+      <div
+        *ngIf="events.length > 0 && filteredEvents.length === 0"
+        class="empty-state"
+      >
         <p>No events match the selected filters.</p>
         <button class="retry-btn" type="button" (click)="clearFilters()">
           Clear filters
