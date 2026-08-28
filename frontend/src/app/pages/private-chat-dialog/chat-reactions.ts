@@ -1,3 +1,5 @@
+import './chat-markdown';
+
 export interface ChatSticker {
   id: string;
   label: string;
