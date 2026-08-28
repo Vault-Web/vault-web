@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { UserService, SecurityEventDto } from '../../services/user.service';
 import { UiToastService } from '../../core/services/ui-toast.service';
@@ -7,7 +8,7 @@ import { UiToastService } from '../../core/services/ui-toast.service';
 @Component({
   selector: 'app-security-activity',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './security-activity.component.html',
   styleUrl: './security-activity.component.scss',
 })
@@ -62,7 +63,9 @@ export class SecurityActivityComponent implements OnInit {
         event.eventType === this.selectedEventType;
       const matchesStatus =
         this.selectedStatus === 'ALL' ||
-        event.status.toUpperCase() === this.selectedStatus;
+        (this.selectedStatus === 'FAILURE'
+          ? this.isFailedStatus(event.status)
+          : event.status.toUpperCase() === this.selectedStatus);
       return matchesType && matchesStatus;
     });
   }
@@ -73,8 +76,7 @@ export class SecurityActivityComponent implements OnInit {
 
     for (const event of this.events) {
       const isFailedLogin =
-        event.eventType === 'LOGIN' &&
-        event.status.toUpperCase() === 'FAILURE';
+        event.eventType === 'LOGIN' && this.isFailedStatus(event.status);
 
       if (isFailedLogin) {
         streak += 1;
@@ -89,6 +91,11 @@ export class SecurityActivityComponent implements OnInit {
 
   get hasFailedLoginStreak(): boolean {
     return this.failedLoginStreak >= 3;
+  }
+
+  isFailedStatus(status: string): boolean {
+    const normalized = status.toUpperCase();
+    return normalized === 'FAILURE' || normalized === 'FAILED' || normalized === 'ERROR';
   }
 
   clearFilters(): void {
