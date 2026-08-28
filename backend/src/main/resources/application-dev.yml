@@ -1,8 +1,0 @@
-server:
-  port: 8080
-  ssl:
-    enabled: true
-    key-store: classpath:vaultweb-dev.p12
-    key-store-password: changeit
-    key-store-type: PKCS12
-    key-alias: vaultweb
