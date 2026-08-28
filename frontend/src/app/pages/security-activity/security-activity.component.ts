@@ -15,6 +15,8 @@ export class SecurityActivityComponent implements OnInit {
   events: SecurityEventDto[] = [];
   isLoading = true;
   error: string | null = null;
+  selectedEventType = 'ALL';
+  selectedStatus = 'ALL';
 
   constructor(
     private userService: UserService,
@@ -47,6 +49,51 @@ export class SecurityActivityComponent implements OnInit {
 
   retry(): void {
     this.loadSecurityActivity();
+  }
+
+  get eventTypes(): string[] {
+    return [...new Set(this.events.map((event) => event.eventType))].sort();
+  }
+
+  get filteredEvents(): SecurityEventDto[] {
+    return this.events.filter((event) => {
+      const matchesType =
+        this.selectedEventType === 'ALL' ||
+        event.eventType === this.selectedEventType;
+      const matchesStatus =
+        this.selectedStatus === 'ALL' ||
+        event.status.toUpperCase() === this.selectedStatus;
+      return matchesType && matchesStatus;
+    });
+  }
+
+  get failedLoginStreak(): number {
+    let streak = 0;
+    let longestStreak = 0;
+
+    for (const event of this.events) {
+      const isFailedLogin =
+        event.eventType === 'LOGIN' &&
+        event.status.toUpperCase() === 'FAILURE';
+
+      if (isFailedLogin) {
+        streak += 1;
+        longestStreak = Math.max(longestStreak, streak);
+      } else if (event.eventType === 'LOGIN') {
+        streak = 0;
+      }
+    }
+
+    return longestStreak;
+  }
+
+  get hasFailedLoginStreak(): boolean {
+    return this.failedLoginStreak >= 3;
+  }
+
+  clearFilters(): void {
+    this.selectedEventType = 'ALL';
+    this.selectedStatus = 'ALL';
   }
 
   getFriendlyEventType(type: string): string {
