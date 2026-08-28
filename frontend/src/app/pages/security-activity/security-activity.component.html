@@ -20,18 +20,69 @@
             security.
           </p>
         </div>
-        <span class="badge">{{ events.length }} events</span>
+        <span class="badge">{{ filteredEvents.length }} of {{ events.length }} events</span>
       </header>
+
+      <div class="filters" *ngIf="events.length > 0">
+        <div class="filter-group">
+          <label for="event-type-filter">Event type</label>
+          <select id="event-type-filter" [(ngModel)]="selectedEventType">
+            <option value="ALL">All event types</option>
+            <option *ngFor="let type of eventTypes" [value]="type">
+              {{ getFriendlyEventType(type) }}
+            </option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="status-filter">Status</label>
+          <select id="status-filter" [(ngModel)]="selectedStatus">
+            <option value="ALL">All statuses</option>
+            <option value="SUCCESS">Successful</option>
+            <option value="FAILURE">Failed attempts</option>
+          </select>
+        </div>
+
+        <button
+          *ngIf="selectedEventType !== 'ALL' || selectedStatus !== 'ALL'"
+          class="clear-filter-btn"
+          type="button"
+          (click)="clearFilters()"
+        >
+          Clear filters
+        </button>
+      </div>
+
+      <div *ngIf="hasFailedLoginStreak" class="failed-login-alert" role="status">
+        <i class="pi pi-exclamation-triangle"></i>
+        <div>
+          <strong>Repeated failed login attempts</strong>
+          <p>
+            {{ failedLoginStreak }} failed login attempts occurred in a row.
+            If you do not recognize them, consider changing your password.
+          </p>
+        </div>
+        <a routerLink="/settings/security" class="security-action-link">
+          Review security
+        </a>
+      </div>
 
       <div *ngIf="events.length === 0" class="empty-state">
         <p>No security activity logged yet.</p>
       </div>
 
-      <div class="timeline-wrap" *ngIf="events.length > 0">
+      <div *ngIf="events.length > 0 && filteredEvents.length === 0" class="empty-state">
+        <p>No events match the selected filters.</p>
+        <button class="retry-btn" type="button" (click)="clearFilters()">
+          Clear filters
+        </button>
+      </div>
+
+      <div class="timeline-wrap" *ngIf="filteredEvents.length > 0">
         <ul class="timeline">
           <li
             class="timeline-entry"
-            *ngFor="let event of events; trackBy: trackById"
+            *ngFor="let event of filteredEvents; trackBy: trackById"
             [class.highlighted]="isHighlightEvent(event.eventType)"
           >
             <div class="dot-container">
