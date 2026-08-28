@@ -30,7 +30,7 @@ function installStyles(): void {
 
 export function renderChatMarkdown(content: string): string {
   installStyles();
-  const rendered = marked.parse(content ?? '');
+  const rendered = marked.parse(content ?? '', { async: false });
   const cleanHtml = DOMPurify.sanitize(rendered);
   return `<div class="chat-markdown">${cleanHtml}</div>`;
 }
