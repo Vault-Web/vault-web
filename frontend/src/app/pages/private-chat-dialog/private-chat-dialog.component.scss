@@ -377,3 +377,15 @@ button {
     padding-inline: 0.8rem !important;
   }
 }
+
+/* ── Clickable links inside chat messages (inserted via innerHTML) ── */
+:host ::ng-deep .chat-bubble a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}

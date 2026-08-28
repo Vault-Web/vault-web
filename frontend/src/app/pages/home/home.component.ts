@@ -154,20 +154,18 @@ export class HomeComponent implements OnInit {
 
     this.selectedUsername = username;
 
-    this.privateChatService
-      .getOrCreatePrivateChat(this.currentUsername, username)
-      .subscribe({
-        next: (chat: PrivateChatDto) => {
-          this.privateChatId = chat.id;
-        },
-        error: () => {
-          console.error('Failed to get or create private chat');
-          this.toast.error(
-            'Chat unavailable',
-            'Could not open this chat right now.',
-          );
-        },
-      });
+    this.privateChatService.getOrCreatePrivateChat(username).subscribe({
+      next: (chat: PrivateChatDto) => {
+        this.privateChatId = chat.id;
+      },
+      error: () => {
+        console.error('Failed to get or create private chat');
+        this.toast.error(
+          'Chat unavailable',
+          'Could not open this chat right now.',
+        );
+      },
+    });
   }
 
   closeChat(): void {

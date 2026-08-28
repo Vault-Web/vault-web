@@ -43,4 +43,7 @@ public class ChatMessage {
   @OneToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "poll_id")
   private Poll poll;
+
+  @Column(name = "client_message_id", length = 36, nullable = true)
+  private String clientMessageId;
 }

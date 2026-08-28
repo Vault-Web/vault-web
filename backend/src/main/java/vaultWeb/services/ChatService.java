@@ -81,6 +81,7 @@ public class ChatService {
     ChatMessage message = new ChatMessage();
     message.setSender(sender);
     message.setMessageType(messageType);
+    message.setClientMessageId(dto.getClientMessageId());
 
     if (dto.getTimestamp() != null) {
       message.setTimestamp(Instant.parse(dto.getTimestamp()));
@@ -136,6 +137,8 @@ public class ChatService {
     dto.setSenderUsername(message.getSender().getUsername());
 
     dto.setSenderDeviceId(message.getSenderDeviceId());
+
+    dto.setClientMessageId(message.getClientMessageId());
 
     MessageType messageType =
         message.getMessageType() != null ? message.getMessageType() : MessageType.TEXT;

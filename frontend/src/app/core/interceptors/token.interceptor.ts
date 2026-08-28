@@ -9,6 +9,9 @@ import { catchError, switchMap, throwError, ReplaySubject } from 'rxjs';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { NetworkStatusService } from '../services/network-status.service';
+import { environment } from '../../../environments/environment';
+
+const PUBLIC_API_PREFIXES = [`${environment.cloudServiceApiUrl}/public/`];
 
 let refreshTokenSubject = new ReplaySubject<string>(1);
 let isRefreshing = false;
@@ -17,6 +20,20 @@ export const tokenInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const networkStatusService = inject(NetworkStatusService);
   const router = inject(Router);
+
+  // Public endpoints are opened by recipients without a session. Their 401 means
+  // "wrong password", not "session expired", so it must never trigger a token
+  // refresh or log the visitor out. The component renders these errors itself.
+  if (isPublicEndpoint(req.url)) {
+    return next(req).pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (isBackendUnavailable(error)) {
+          networkStatusService.showBackendUnavailable();
+        }
+        return throwError(() => error);
+      }),
+    );
+  }
 
   // Explicit Authorization Header
   if (req.headers.has('Authorization')) {
@@ -117,6 +134,15 @@ function handleUnauthorized(
       return throwError(() => refreshErr);
     }),
   );
+}
+
+/**
+ * The unauthenticated share endpoints, matched against the API bases rather than
+ * on a bare '/public/' substring, so a future authenticated path that happens to
+ * contain that segment is not silently stripped of its token.
+ */
+function isPublicEndpoint(url: string): boolean {
+  return PUBLIC_API_PREFIXES.some((prefix) => url.startsWith(prefix));
 }
 
 function isBackendUnavailable(error: HttpErrorResponse): boolean {

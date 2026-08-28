@@ -30,20 +30,39 @@ For example, file storage and file management are provided by the **Cloud Page**
 
 ---
 
+## Modules and Dependencies
+
+Vault Web is composed of multiple modules and services:
+
+- 📦 [**backend/**](./backend/README.md)  
+  Spring Boot backend providing authentication, user management, collaboration
+  features, REST APIs, and database access.
+
+- 🌐 [**frontend/**](./frontend/README.md)  
+  Angular frontend providing the Vault Web dashboard and user interface.
+
+- ☁️ [**Cloud Page**](https://github.com/Vault-Web/cloud-page)
+  File storage and file management service embedded into the Vault Web frontend.
+
+- 🔐 [**Auth API Gateway**](https://github.com/Vault-Web/auth-api-gateway)  
+  Authentication gateway service used within the Vault Web ecosystem.
+
+- 🚀 [**deploy**](https://github.com/Vault-Web/deploy)  
+  Production deployment stack, including submodules and backup configuration.
+
+---
+
 ## Local Development
 
-For local development and contributions, it is recommended to fork the repository first.
-Vault Web uses **Docker** for local development.
+For local development, Vault Web uses **Docker**.
+
+If you plan to contribute, clone your fork instead of the main repository.
 
 ### Requirements
 
 - Docker & Docker Compose
-- Java 21+ (Java 24 supported)
-- Node.js & npm
 
 ---
-
-If you plan to contribute, clone your fork instead of the main repository.
 
 ## 1. Clone the Repository
 
@@ -76,124 +95,24 @@ docker compose up -d
 
 ---
 
-## 4. Backend (Spring Boot)
-
-The backend can run in **HTTP** or **HTTPS** mode:
-
-### HTTP Mode (API testing only)
-
-For backend and frontend development over plain HTTP on localhost.
-
-```bash
-cd backend
-./mvnw spring-boot:run
-```
-
-- API: [http://localhost:8080](http://localhost:8080)
-- Swagger UI: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
-
-### HTTPS Mode (full-stack development)
-
-For development with the Angular frontend, as it requires HTTPS for secure cookies and JWT authentication.
-
-**Start with HTTPS:**
-
-```bash
-cd backend
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
-```
-
-- API: [https://localhost:8080](https://localhost:8080)
-- Swagger UI: [https://localhost:8080/swagger-ui.html](https://localhost:8080/swagger-ui.html)
-
-⚠️ **Browser Warning:** You will see a security warning about a self-signed certificate. This is normal for local development. Accept the warning to proceed.
-
-> **Database Configuration:** Ensure the database values in `backend/src/main/resources/application.properties` match the `.env` file.
-
-### Timezone configuration (important for some environments)
-
-On some systems, the backend may fail to start because PostgreSQL rejects a deprecated JVM timezone identifier during startup.
-
-If you encounter an error like:
-
-```text
-FATAL: invalid value for parameter "TimeZone"
-```
-
-see [common_problems.md](./common_problems.md) for platform-specific troubleshooting and startup guidance.
-
----
-
-## 5. Frontend (Angular)
-
-Frontend can run against HTTP backend (default) or HTTPS backend.
-
-### Default local mode (HTTP)
-
-The default `frontend/src/environments/environment.ts` uses:
-
-- `useHttps = false`
-- backend base URL `http://localhost:8080`
-
-Run:
-
-```bash
-cd frontend
-npm install
-npm start -- --ssl false
-```
-
-Open:
-👉 [http://localhost:4200](http://localhost:4200)
-
-Note:
-
-- In this project, `npm start` maps to `ng serve --ssl` (HTTPS).
-- For HTTP, explicitly pass `--ssl false` (or run `npx ng serve --ssl false`).
-
-### HTTPS dev mode (optional)
-
-If you run backend with `-Dspring-boot.run.profiles=dev` (HTTPS), set:
-
-- `useHttps = true` in `frontend/src/environments/environment.ts`
-
-Then run frontend with SSL:
-
-```bash
-cd frontend
-npm start
-```
-
-Open:
-👉 [https://localhost:4200](https://localhost:4200)
-
-### External links in navbar (runtime config)
-
-The external links are loaded at runtime from: `frontend/public/runtime-config.local.js` (gitignored)
-
-Therefore edit `public/runtime-config.local.js` to add your own external links.
-
-An external service that explicitly supports Vault Web JWT handoff can opt in
-with `forwardVaultWebToken: true`. Vault Web then appends the current access
-token to that link's URL fragment instead of sending it to every external link.
-
----
-
 ## Notes
 
 This project is intended for **self-hosted and home-server environments**.
-Contributions and feedback are welcome.
 
 ---
 
 ## Contributing
 
 To contribute to this project, please fork the repository and create a feature branch in your fork.
+
 Pull requests should be opened from your forked repository to the main branch of this repository.
 
 If you are new to the project, feel free to open an issue before starting work to discuss your idea.
 
+---
+
 ## Troubleshooting
 
-If you encounter setup or startup issues that are not covered above,
-see [common_problems.md](./common_problems.md) for platform-specific guidance and fixes.
+If you encounter setup or startup issues, see [common_problems.md](./common_problems.md) for platform-specific troubleshooting guidance and fixes.
+
+---

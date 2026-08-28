@@ -6,4 +6,5 @@ export interface ChatMessageDto {
   timestamp: string;
   senderDeviceId?: string;
   e2eePayload?: string;
+  clientMessageId?: string;
 }

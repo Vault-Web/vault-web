@@ -1,19 +1,74 @@
 # Frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.11.
+The frontend is an Angular-based application providing the web interface and dashboard for Vault Web.
 
-## Vault-Web specific configuration
+## Requirements
 
-### External links (navbar dropdown / mobile menu)
+To develop or run the frontend independently, you will need:
 
-The external links are loaded at runtime from: `public/runtime-config.local.js` (gitignored)
+- Node.js (LTS recommended)
+- npm (comes with Node.js)
+- Angular CLI 19 (optional; the project includes a local CLI dependency through npm)
 
-Therefore edit `public/runtime-config.local.js` to add your own external links.
+The project uses:
+
+- Angular 19
+- TypeScript 5.7
+- Tailwind CSS 4
+- PrimeNG 19
+
+## Local Development
+
+The frontend can run against either an HTTP or HTTPS backend.
+
+### Default Local Mode (HTTP)
+
+By default, `src/environments/environment.ts` is configured with:
+
+- `useHttps = false`
+- Backend base URL: `http://localhost:8080`
+
+To start the development server:
+
+```bash
+npm install
+npm start -- --ssl false
+```
+
+Open your browser at:
+
+`http://localhost:4200`
+
+Note: In this project, `npm start` defaults to running with SSL (`ng serve --ssl`). For HTTP development, explicitly pass `--ssl false`.
+
+### HTTPS Dev Mode (Optional)
+
+If your backend is running in HTTPS mode (`-Dspring-boot.run.profiles=dev`), update your environment file:
+
+Set `useHttps = true` in `src/environments/environment.ts`.
+
+Then start the frontend with SSL enabled:
+
+```bash
+npm start
+```
+
+Open your browser at:
+
+`https://localhost:4200`
+
+## Vault Web Runtime Configuration
+
+### External Links (Navbar Dropdown / Mobile Menu)
+
+External links are loaded dynamically at runtime from: public/runtime-config.local.js (gitignored).
+
+Edit public/runtime-config.local.js to configure your custom external links.
 
 Links can opt in to forwarding the current Vault Web access token in the URL
-fragment. The target service must explicitly support that handoff:
+fragment. The target service must explicitly support this handoff:
 
-```js
+```javascript
 {
   name: "Habits",
   url: "http://localhost:9001/vault-web-login",
@@ -21,58 +76,56 @@ fragment. The target service must explicitly support that handoff:
 }
 ```
 
-## Development server
+## Running Tests
 
-To start a local development server, run:
-
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+Execute the frontend unit test suite using the Karma test runner:
 
 ```bash
-ng generate component component-name
+npm test
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+Or directly via the Angular CLI:
 
 ```bash
 ng test
 ```
 
-## Running end-to-end tests
+## Code Quality
 
-For end-to-end (e2e) testing, run:
+Run ESLint checks using:
 
 ```bash
-ng e2e
+npm run lint
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+## Building
 
-## Additional Resources
+Create a production build with:
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+```bash
+npm run build
+```
+
+The generated build artifacts are stored in the dist/ directory.
+
+## Folder Structure
+
+```text
+frontend
+├── public/                 # Public assets and runtime configuration files
+│   └── stickers/           # Static sticker assets
+│
+└── src/
+    ├── app/
+    │   ├── config/         # Application configuration providers
+    │   ├── core/           # Core HTTP interceptors, services, and utilities
+    │   ├── models/         # TypeScript models and DTO interfaces
+    │   ├── navbar/         # Navigation components and runtime link resolution
+    │   ├── pages/          # Route views (dashboard, cloud, login, chat, etc.)
+    │   └── services/       # Frontend services and API communication
+    │
+    ├── environments/       # Environment-specific configuration
+    ├── main.ts             # Application entry point
+    ├── polyfills.ts        # Browser compatibility setup
+    └── styles.scss         # Global styling
+```

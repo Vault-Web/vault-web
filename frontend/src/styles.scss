@@ -167,3 +167,76 @@ body {
     font-size: 1.05rem;
   }
 }
+
+/* A file or folder row, as used by the cloud table and by the public share
+   landing page. Global so both render an entry identically — the folder chip in
+   particular is the same amber everywhere in the product. */
+.cloud-entry-btn {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0;
+  text-align: left;
+  min-width: 0;
+  cursor: pointer;
+}
+.cloud-entry-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  &.folder {
+    color: #d97706;
+    background: color-mix(in srgb, #f59e0b 20%, transparent);
+  }
+}
+.cloud-entry-name {
+  max-width: 26rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Cloud: "who has access" avatar stack on shared folders (global to keep the
+   cloud component within its style budget). */
+.cloud-access {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+.cloud-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  margin-left: -0.35rem;
+  border-radius: 9999px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 600;
+  overflow: hidden;
+  border: 2px solid var(--color-surface);
+}
+.cloud-avatar:first-child {
+  margin-left: 0;
+}
+.cloud-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cloud-avatar-more {
+  background: var(--color-text-muted);
+}

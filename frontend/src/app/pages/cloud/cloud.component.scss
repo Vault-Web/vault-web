@@ -1,3 +1,5 @@
+$font-mono: ui-monospace, monospace;
+
 .cloud-shell {
   min-height: 100vh;
   padding: 0.65rem;
@@ -11,17 +13,15 @@
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 0.5rem;
-}
-
-.cloud-headline-actions {
-  display: flex;
-  gap: 0.5rem;
+  &-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
 }
 
 .cloud-title {
   margin: 0;
 }
-
 .cloud-subtitle {
   margin: 0.12rem 0 0;
   color: var(--color-text-secondary);
@@ -34,22 +34,110 @@
   margin-bottom: 0.5rem;
 }
 
-:host ::ng-deep .cloud-toolbar {
-  border-radius: var(--p-button-border-radius);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  padding: 0.38rem 0.48rem;
-}
+:host ::ng-deep {
+  .cloud-toolbar {
+    border-radius: var(--p-button-border-radius);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    padding: 0.38rem 0.48rem;
+    .p-toolbar-group-start,
+    .p-toolbar-group-end {
+      min-width: 0;
+    }
+    .p-toolbar-group-end {
+      max-width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+  }
 
-:host ::ng-deep .cloud-toolbar .p-toolbar-group-start,
-:host ::ng-deep .cloud-toolbar .p-toolbar-group-end {
-  min-width: 0;
-}
+  .cloud-search .cloud-search-input.p-inputtext {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 0.1rem 0;
+    width: clamp(6rem, 30vw, 9rem);
+  }
 
-:host ::ng-deep .cloud-toolbar .p-toolbar-group-end {
-  max-width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
+  .cloud-breadcrumb {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    .p-breadcrumb-list {
+      flex-wrap: nowrap;
+      min-width: 0;
+    }
+    .p-menuitem-link {
+      min-width: 0;
+      max-width: 10rem;
+    }
+    .p-breadcrumb-list li {
+      .p-menuitem-link,
+      .p-menuitem-text,
+      .p-breadcrumb-home {
+        color: var(--color-text-secondary);
+      }
+      .p-menuitem-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      &:last-child .p-menuitem-text {
+        color: var(--color-text-primary);
+        font-weight: 600;
+      }
+      .p-menuitem-link.drag-over {
+        background: color-mix(
+          in srgb,
+          var(--color-primary) 15%,
+          transparent
+        ) !important;
+        outline: 1px dashed var(--color-primary);
+        border-radius: 4px;
+        padding: 2px 4px;
+      }
+    }
+  }
+
+  .cloud-table {
+    .p-datatable-table {
+      font-size: inherit;
+    }
+    .p-datatable-thead > tr > th {
+      background: var(--color-surface-hover);
+      color: var(--color-text-secondary);
+      border: 0;
+      padding: 0.5rem 0.6rem;
+    }
+    .p-datatable-tbody > tr > td {
+      padding: 0.5rem 0.6rem;
+      border-color: var(--color-border);
+      background: transparent;
+    }
+    .p-datatable-tbody > tr:hover > td {
+      background: var(--color-surface-hover);
+    }
+  }
+
+  .cloud-icon-btn.p-button {
+    color: var(--color-text-secondary);
+    &:hover {
+      background: var(--color-surface-hover);
+    }
+  }
+  .cloud-accent-btn.p-button {
+    border-color: #4cae86;
+    color: #2f7d5d;
+    &:hover {
+      background: #eef8f3;
+      border-color: #429a76;
+      color: #27684d;
+    }
+  }
 }
 
 .cloud-toolbar-start {
@@ -67,91 +155,22 @@
   border: 1px solid var(--color-input-border);
   border-radius: 999px;
   background: var(--color-input-bg);
-}
-
-.cloud-search-icon {
-  color: var(--color-text-secondary);
-  font-size: 0.7rem;
-}
-
-:host ::ng-deep .cloud-search .cloud-search-input.p-inputtext {
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  padding: 0.1rem 0;
-  width: clamp(6rem, 30vw, 9rem);
-}
-
-.cloud-search-clear {
-  border: 0;
-  background: transparent;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  padding: 0;
-}
-
-.cloud-search-clear:hover {
-  color: var(--color-text-primary);
-}
-
-:host ::ng-deep .cloud-breadcrumb {
-  border: 0;
-  padding: 0;
-  background: transparent;
-  max-width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  white-space: nowrap;
-}
-
-:host ::ng-deep .cloud-breadcrumb .p-breadcrumb-list {
-  flex-wrap: nowrap;
-  min-width: 0;
-}
-
-:host ::ng-deep .cloud-breadcrumb .p-menuitem-link {
-  min-width: 0;
-  max-width: 10rem;
-}
-
-:host ::ng-deep .cloud-breadcrumb .p-breadcrumb-list li .p-menuitem-link,
-:host ::ng-deep .cloud-breadcrumb .p-breadcrumb-list li .p-menuitem-text,
-:host ::ng-deep .cloud-breadcrumb .p-breadcrumb-list li .p-breadcrumb-home {
-  color: var(--color-text-secondary);
-}
-
-:host ::ng-deep .cloud-breadcrumb .p-breadcrumb-list li .p-menuitem-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-:host
-  ::ng-deep
-  .cloud-breadcrumb
-  .p-breadcrumb-list
-  li:last-child
-  .p-menuitem-text {
-  color: var(--color-text-primary);
-  font-weight: 600;
-}
-
-:host
-  ::ng-deep
-  .cloud-breadcrumb
-  .p-breadcrumb-list
-  li
-  .p-menuitem-link.drag-over {
-  background: color-mix(
-    in srgb,
-    var(--color-primary) 15%,
-    transparent
-  ) !important;
-  outline: 1px dashed var(--color-primary);
-  border-radius: 4px;
-  padding: 2px 4px;
+  &-icon {
+    color: var(--color-text-secondary);
+    font-size: 0.7rem;
+  }
+  &-clear {
+    border: 0;
+    background: transparent;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    padding: 0;
+    &:hover {
+      color: var(--color-text-primary);
+    }
+  }
 }
 
 .cloud-state {
@@ -163,12 +182,11 @@
   border: 1px solid var(--color-border);
   background: color-mix(in srgb, var(--color-surface) 85%, transparent);
   color: var(--color-text-secondary);
-}
-
-.cloud-state-error {
-  color: #dc2626;
-  border-color: color-mix(in srgb, #ef4444 45%, var(--color-border));
-  background: color-mix(in srgb, #ef4444 10%, transparent);
+  &-error {
+    color: #dc2626;
+    border-color: color-mix(in srgb, #ef4444 45%, var(--color-border));
+    background: color-mix(in srgb, #ef4444 10%, transparent);
+  }
 }
 
 .cloud-table-wrap {
@@ -178,97 +196,37 @@
   box-shadow: 0 6px 14px -14px var(--color-shadow-md);
   overflow-x: auto;
   overflow-y: hidden;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    background-color 0.2s ease;
-}
-
-// Highlight the table while external files are dragged over it.
-.cloud-table-wrap.drag-over {
-  border-color: var(--color-primary);
-  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
-  box-shadow: 0 0 0 2px
-    color-mix(in srgb, var(--color-primary) 25%, transparent);
-}
-
-:host ::ng-deep .cloud-table .p-datatable-table {
-  font-size: inherit;
-}
-
-:host ::ng-deep .cloud-table .p-datatable-thead > tr > th {
-  background: var(--color-surface-hover);
-  color: var(--color-text-secondary);
-  border: 0;
-  padding: 0.5rem 0.6rem;
-}
-
-:host ::ng-deep .cloud-table .p-datatable-tbody > tr > td {
-  padding: 0.5rem 0.6rem;
-  border-color: var(--color-border);
-  background: transparent;
-}
-
-:host ::ng-deep .cloud-table .p-datatable-tbody > tr:hover > td {
-  background: var(--color-surface-hover);
+  transition: all 0.2s ease;
+  &.drag-over {
+    border-color: var(--color-primary);
+    background: color-mix(
+      in srgb,
+      var(--color-primary) 8%,
+      var(--color-surface)
+    );
+    box-shadow: 0 0 0 2px
+      color-mix(in srgb, var(--color-primary) 25%, transparent);
+  }
 }
 
 .cloud-row {
   transition: background-color 0.2s ease;
+  &.drag-over {
+    background: color-mix(
+      in srgb,
+      var(--color-primary) 15%,
+      var(--color-surface)
+    ) !important;
+    outline: 2px dashed var(--color-primary);
+    outline-offset: -2px;
+  }
 }
 
-.cloud-row.drag-over {
-  background: color-mix(
-    in srgb,
-    var(--color-primary) 15%,
-    var(--color-surface)
-  ) !important;
-  outline: 2px dashed var(--color-primary);
-  outline-offset: -2px;
-}
-
-.cloud-entry-btn {
-  border: 0;
-  background: transparent;
-  color: inherit;
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0;
-  text-align: left;
-  min-width: 0;
-  cursor: pointer;
-}
-
-.cloud-entry-icon {
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 0.4rem;
-  border: 1px solid var(--color-border);
-  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
-  color: var(--color-primary);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.cloud-entry-icon.folder {
-  color: #d97706;
-  background: color-mix(in srgb, #f59e0b 20%, transparent);
-}
-
-.cloud-entry-name {
-  max-width: 26rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
+/* .cloud-entry-btn, .cloud-entry-icon and .cloud-entry-name live in styles.scss:
+   the public share page renders the same rows and must not drift from these. */
 .cloud-muted {
   color: var(--color-text-secondary);
 }
-
 .cloud-actions {
   display: flex;
   justify-content: flex-end;
@@ -276,75 +234,51 @@
   gap: 0.15rem;
 }
 
-:host ::ng-deep .cloud-icon-btn.p-button {
-  color: var(--color-text-secondary);
-}
-
-:host ::ng-deep .cloud-icon-btn.p-button:hover {
-  background: var(--color-surface-hover);
-}
-
-:host ::ng-deep .cloud-accent-btn.p-button {
-  border-color: #4cae86;
-  color: #2f7d5d;
-}
-
-:host ::ng-deep .cloud-accent-btn.p-button:hover {
-  background: #eef8f3;
-  border-color: #429a76;
-  color: #27684d;
-}
-
-:host-context(.dark-theme) .cloud-shell {
-  background:
-    radial-gradient(
-      140% 100% at 0% 0%,
-      color-mix(in srgb, var(--color-primary) 10%, transparent),
-      transparent
-    ),
-    radial-gradient(
-      140% 100% at 100% 100%,
-      color-mix(in srgb, var(--color-primary) 8%, transparent),
-      transparent
-    ),
-    var(--color-background-secondary);
-}
-
-:host-context(.dark-theme) ::ng-deep .cloud-toolbar {
-  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
-  backdrop-filter: blur(8px);
-}
-
-:host-context(.dark-theme) .cloud-table-wrap {
-  box-shadow: 0 12px 35px -22px var(--color-shadow-md);
-}
-
-:host-context(.dark-theme) ::ng-deep .cloud-table .p-datatable-thead > tr > th {
-  background: color-mix(
-    in srgb,
-    var(--color-surface-hover) 50%,
-    var(--color-surface)
-  );
-}
-
-:host-context(.dark-theme)
-  ::ng-deep
-  .cloud-table
-  .p-datatable-tbody
-  > tr:hover
-  > td {
-  background: color-mix(in srgb, var(--color-primary) 7%, var(--color-surface));
-}
-
-:host-context(.dark-theme) ::ng-deep .cloud-accent-btn.p-button {
-  border-color: #3f8d6d;
-  color: #7bd5aa;
-}
-
-:host-context(.dark-theme) ::ng-deep .cloud-accent-btn.p-button:hover {
-  background: color-mix(in srgb, #2f7d5d 25%, transparent);
-  border-color: #51a884;
-  color: #9ae6c2;
+:host-context(.dark-theme) {
+  .cloud-shell {
+    background:
+      radial-gradient(
+        140% 100% at 0% 0%,
+        color-mix(in srgb, var(--color-primary) 10%, transparent),
+        transparent
+      ),
+      radial-gradient(
+        140% 100% at 100% 100%,
+        color-mix(in srgb, var(--color-primary) 8%, transparent),
+        transparent
+      ),
+      var(--color-background-secondary);
+  }
+  ::ng-deep .cloud-toolbar {
+    background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+    backdrop-filter: blur(8px);
+  }
+  .cloud-table-wrap {
+    box-shadow: 0 12px 35px -22px var(--color-shadow-md);
+  }
+  ::ng-deep .cloud-table .p-datatable-thead > tr > th {
+    background: color-mix(
+      in srgb,
+      var(--color-surface-hover) 50%,
+      var(--color-surface)
+    );
+  }
+  ::ng-deep .cloud-table .p-datatable-tbody > tr:hover > td {
+    background: color-mix(
+      in srgb,
+      var(--color-primary) 7%,
+      var(--color-surface)
+    );
+  }
+  ::ng-deep .cloud-accent-btn.p-button {
+    border-color: #3f8d6d;
+    color: #7bd5aa;
+    &:hover {
+      background: color-mix(in srgb, #2f7d5d 25%, transparent);
+      border-color: #51a884;
+      color: #9ae6c2;
+    }
+  }
 }
 
 .cloud-empty {
@@ -352,23 +286,18 @@
   color: var(--color-text-secondary);
   padding: 0.9rem 0.6rem;
 }
-
-.cloud-dialog-body {
+.cloud-dialog-body,
+.cloud-scan-body {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
 }
-
 .cloud-scan-body {
-  display: flex;
-  flex-direction: column;
   gap: 0.75rem;
 }
-
 .cloud-scan-target {
   margin: 0;
   color: var(--color-text-secondary);
-
   strong {
     color: var(--color-text-primary);
     word-break: break-word;
@@ -384,10 +313,34 @@
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text-primary);
-
   i {
     font-size: 1.1rem;
     flex-shrink: 0;
+  }
+  &--running i {
+    color: var(--color-primary);
+  }
+  &--clean {
+    border-color: color-mix(in srgb, #10b981 45%, var(--color-border));
+    background: color-mix(in srgb, #10b981 10%, transparent);
+    i {
+      color: #059669;
+    }
+  }
+  &--warn {
+    border-color: color-mix(in srgb, #f59e0b 45%, var(--color-border));
+    background: color-mix(in srgb, #f59e0b 12%, transparent);
+    i {
+      color: #d97706;
+    }
+  }
+  &--error,
+  &--infected {
+    border-color: color-mix(in srgb, #ef4444 45%, var(--color-border));
+    background: color-mix(in srgb, #ef4444 10%, transparent);
+    i {
+      color: #dc2626;
+    }
   }
 }
 
@@ -396,49 +349,14 @@
   flex-direction: column;
   gap: 0.1rem;
 }
-
 .cloud-scan-counters {
   color: var(--color-text-secondary);
 }
-
-.cloud-scan-state--running i {
-  color: var(--color-primary);
-}
-
-.cloud-scan-state--clean {
-  border-color: color-mix(in srgb, #10b981 45%, var(--color-border));
-  background: color-mix(in srgb, #10b981 10%, transparent);
-
-  i {
-    color: #059669;
-  }
-}
-
-.cloud-scan-state--warn {
-  border-color: color-mix(in srgb, #f59e0b 45%, var(--color-border));
-  background: color-mix(in srgb, #f59e0b 12%, transparent);
-
-  i {
-    color: #d97706;
-  }
-}
-
-.cloud-scan-state--error,
-.cloud-scan-state--infected {
-  border-color: color-mix(in srgb, #ef4444 45%, var(--color-border));
-  background: color-mix(in srgb, #ef4444 10%, transparent);
-
-  i {
-    color: #dc2626;
-  }
-}
-
 .cloud-scan-findings {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
 }
-
 .cloud-scan-subhead {
   margin: 0;
   color: var(--color-text-secondary);
@@ -453,7 +371,6 @@
   gap: 0.35rem;
   max-height: 15rem;
   overflow-y: auto;
-
   li {
     display: flex;
     flex-direction: column;
@@ -469,7 +386,6 @@
   color: var(--color-text-primary);
   word-break: break-all;
 }
-
 .cloud-scan-threat {
   color: var(--color-text-secondary);
   word-break: break-word;
@@ -483,83 +399,73 @@
   background: var(--color-input-bg);
   color: var(--color-text-primary);
   padding: 0.45rem 0.55rem;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-    "Courier New", monospace;
+  font-family: $font-mono;
   resize: vertical;
-}
-
-.cloud-editor:focus {
-  outline: none;
-  border-color: var(--color-input-focus-border);
+  &:focus {
+    outline: none;
+    border-color: var(--color-input-focus-border);
+  }
 }
 
 @media (max-width: 768px) {
   .cloud-shell {
     padding: 0.45rem;
   }
-
   .cloud-toolbar-wrap {
     top: 3.35rem;
   }
-
-  .cloud-headline {
-    flex-wrap: wrap;
-  }
-
+  .cloud-headline,
   .cloud-headline-actions {
     flex-wrap: wrap;
   }
-
-  :host ::ng-deep .cloud-toolbar {
-    align-items: stretch;
-    gap: 0.45rem;
+  :host ::ng-deep {
+    .cloud-toolbar {
+      align-items: stretch;
+      gap: 0.45rem;
+      .p-toolbar-group-start,
+      .p-toolbar-group-end {
+        width: 100%;
+      }
+    }
+    .cloud-breadcrumb .p-menuitem-link {
+      max-width: 7rem;
+    }
   }
-
-  :host ::ng-deep .cloud-toolbar .p-toolbar-group-start,
-  :host ::ng-deep .cloud-toolbar .p-toolbar-group-end {
-    width: 100%;
-  }
-
-  :host ::ng-deep .cloud-breadcrumb .p-menuitem-link {
-    max-width: 7rem;
-  }
-
   .cloud-entry-name {
     max-width: 14rem;
   }
 }
 
 @media (max-width: 640px) {
-  :host ::ng-deep .cloud-table .p-datatable-thead > tr > th:nth-child(2),
-  :host ::ng-deep .cloud-table .p-datatable-thead > tr > th:nth-child(3),
-  :host ::ng-deep .cloud-table .p-datatable-tbody > tr > td:nth-child(2),
-  :host ::ng-deep .cloud-table .p-datatable-tbody > tr > td:nth-child(3) {
-    display: none;
+  :host ::ng-deep .cloud-table {
+    .p-datatable-thead > tr > th:nth-child(2),
+    .p-datatable-thead > tr > th:nth-child(3),
+    .p-datatable-tbody > tr > td:nth-child(2),
+    .p-datatable-tbody > tr > td:nth-child(3) {
+      display: none;
+    }
   }
 }
 
 @media (max-width: 420px) {
-  :host ::ng-deep .cloud-table .p-datatable-thead > tr > th:nth-child(4),
-  :host ::ng-deep .cloud-table .p-datatable-tbody > tr > td:nth-child(4) {
-    display: none;
+  :host ::ng-deep .cloud-table {
+    .p-datatable-thead > tr > th:nth-child(4),
+    .p-datatable-tbody > tr > td:nth-child(4) {
+      display: none;
+    }
   }
-
   .cloud-entry-name {
     max-width: 9rem;
   }
-
   :host ::ng-deep .cloud-breadcrumb .p-menuitem-link {
     max-width: 5.5rem;
   }
 }
 
-/* Markdown Preview Styles */
 .markdown-tabs-bar {
   display: flex;
   justify-content: flex-start;
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
+  margin: 0.5rem 0;
   border-bottom: 1px solid var(--color-border);
   padding-bottom: 0.5rem;
 }
@@ -586,18 +492,16 @@
   align-items: center;
   gap: 0.35rem;
   transition: all 0.15s ease-in-out;
-}
-
-.markdown-tab-btn:hover {
-  color: var(--color-text-primary);
-  background: var(--color-surface-hover);
-}
-
-.markdown-tab-btn.active {
-  color: var(--color-primary);
-  background: var(--color-surface);
-  box-shadow: 0 1px 3px var(--color-shadow-sm);
-  font-weight: 600;
+  &:hover {
+    color: var(--color-text-primary);
+    background: var(--color-surface-hover);
+  }
+  &.active {
+    color: var(--color-primary);
+    background: var(--color-surface);
+    box-shadow: 0 1px 3px var(--color-shadow-sm);
+    font-weight: 600;
+  }
 }
 
 .cloud-editor-container {
@@ -605,13 +509,23 @@
   flex-direction: column;
   gap: 0.75rem;
   width: 100%;
-}
-
-.cloud-editor-container.split-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
-  align-items: stretch;
+  &.split-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    align-items: stretch;
+    .cloud-editor,
+    .markdown-preview {
+      height: 24rem;
+    }
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+      .markdown-preview,
+      .cloud-editor {
+        height: 16rem;
+      }
+    }
+  }
 }
 
 .editor-pane,
@@ -621,19 +535,13 @@
   gap: 0.35rem;
   min-width: 0;
 }
-
 .editor-pane-label {
   font-weight: 600;
   color: var(--color-text-secondary);
   margin-bottom: 0.15rem;
 }
 
-.cloud-editor-container.split-layout .cloud-editor {
-  height: 24rem;
-  resize: none;
-}
-
-.markdown-preview {
+:host ::ng-deep .markdown-preview {
   width: 100%;
   height: 100%;
   min-height: 14rem;
@@ -652,21 +560,19 @@
   h5,
   h6 {
     color: var(--color-text-primary);
-    margin-top: 1rem;
-    margin-bottom: 0.5rem;
+    margin: 1rem 0 0.5rem;
     font-weight: 600;
     line-height: 1.25;
   }
-
   h1 {
     font-size: 1.4rem;
-    border-bottom: 1px solid var(--color-border);
     padding-bottom: 0.3rem;
+    border-bottom: 1px solid var(--color-border);
   }
   h2 {
     font-size: 1.2rem;
-    border-bottom: 1px solid var(--color-border);
     padding-bottom: 0.2rem;
+    border-bottom: 1px solid var(--color-border);
   }
   h3 {
     font-size: 1.05rem;
@@ -675,103 +581,75 @@
     font-size: 0.95rem;
   }
 
-  p {
-    margin-top: 0;
+  p,
+  ul,
+  ol,
+  pre,
+  blockquote,
+  table {
     margin-bottom: 0.8rem;
-    line-height: 1.5;
   }
-
   a {
     color: var(--color-primary);
     text-decoration: none;
-
     &:hover {
       text-decoration: underline;
     }
   }
-
   ul,
   ol {
     margin-top: 0;
-    margin-bottom: 0.8rem;
     padding-left: 1.5rem;
   }
-
   ul {
     list-style-type: disc;
   }
-
   ol {
     list-style-type: decimal;
   }
-
   li {
     margin-bottom: 0.25rem;
   }
-
   code {
-    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-family: $font-mono;
     font-size: 85%;
-    background-color: var(--color-surface-hover);
+    background: var(--color-surface-hover);
     padding: 0.2rem 0.4rem;
     border-radius: 4px;
     color: var(--color-primary);
   }
-
   pre {
-    background-color: var(--color-surface-hover);
+    background: var(--color-surface-hover);
     padding: 0.8rem;
     border-radius: 6px;
     overflow-x: auto;
     margin-top: 0;
-    margin-bottom: 0.8rem;
     border: 1px solid var(--color-border);
-
     code {
-      background-color: transparent;
+      background: transparent;
       padding: 0;
       font-size: 90%;
       color: inherit;
     }
   }
-
   blockquote {
     margin: 0 0 0.8rem 0;
     padding: 0 1rem;
     color: var(--color-text-secondary);
     border-left: 0.25rem solid var(--color-border);
   }
-
   table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 0.8rem;
-
     th,
     td {
       border: 1px solid var(--color-border);
       padding: 0.4rem 0.6rem;
     }
-
     th {
-      background-color: var(--color-surface-hover);
+      background: var(--color-surface-hover);
       font-weight: 600;
     }
-  }
-}
-
-.cloud-editor-container.split-layout .markdown-preview {
-  height: 24rem;
-}
-
-@media (max-width: 768px) {
-  .cloud-editor-container.split-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .cloud-editor-container.split-layout .markdown-preview,
-  .cloud-editor-container.split-layout .cloud-editor {
-    height: 16rem;
   }
 }
 
@@ -787,7 +665,100 @@
   white-space: pre-wrap;
 }
 
-/* Secure Send Styles */
+.markdown-workspace-layout {
+  display: flex;
+  gap: 1.25rem;
+  width: 100%;
+  align-items: stretch;
+  @media (max-width: 992px) {
+    flex-direction: column;
+  }
+}
+
+.markdown-outline-sidebar {
+  width: 13.5rem;
+  flex-shrink: 0;
+  border-right: 1px solid var(--color-border);
+  padding-right: 0.75rem;
+  max-height: 24rem;
+  overflow-y: auto;
+  @media (max-width: 992px) {
+    width: 100%;
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
+    padding-right: 0;
+    padding-bottom: 0.75rem;
+    max-height: 8rem;
+  }
+}
+
+.outline-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0.25rem;
+}
+.outline-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.outline-item {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  transition: all 0.15s ease;
+  &:hover {
+    color: var(--color-primary);
+    background: var(--color-surface-hover);
+  }
+}
+
+@for $i from 1 through 6 {
+  .outline-level-#{$i} {
+    padding-left: if($i == 1, 0.25rem, calc(0.25rem + (#{$i} - 1) * 0.5rem));
+  }
+}
+.outline-level-1 {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.outline-empty {
+  color: var(--color-text-secondary);
+}
+
+.save-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid transparent;
+  &.saved {
+    background: color-mix(in srgb, #10b981 10%, transparent);
+    color: #059669;
+    border-color: color-mix(in srgb, #10b981 30%, transparent);
+  }
+  &.saving {
+    background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+    color: var(--color-primary);
+    border-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  }
+  &.unsaved {
+    background: color-mix(in srgb, #f59e0b 10%, transparent);
+    color: #d97706;
+    border-color: color-mix(in srgb, #f59e0b 30%, transparent);
+  }
+}
+
 .cloud-info-box {
   display: flex;
   align-items: flex-start;
@@ -797,43 +768,8 @@
   border: 1px solid rgba(245, 158, 11, 0.3);
   border-radius: 0.375rem;
   color: #d97706;
-
   i {
     font-size: 1rem;
     margin-top: 0.1rem;
-  }
-}
-
-.cloud-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.15rem 0.5rem;
-  border-radius: 9999px;
-  font-size: 0.7rem;
-  font-weight: 500;
-
-  &.badge-protected {
-    background: rgba(99, 102, 241, 0.15);
-    color: #6366f1;
-    border: 1px solid rgba(99, 102, 241, 0.3);
-  }
-
-  &.badge-public {
-    background: rgba(107, 114, 128, 0.15);
-    color: #9ca3af;
-    border: 1px solid rgba(107, 114, 128, 0.3);
-  }
-
-  &.badge-active {
-    background: rgba(16, 185, 129, 0.15);
-    color: #10b981;
-    border: 1px solid rgba(16, 185, 129, 0.3);
-  }
-
-  &.badge-revoked {
-    background: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.3);
   }
 }

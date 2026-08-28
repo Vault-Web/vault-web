@@ -1,0 +1,210 @@
+.share-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1.5rem 1rem;
+  background-color: var(--color-background);
+}
+
+.share-card {
+  width: 100%;
+  max-width: 26rem;
+  padding: 2rem 1.75rem 1.5rem;
+  border-radius: 0.75rem;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow:
+    0 4px 6px -1px var(--color-shadow),
+    0 10px 15px -3px var(--color-shadow-md);
+}
+
+/* Browsing a shared folder needs room for a file table; the single-file card
+   keeps its narrow, centred form. */
+.share-card-wide {
+  max-width: 56rem;
+  padding: 1.5rem;
+}
+
+.share-centered {
+  text-align: center;
+}
+
+.share-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem 0;
+  color: var(--color-text-secondary);
+}
+
+.share-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-bottom: 0.875rem;
+  border-radius: 9999px;
+  background-color: color-mix(in srgb, var(--color-primary) 15%, transparent);
+  color: var(--color-primary);
+  font-size: 1.35rem;
+}
+
+.share-icon-muted {
+  background-color: var(--color-surface-hover);
+  color: var(--color-text-muted);
+}
+
+.share-title {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.share-filename {
+  word-break: break-word;
+}
+
+.share-subtitle {
+  margin: 0.375rem 0 0;
+  color: var(--color-text-secondary);
+}
+
+.share-dot {
+  margin: 0 0.25rem;
+}
+
+.share-field {
+  margin: 1.5rem 0 1rem;
+}
+
+.share-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.share-field input {
+  background-color: var(--color-input-bg);
+  border-color: var(--color-input-border);
+  color: var(--color-text-primary);
+
+  &::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  &:focus {
+    border-color: var(--color-input-focus-border);
+  }
+}
+
+.share-input-invalid {
+  border-color: var(--color-danger, #ef4444) !important;
+}
+
+.share-error {
+  margin: 0.4rem 0 0;
+  color: var(--color-danger, #ef4444);
+}
+
+.share-hint {
+  margin: 0.4rem 0 0;
+  color: var(--color-text-muted);
+}
+
+.share-footer {
+  margin: 1.75rem 0 0;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+/* --- shared folder browser ------------------------------------------------ */
+
+.share-browser-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.share-crumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.share-crumb {
+  background: none;
+  border: none;
+  padding: 0.1rem 0.25rem;
+  cursor: pointer;
+  color: var(--color-primary);
+
+  &:disabled {
+    color: var(--color-text-primary);
+    cursor: default;
+  }
+
+  &:not(:disabled):hover {
+    text-decoration: underline;
+  }
+}
+
+.share-crumb-sep {
+  color: var(--color-text-muted);
+}
+
+/* Rows reuse .cloud-entry-btn / .cloud-entry-icon / .cloud-entry-name from
+   styles.scss, so a folder here looks exactly like a folder in the cloud view. */
+
+.share-muted {
+  color: var(--color-text-secondary);
+}
+
+.share-empty {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.share-preview {
+  display: flex;
+  justify-content: center;
+  min-height: 8rem;
+}
+
+.share-preview-image {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+}
+
+.share-preview-frame {
+  width: 100%;
+  height: 70vh;
+  border: none;
+}
+
+.share-preview-text {
+  width: 100%;
+  max-height: 70vh;
+  margin: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--color-text-primary);
+}
+
+/* The download button of a single-file link sits directly on the card, so it
+   takes the full width the rest of that form uses. The folder browser has its
+   own buttons in a row and must keep them at their natural size. */
+:host ::ng-deep .share-card:not(.share-card-wide) .p-button {
+  width: 100%;
+}

@@ -32,6 +32,8 @@ import {
   ChatSticker,
   findChatSticker,
 } from './chat-reactions';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import DOMPurify from 'dompurify';
 
 interface ChatMessageView {
   kind: 'text' | 'sticker';
@@ -43,6 +45,7 @@ interface ChatMessageView {
   privateChatId?: number;
   groupId?: number | null;
   timestamp: string;
+  clientMessageId?: string;
 }
 
 interface EncryptedMessageBodyV1 {
@@ -94,6 +97,8 @@ export class PrivateChatDialogComponent
   @Output() closeChat = new EventEmitter<void>();
 
   messages: ChatMessageView[] = [];
+  /** Rendered messages, keyed by their text; see formatMessage. */
+  private readonly formattedMessages = new Map<string, SafeHtml>();
   newMessage = '';
   private devices: DeviceDto[] = [];
   private lastDevicesRefreshAt = 0;
@@ -141,6 +146,7 @@ export class PrivateChatDialogComponent
     private toast: UiToastService,
     private groupService: GroupService,
     private userService: UserService,
+    private sanitizer: DomSanitizer,
   ) {}
 
   ngOnInit(): void {
@@ -324,6 +330,7 @@ export class PrivateChatDialogComponent
             decryptedMessages: successfulMessages.length,
           });
         }
+        this.formattedMessages.clear();
         this.messages = successfulMessages;
         this.applySearch();
         this.shouldScroll = true;
@@ -409,6 +416,7 @@ export class PrivateChatDialogComponent
       privateChatId: message.privateChatId || undefined,
       groupId: message.groupId || undefined,
       timestamp,
+      clientMessageId: message.clientMessageId,
     };
   }
 
@@ -511,6 +519,7 @@ export class PrivateChatDialogComponent
         groupId: this.isGroupChat ? this.groupId : null,
         senderDeviceId: payload.senderDeviceId,
         e2eePayload: JSON.stringify(payload),
+        clientMessageId: crypto.randomUUID(),
       };
 
       const isConnected = await this.wsService.ensureConnected();
@@ -743,6 +752,71 @@ export class PrivateChatDialogComponent
     };
   }
 
+  private escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  /**
+   * Rendered form of a message, with http/https URLs turned into links. The
+   * template binds to this, so the result is cached per message text: otherwise
+   * every change detection cycle re-escapes and re-sanitises every message on
+   * screen and hands the binding a fresh object, repainting the whole log.
+   */
+  formatMessage(content?: string): SafeHtml {
+    if (!content) {
+      return '';
+    }
+    const cached = this.formattedMessages.get(content);
+    if (cached !== undefined) {
+      return cached;
+    }
+    const formatted = this.linkifyMessage(content);
+    this.formattedMessages.set(content, formatted);
+    return formatted;
+  }
+
+  private linkifyMessage(content: string): SafeHtml {
+    // Match http/https URLs, then strip common trailing punctuation
+    // that is usually not part of the URL (e.g. periods at end of sentences).
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+
+    let html = '';
+    let lastIndex = 0;
+
+    for (const match of content.matchAll(urlRegex)) {
+      const originalUrl = match[0];
+      const index = match.index ?? 0;
+
+      // Strip trailing punctuation that is almost never part of a URL
+      const url = originalUrl.replace(/[.,;:!?)]+$/, '');
+      const trailing = originalUrl.slice(url.length);
+
+      // Append escaped text before this URL
+      html += this.escapeHtml(content.substring(lastIndex, index));
+
+      // Build the anchor — escape the URL in both href and display text
+      const safeUrl = this.escapeHtml(url);
+      html += `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeUrl}</a>${this.escapeHtml(trailing)}`;
+
+      // Advance past the original match length
+      lastIndex = index + originalUrl.length;
+    }
+
+    html += this.escapeHtml(content.substring(lastIndex));
+
+    // DOMPurify strips target by default — allow it so links open in a new tab
+    const cleanHtml = DOMPurify.sanitize(html, {
+      ADD_ATTR: ['target'],
+    });
+
+    return this.sanitizer.bypassSecurityTrustHtml(cleanHtml);
+  }
+
   private parseClientTimestamp(timestamp: string | undefined): string | null {
     return typeof timestamp === 'string' && !Number.isNaN(Date.parse(timestamp))
       ? timestamp
@@ -750,10 +824,16 @@ export class PrivateChatDialogComponent
   }
 
   private isDuplicateMessage(message: ChatMessageDto): boolean {
+    if (message.clientMessageId) {
+      return this.messages.some(
+        (existing) => existing.clientMessageId === message.clientMessageId,
+      );
+    }
+
     return this.messages.some(
       (existing) =>
-        existing.privateChatId === message.privateChatId &&
-        existing.groupId === message.groupId &&
+        (existing.privateChatId ?? null) === (message.privateChatId ?? null) &&
+        (existing.groupId ?? null) === (message.groupId ?? null) &&
         existing.senderUsername === message.senderUsername &&
         existing.timestamp === message.timestamp,
     );

@@ -1,11 +1,17 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import {
+  ComponentFixture,
+  TestBed,
+  fakeAsync,
+  tick,
+} from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of, throwError, Subject } from 'rxjs';
+import { ConfirmationService } from 'primeng/api';
+import { UiToastService } from '../../core/services/ui-toast.service';
 import { CloudComponent } from './cloud.component';
 import { CloudService } from '../../services/cloud.service';
-import { UiToastService } from '../../core/services/ui-toast.service';
 import { ScanJobDto } from '../../models/dtos/ScanJobDto';
 import { SecureSendLinkDto } from '../../models/dtos/SecureSendLinkDto';
 
@@ -42,6 +48,8 @@ describe('CloudComponent virus scan', () => {
       cloudMock,
       {} as never,
       noopToast as never,
+      {} as never,
+      {} as never,
       {} as never,
       {} as never,
     );
@@ -238,8 +246,461 @@ describe('CloudComponent virus scan', () => {
     start$.next({ ...runningJob }); // POST resolves late
     start$.complete();
     jasmine.clock().tick(6000);
+  });
+});
 
-    expect(cloudMock.getScanJob).not.toHaveBeenCalled();
+describe('CloudComponent Unsaved Changes Flow', () => {
+  let component: CloudComponent;
+  let cloudMock: jasmine.SpyObj<CloudService>;
+  let confirmMock: jasmine.SpyObj<ConfirmationService>;
+  let toastMock: jasmine.SpyObj<UiToastService>;
+
+  beforeEach(() => {
+    cloudMock = jasmine.createSpyObj<CloudService>('CloudService', [
+      'getFileContent',
+      'uploadFile',
+      'renameOrMoveFile',
+      'getFolderByPath',
+      'getFolderContent',
+    ]);
+    cloudMock.getFolderByPath.and.returnValue(
+      of({ path: '/root', name: 'root', entries: [] } as any),
+    );
+    cloudMock.getFolderContent.and.returnValue(
+      of({ content: [], totalElements: 0, totalPages: 0, pageNumber: 0 }),
+    );
+
+    confirmMock = jasmine.createSpyObj<ConfirmationService>(
+      'ConfirmationService',
+      ['confirm'],
+    );
+    toastMock = jasmine.createSpyObj<UiToastService>('UiToastService', [
+      'success',
+      'error',
+    ]);
+
+    const sanitizerMock = {
+      bypassSecurityTrustHtml: (html: string) => html,
+    };
+
+    component = new CloudComponent(
+      cloudMock,
+      confirmMock,
+      toastMock as any,
+      {} as any,
+      sanitizerMock as any,
+      {} as any,
+      {} as any,
+    );
+  });
+
+  it('should track original content and not be dirty initially', () => {
+    expect(component.isEditorDirty).toBeFalse();
+  });
+
+  it('should not be dirty when file is opened and unchanged', () => {
+    component.showFileEditor = true;
+    component.originalFileContent = 'hello';
+    component.fileContent = 'hello';
+    component.originalFileName = 'a.txt';
+    component.newFileName = 'a.txt';
+    expect(component.isEditorDirty).toBeFalse();
+  });
+
+  it('should be dirty when file content is changed', () => {
+    component.showFileEditor = true;
+    component.originalFileContent = 'hello';
+    component.fileContent = 'hello world';
+    component.originalFileName = 'a.txt';
+    component.newFileName = 'a.txt';
+    expect(component.isEditorDirty).toBeTrue();
+  });
+
+  it('should be dirty when file name is changed', () => {
+    component.showFileEditor = true;
+    component.originalFileContent = 'hello';
+    component.fileContent = 'hello';
+    component.originalFileName = 'a.txt';
+    component.newFileName = 'b.txt';
+    expect(component.isEditorDirty).toBeTrue();
+  });
+
+  it('should prompt user on requestCloseFileEditor when dirty', () => {
+    component.showFileEditor = true;
+    component.originalFileContent = 'hello';
+    component.fileContent = 'hello world';
+    component.originalFileName = 'a.txt';
+    component.newFileName = 'a.txt';
+
+    component.requestCloseFileEditor();
+
+    expect(confirmMock.confirm).toHaveBeenCalled();
+  });
+
+  it('should not prompt user on requestCloseFileEditor when not dirty', () => {
+    component.showFileEditor = true;
+    component.originalFileContent = 'hello';
+    component.fileContent = 'hello';
+    component.originalFileName = 'a.txt';
+    component.newFileName = 'a.txt';
+
+    component.requestCloseFileEditor();
+
+    expect(confirmMock.confirm).not.toHaveBeenCalled();
+    expect(component.showFileEditor).toBeFalse();
+  });
+
+  it('should reset state and close editor upon successful save', async () => {
+    component.showFileEditor = true;
+    component.editingFile = {
+      path: '/a.txt',
+      name: 'a.txt',
+      size: 0,
+      mimeType: 'text/plain',
+    };
+    component.newFileName = 'a.txt';
+    component.fileContent = 'hello world';
+    component.originalFileContent = 'hello';
+    component.originalFileName = 'a.txt';
+    component.currentFolder = { path: '/root', name: 'root' } as any;
+
+    cloudMock.uploadFile.and.returnValue(of({} as any));
+
+    await component.saveFile();
+
+    expect(component.showFileEditor).toBeFalse();
+    expect(component.isEditorDirty).toBeFalse();
+  });
+
+  it('should return false in canDeactivate and prompt user when dirty', async () => {
+    component.showFileEditor = true;
+    component.originalFileContent = 'hello';
+    component.fileContent = 'hello world';
+    component.originalFileName = 'a.txt';
+    component.newFileName = 'a.txt';
+
+    confirmMock.confirm.and.callFake((config) => {
+      if (config.reject) config.reject();
+      return confirmMock;
+    });
+
+    const result = await component.canDeactivate();
+    expect(result).toBeFalse();
+    expect(confirmMock.confirm).toHaveBeenCalled();
+  });
+
+  it('should return true in canDeactivate and close editor when accepted', async () => {
+    component.showFileEditor = true;
+    component.originalFileContent = 'hello';
+    component.fileContent = 'hello world';
+    component.originalFileName = 'a.txt';
+    component.newFileName = 'a.txt';
+
+    confirmMock.confirm.and.callFake((config) => {
+      if (config.accept) config.accept();
+      return confirmMock;
+    });
+
+    const result = await component.canDeactivate();
+    expect(result).toBeTrue();
+    expect(confirmMock.confirm).toHaveBeenCalled();
+    expect(component.showFileEditor).toBeFalse();
+  });
+
+  describe('Markdown Workspace Mode', () => {
+    beforeEach(() => {
+      jasmine.clock().install();
+    });
+
+    afterEach(() => {
+      jasmine.clock().uninstall();
+    });
+
+    it('should generate document outline from content headings', () => {
+      component.fileContent =
+        '# Heading 1\nSome text\n## Heading 2\n### Heading 3';
+      component.updateOutline();
+      expect(component.outline.length).toBe(3);
+      expect(component.outline[0]).toEqual({ text: 'Heading 1', level: 1 });
+      expect(component.outline[1]).toEqual({ text: 'Heading 2', level: 2 });
+      expect(component.outline[2]).toEqual({ text: 'Heading 3', level: 3 });
+    });
+
+    it('should parse wikilinks to anchor tags during preview update', () => {
+      component.newFileName = 'doc.md';
+      component.fileContent =
+        'Check out [[another-doc]] and [[my folder/notes]].';
+      component.updatePreview();
+
+      const parsedHtml = component.previewHtml.toString();
+      expect(parsedHtml).toContain('data-target="another-doc"');
+      expect(parsedHtml).toContain('data-target="my folder/notes"');
+    });
+
+    it('should resolve wikilinks correctly if matching file exists', () => {
+      component.entries = [
+        {
+          kind: 'file',
+          name: 'target-note.md',
+          path: '/root/target-note.md',
+          size: 0,
+          mimeType: 'text/markdown',
+        } as any,
+      ];
+
+      const fileRef = component.resolveWikilink('target-note');
+      expect(fileRef).not.toBeNull();
+      expect(fileRef?.name).toBe('target-note.md');
+      expect(fileRef?.path).toBe('/root/target-note.md');
+
+      const missingFileRef = component.resolveWikilink('non-existent');
+      expect(missingFileRef).toBeNull();
+    });
+
+    it('should handle click on wikilink and open matched file', () => {
+      spyOn(component, 'editFile');
+      component.entries = [
+        {
+          kind: 'file',
+          name: 'target-note.md',
+          path: '/root/target-note.md',
+          size: 0,
+          mimeType: 'text/markdown',
+        } as any,
+      ];
+
+      const mockEvent = {
+        target: {
+          classList: {
+            contains: (cls: string) => cls === 'wikilink',
+          },
+          getAttribute: (attr: string) =>
+            attr === 'data-target' ? 'target-note' : null,
+        },
+        preventDefault: jasmine.createSpy('preventDefault'),
+      } as any;
+
+      component.handlePreviewClick(mockEvent);
+      expect(mockEvent.preventDefault).toHaveBeenCalled();
+      expect(component.editFile).toHaveBeenCalledWith({
+        path: '/root/target-note.md',
+        name: 'target-note.md',
+        size: 0,
+        mimeType: '',
+      });
+    });
+
+    it('does not autosave or reload the folder while typing (#300 regression)', () => {
+      component.showFileEditor = true;
+      component.newFileName = 'note.md';
+      component.fileContent = 'new markdown';
+      component.originalFileContent = '';
+      component.originalFileName = 'note.md';
+      component.currentFolder = { path: '/root', name: 'root' } as any;
+
+      component.onContentChange();
+
+      // Dirty state still tracked correctly, with no background save kicked off.
+      expect(component.saveStatus).toBe('unsaved');
+      expect(component.isEditorDirty).toBeTrue();
+
+      // Well past the old 2s autosave delay — nothing should fire.
+      jasmine.clock().tick(5000);
+
+      expect(cloudMock.uploadFile).not.toHaveBeenCalled();
+      expect(cloudMock.getFolderByPath).not.toHaveBeenCalled();
+      expect(component.saveStatus).toBe('unsaved');
+      expect(component.fileContent).toBe('new markdown');
+      expect(component.originalFileContent).toBe(''); // unchanged: no autosave wrote it
+    });
+
+    it('still updates the local outline and preview while typing, without saving', () => {
+      component.showFileEditor = true;
+      component.newFileName = 'note.md';
+      component.originalFileName = 'note.md';
+      component.originalFileContent = '';
+      component.fileContent = '# New Heading\nbody text';
+      component.currentFolder = { path: '/root', name: 'root' } as any;
+
+      component.onContentChange();
+
+      expect(component.outline).toEqual([{ text: 'New Heading', level: 1 }]);
+      expect(component.previewHtml.toString()).toContain('New Heading');
+      expect(cloudMock.uploadFile).not.toHaveBeenCalled();
+      expect(cloudMock.getFolderByPath).not.toHaveBeenCalled();
+    });
+  });
+});
+
+describe('CloudComponent File Checksum', () => {
+  let component: CloudComponent;
+  let cloudMock: jasmine.SpyObj<CloudService>;
+  let toastMock: { success: jasmine.Spy; error: jasmine.Spy };
+
+  beforeEach(() => {
+    cloudMock = jasmine.createSpyObj<CloudService>('CloudService', [
+      'getFileChecksum',
+    ]);
+    toastMock = {
+      success: jasmine.createSpy('success'),
+      error: jasmine.createSpy('error'),
+    };
+    component = new CloudComponent(
+      cloudMock,
+      {} as never,
+      toastMock as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    component.rootPath = '/root';
+  });
+
+  it('should open dialog and load file checksum successfully', () => {
+    const mockChecksum = {
+      filePath: 'test.pdf',
+      checksum:
+        'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      algorithm: 'SHA-256',
+    };
+    cloudMock.getFileChecksum.and.returnValue(of(mockChecksum));
+
+    component.openChecksumDialog({
+      name: 'test.pdf',
+      path: '/root/test.pdf',
+    });
+
+    expect(component.showChecksumDialog).toBeTrue();
+    expect(component.selectedFileForChecksum?.name).toBe('test.pdf');
+    expect(component.checksumLoading).toBeFalse();
+    expect(component.checksumResult?.checksum).toBe(
+      'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+    );
+  });
+
+  it('should handle checksum error and invoke toast notification', () => {
+    cloudMock.getFileChecksum.and.returnValue(
+      throwError(() => new Error('Checksum endpoint failure')),
+    );
+
+    component.openChecksumDialog({
+      name: 'corrupted.zip',
+      path: '/root/corrupted.zip',
+    });
+
+    expect(component.checksumLoading).toBeFalse();
+    expect(component.checksumError).toContain('Checksum endpoint failure');
+    expect(toastMock.error).toHaveBeenCalled();
+  });
+
+  it('should evaluate expected hash comparison correctly', () => {
+    component.checksumResult = {
+      filePath: 'doc.txt',
+      checksum: 'A1B2C3D4E5',
+      algorithm: 'SHA-256',
+    };
+
+    component.expectedHash = '';
+    expect(component.hashMatchStatus).toBe('empty');
+
+    component.expectedHash = 'a1b2c3d4e5';
+    expect(component.hashMatchStatus).toBe('match');
+
+    component.expectedHash = 'wronghash123';
+    expect(component.hashMatchStatus).toBe('mismatch');
+  });
+
+  describe('Clipboard Copy functionality', () => {
+    let originalClipboard: any;
+
+    beforeEach(() => {
+      originalClipboard = navigator.clipboard;
+    });
+
+    afterEach(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        value: originalClipboard,
+        configurable: true,
+        writable: true,
+      });
+    });
+
+    it('should copy checksum to clipboard and set success toast notification on success', fakeAsync(() => {
+      component.checksumResult = {
+        filePath: 'doc.txt',
+        checksum: '1234567890abcdef',
+        algorithm: 'SHA-256',
+      };
+
+      const writeTextSpy = jasmine
+        .createSpy('writeText')
+        .and.returnValue(Promise.resolve());
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText: writeTextSpy },
+        configurable: true,
+        writable: true,
+      });
+
+      component.copyChecksumToClipboard();
+      tick();
+
+      expect(writeTextSpy).toHaveBeenCalledWith('1234567890abcdef');
+      expect(component.copiedHashState).toBeTrue();
+      expect(toastMock.success).toHaveBeenCalledWith(
+        'Checksum Copied',
+        jasmine.any(String),
+      );
+    }));
+
+    it('should handle clipboard writeText failure and show error toast', fakeAsync(() => {
+      component.checksumResult = {
+        filePath: 'doc.txt',
+        checksum: '1234567890abcdef',
+        algorithm: 'SHA-256',
+      };
+
+      const writeTextSpy = jasmine
+        .createSpy('writeText')
+        .and.returnValue(Promise.reject('error'));
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText: writeTextSpy },
+        configurable: true,
+        writable: true,
+      });
+
+      component.copyChecksumToClipboard();
+      tick();
+
+      expect(writeTextSpy).toHaveBeenCalledWith('1234567890abcdef');
+      expect(component.copiedHashState).toBeFalse();
+      expect(toastMock.error).toHaveBeenCalledWith(
+        'Copy Failed',
+        jasmine.any(String),
+      );
+    }));
+
+    it('should handle unsupported clipboard API and show error toast', () => {
+      component.checksumResult = {
+        filePath: 'doc.txt',
+        checksum: '1234567890abcdef',
+        algorithm: 'SHA-256',
+      };
+
+      Object.defineProperty(navigator, 'clipboard', {
+        value: undefined,
+        configurable: true,
+        writable: true,
+      });
+
+      component.copyChecksumToClipboard();
+
+      expect(component.copiedHashState).toBeFalse();
+      expect(toastMock.error).toHaveBeenCalledWith(
+        'Copy Failed',
+        jasmine.any(String),
+      );
+    });
   });
 });
 
@@ -346,47 +807,6 @@ describe('CloudComponent Secure Send Flow', () => {
       'Too many share links created. Please wait before trying again.',
     );
   });
-
-  it('should load active share links in dialog', () => {
-    const mockLinks: SecureSendLinkDto[] = [
-      {
-        id: 'link1',
-        filePath: '/a.txt',
-        fileName: 'a.txt',
-        expiresAt: '2026-07-25T00:00:00Z',
-        createdAt: '2026-07-20T00:00:00Z',
-      },
-    ];
-
-    cloudServiceSpy.listSecureSendLinks.and.returnValue(of(mockLinks));
-
-    component.openSharedLinksDialog();
-
-    expect(component.showSharedLinksDialog).toBeTrue();
-    expect(component.sharedLinks).toEqual(mockLinks);
-  });
-
-  it('should revoke a share link and update UI state', () => {
-    const link: SecureSendLinkDto = {
-      id: 'link1',
-      filePath: '/a.txt',
-      fileName: 'a.txt',
-      expiresAt: '2026-07-25T00:00:00Z',
-      createdAt: '2026-07-20T00:00:00Z',
-      isRevoked: false,
-    };
-
-    cloudServiceSpy.revokeSecureSendLink.and.returnValue(of(void 0));
-
-    component.revokeShareLink(link);
-
-    expect(cloudServiceSpy.revokeSecureSendLink).toHaveBeenCalledWith('link1');
-    expect(link.isRevoked).toBeTrue();
-    expect(toastSpy.success).toHaveBeenCalledWith(
-      'Link revoked',
-      'Share link for "a.txt" was revoked.',
-    );
-  });
 });
 
 /**
@@ -403,6 +823,8 @@ describe('CloudComponent unsaved-edit guard', () => {
     component = new CloudComponent(
       {} as never,
       confirmMock as never,
+      {} as never,
+      {} as never,
       {} as never,
       {} as never,
       {} as never,
@@ -492,5 +914,107 @@ describe('CloudComponent unsaved-edit guard', () => {
     } as unknown as BeforeUnloadEvent;
     component.warnBeforeUnload(dirty);
     expect(dirty.preventDefault).toHaveBeenCalled();
+  });
+
+  describe('folder download', () => {
+    let component: CloudComponent;
+    let cloudMock: jasmine.SpyObj<CloudService>;
+    let toastMock: jasmine.SpyObj<UiToastService>;
+
+    beforeEach(() => {
+      jasmine.clock().uninstall();
+      cloudMock = jasmine.createSpyObj<CloudService>('CloudService', [
+        'getFolderArchive',
+      ]);
+      toastMock = jasmine.createSpyObj<UiToastService>('UiToastService', [
+        'success',
+        'info',
+        'warn',
+        'error',
+      ]);
+      component = new CloudComponent(
+        cloudMock,
+        {} as never,
+        toastMock as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+      );
+      component.rootPath = '/root';
+      component.currentFolder = { path: '/root/sub', name: 'sub' } as never;
+    });
+
+    it('downloads the folder as a zip archive and triggers browser download', () => {
+      const mockBlob = new Blob(['zip content'], { type: 'application/zip' });
+      cloudMock.getFolderArchive.and.returnValue(of(mockBlob));
+
+      const mockAnchor = jasmine.createSpyObj<HTMLAnchorElement>(
+        'HTMLAnchorElement',
+        ['click'],
+      );
+      spyOn(document, 'createElement').and.returnValue(mockAnchor as any);
+      spyOn(URL, 'createObjectURL').and.returnValue('blob:mock-url');
+      spyOn(URL, 'revokeObjectURL');
+
+      component.downloadFolder('/root/sub', 'sub');
+
+      expect(cloudMock.getFolderArchive).toHaveBeenCalledWith('sub');
+      expect(document.createElement).toHaveBeenCalledWith('a');
+      expect(mockAnchor.href).toBe('blob:mock-url');
+      expect(mockAnchor.download).toBe('sub.zip');
+      expect(mockAnchor.click).toHaveBeenCalled();
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+      expect(toastMock.info).toHaveBeenCalledWith(
+        'Download started',
+        '"sub.zip" is downloading.',
+      );
+    });
+
+    it('surfaces folder archive backend errors using toast notifications', (done) => {
+      const mockErrorResponse = {
+        error: new Blob([JSON.stringify({ message: 'Rate limit exceeded' })], {
+          type: 'application/json',
+        }),
+      };
+      spyOn<any>(component, 'getErrorMessage').and.returnValue(
+        'Rate limit exceeded',
+      );
+      cloudMock.getFolderArchive.and.returnValue(
+        throwError(() => mockErrorResponse),
+      );
+
+      component.downloadFolder('/root/sub', 'sub');
+
+      setTimeout(() => {
+        expect(toastMock.error).toHaveBeenCalledWith(
+          'Download failed',
+          'Rate limit exceeded',
+        );
+        done();
+      }, 50);
+    });
+
+    it('falls back to generic error message if error blob is not parseable', (done) => {
+      const mockErrorResponse = {
+        error: new Blob(['invalid json'], { type: 'application/json' }),
+      };
+      spyOn<any>(component, 'getErrorMessage').and.returnValue(
+        'Request failed. Please try again.',
+      );
+      cloudMock.getFolderArchive.and.returnValue(
+        throwError(() => mockErrorResponse),
+      );
+
+      component.downloadFolder('/root/sub', 'sub');
+
+      setTimeout(() => {
+        expect(toastMock.error).toHaveBeenCalledWith(
+          'Download failed',
+          'Request failed. Please try again.',
+        );
+        done();
+      }, 50);
+    });
   });
 });

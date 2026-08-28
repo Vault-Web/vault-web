@@ -5,6 +5,66 @@ import {
 } from '@angular/common/http/testing';
 import { CloudService } from './cloud.service';
 
+describe('CloudService Checksum', () => {
+  let service: CloudService;
+  let httpMock: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [CloudService],
+    });
+    service = TestBed.inject(CloudService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+  });
+
+  it('should fetch file checksum from /files/checksum endpoint', (done) => {
+    const mockResponse = {
+      filePath: 'test.pdf',
+      checksum:
+        'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      algorithm: 'SHA-256',
+    };
+
+    service.getFileChecksum('test.pdf').subscribe((res) => {
+      expect(res.checksum).toBe(
+        'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      );
+      expect(res.algorithm).toBe('SHA-256');
+      done();
+    });
+
+    const req = httpMock.expectOne((request) =>
+      request.url.endsWith('/files/checksum'),
+    );
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.get('path')).toBe('test.pdf');
+    req.flush(mockResponse);
+  });
+
+  it('should support alternative property names (e.g. hash or sha256)', (done) => {
+    const mockResponse = {
+      hash: 'abc123sha256hash',
+    };
+
+    service.getFileChecksum('docs/file.txt').subscribe((res) => {
+      expect(res.checksum).toBe('abc123sha256hash');
+      expect(res.algorithm).toBe('SHA-256');
+      done();
+    });
+
+    const req = httpMock.expectOne((request) =>
+      request.url.endsWith('/files/checksum'),
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush(mockResponse);
+  });
+});
+
 describe('CloudService Secure Send', () => {
   let service: CloudService;
   let httpMock: HttpTestingController;
@@ -42,7 +102,7 @@ describe('CloudService Secure Send', () => {
         expect(res.shareUrl).toBe('http://localhost/share/token123');
       });
 
-    const req = httpMock.expectOne(`${service.apiUrl}/secure-sends`);
+    const req = httpMock.expectOne((r) => r.url.endsWith('/secure-sends'));
     expect(req.request.method).toBe('POST');
     expect(req.request.body.filePath).toBe('/document.pdf');
     expect(req.request.body.expiresAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
@@ -67,7 +127,7 @@ describe('CloudService Secure Send', () => {
       expect(links[0].isRevoked).toBeFalse();
     });
 
-    const req = httpMock.expectOne(`${service.apiUrl}/secure-sends`);
+    const req = httpMock.expectOne((r) => r.url.endsWith('/secure-sends'));
     expect(req.request.method).toBe('GET');
     req.flush([mockResponse]);
   });
@@ -89,7 +149,7 @@ describe('CloudService Secure Send', () => {
       expect(links[0].hasPassword).toBeFalse();
     });
 
-    const req = httpMock.expectOne(`${service.apiUrl}/secure-sends`);
+    const req = httpMock.expectOne((r) => r.url.endsWith('/secure-sends'));
     expect(req.request.method).toBe('GET');
     req.flush(mockList);
   });
@@ -97,8 +157,19 @@ describe('CloudService Secure Send', () => {
   it('should send DELETE request to revoke a secure send link', () => {
     service.revokeSecureSendLink('link-1').subscribe();
 
-    const req = httpMock.expectOne(`${service.apiUrl}/secure-sends/link-1`);
+    const req = httpMock.expectOne((r) =>
+      r.url.includes('/secure-sends/link-1'),
+    );
     expect(req.request.method).toBe('DELETE');
     req.flush(null);
+  });
+
+  it('should request folders/download with path query param for folder archive', () => {
+    service.getFolderArchive('test-folder').subscribe();
+
+    const req = httpMock.expectOne((r) => r.url.endsWith('/folders/download'));
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.get('path')).toBe('test-folder');
+    req.flush(new Blob(['zip'], { type: 'application/zip' }));
   });
 });

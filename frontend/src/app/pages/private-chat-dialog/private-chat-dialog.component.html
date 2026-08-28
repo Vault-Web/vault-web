@@ -144,7 +144,10 @@
               [alt]="msg.stickerLabel || msg.content"
               loading="lazy"
             />
-            <div *ngSwitchDefault>{{ msg.content }}</div>
+            <div
+              *ngSwitchDefault
+              [innerHTML]="formatMessage(msg.content)"
+            ></div>
           </ng-container>
           <div class="message-time text-[10px] self-end mt-1 opacity-70">
             {{ msg.timestamp | date: "shortTime" }}

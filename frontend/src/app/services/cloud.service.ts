@@ -7,6 +7,7 @@ import { PageResponseDto } from '../models/dtos/PageResponseDto';
 import { TrashEntryDto } from '../models/dtos/TrashEntryDto';
 import { SearchResultDto } from '../models/dtos/SearchResultDto';
 import { ScanJobDto } from '../models/dtos/ScanJobDto';
+import { FileChecksumDto } from '../models/dtos/FileChecksumDto';
 import {
   SecureSendLinkDto,
   CreateSecureSendRequestDto,
@@ -32,6 +33,7 @@ interface RawSecureSendResponse {
   isRevoked?: boolean;
   revokedAt?: string | null;
   createdAt?: string;
+  lastAccessedAt?: string | null;
 }
 
 @Injectable({
@@ -71,12 +73,14 @@ export class CloudService {
     page = 0,
     size = 50,
     sort?: string,
+    includeDirectorySizes = true,
   ): Observable<PageResponseDto<FolderContentItemDto>> {
     const path = this.normalizePath(relativePath);
     let params = new HttpParams()
       .set('path', path)
       .set('page', String(page))
-      .set('size', String(size));
+      .set('size', String(size))
+      .set('includeDirectorySizes', String(includeDirectorySizes));
     if (sort) {
       params = params.set('sort', sort);
     }
@@ -84,6 +88,14 @@ export class CloudService {
       `${this.apiUrl}/folders/content`,
       { params },
     );
+  }
+
+  getFolderSize(relativePath?: string): Observable<number> {
+    const params = new HttpParams().set(
+      'path',
+      this.normalizePath(relativePath),
+    );
+    return this.http.get<number>(`${this.apiUrl}/folders/size`, { params });
   }
 
   searchInFolder(
@@ -171,6 +183,14 @@ export class CloudService {
     });
   }
 
+  getFolderArchive(relativePath: string): Observable<Blob> {
+    const path = this.normalizePath(relativePath);
+    return this.http.get(`${this.apiUrl}/folders/download`, {
+      params: new HttpParams().set('path', path),
+      responseType: 'blob',
+    });
+  }
+
   getFileView(path: string) {
     return this.http.get(`${this.apiUrl}/files/view`, {
       params: { path },
@@ -212,15 +232,47 @@ export class CloudService {
     );
   }
 
+  getFileChecksum(filePath: string): Observable<FileChecksumDto> {
+    const normPath = this.normalizePath(filePath);
+    const params = new HttpParams().set('path', normPath);
+    return this.http
+      .get<unknown>(`${this.apiUrl}/files/checksum`, { params })
+      .pipe(
+        map((res) => {
+          const raw = res as
+            | {
+                checksum?: string;
+                hash?: string;
+                sha256?: string;
+                value?: string;
+                algorithm?: string;
+              }
+            | string;
+          const checksum =
+            typeof raw === 'string'
+              ? raw
+              : raw?.checksum || raw?.hash || raw?.sha256 || raw?.value || '';
+          const algorithm =
+            (typeof raw === 'object' && raw?.algorithm) || 'SHA-256';
+          return {
+            filePath: normPath,
+            checksum,
+            algorithm,
+          };
+        }),
+      );
+  }
+
   createSecureSendLink(
     filePath: string,
-    expiryMinutes = 1440,
+    expiryMinutes: number | null = 1440,
     password?: string,
   ): Observable<SecureSendLinkDto> {
     const normPath = this.normalizePath(filePath);
-    const expiresAt = new Date(
-      Date.now() + expiryMinutes * 60_000,
-    ).toISOString();
+    const expiresAt =
+      expiryMinutes == null
+        ? null
+        : new Date(Date.now() + expiryMinutes * 60_000).toISOString();
     const payload: CreateSecureSendRequestDto = {
       filePath: normPath,
       expiresAt,
@@ -249,6 +301,13 @@ export class CloudService {
     return this.http.delete<void>(`${this.apiUrl}/secure-sends/${encodedId}`);
   }
 
+  deleteSecureSendLink(id: string): Observable<void> {
+    const encodedId = encodeURIComponent(id);
+    return this.http.delete<void>(
+      `${this.apiUrl}/secure-sends/${encodedId}/permanent`,
+    );
+  }
+
   private mapSecureSendLink(
     res: RawSecureSendResponse,
     defaultPath = '',
@@ -272,7 +331,7 @@ export class CloudService {
       fileName,
       shareUrl,
       token,
-      expiresAt: res?.expiresAt || '',
+      expiresAt: res?.expiresAt ?? null,
       hasPassword: Boolean(
         res?.passwordProtected ??
         res?.hasPassword ??
@@ -282,6 +341,7 @@ export class CloudService {
       isRevoked: Boolean(res?.revoked ?? res?.isRevoked ?? false),
       revokedAt: res?.revokedAt || null,
       createdAt: res?.createdAt || '',
+      lastAccessedAt: res?.lastAccessedAt ?? null,
     };
   }
 }

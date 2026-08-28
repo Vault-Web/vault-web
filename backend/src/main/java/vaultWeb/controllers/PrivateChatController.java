@@ -57,8 +57,13 @@ public class PrivateChatController {
       responseCode = "401",
       description = "Unauthorized request. You must provide an authentication token.")
   public PrivateChatDto getOrCreatePrivateChat(
-      @RequestParam String sender, @RequestParam String receiver) {
+      @RequestParam String receiver, Authentication authentication) {
+    if (authentication == null) {
+      throw new UnauthorizedException("User not authenticated");
+    }
+    String sender = authentication.getName();
     PrivateChat chat = privateChatService.getOrCreatePrivateChat(sender, receiver);
+
     return new PrivateChatDto(
         chat.getId(), chat.getUser1().getUsername(), chat.getUser2().getUsername());
   }

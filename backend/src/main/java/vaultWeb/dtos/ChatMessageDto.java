@@ -21,4 +21,6 @@ public class ChatMessageDto {
   private String e2eePayload;
   private MessageType messageType;
   private PollResponseDto poll;
+
+  private String clientMessageId;
 }

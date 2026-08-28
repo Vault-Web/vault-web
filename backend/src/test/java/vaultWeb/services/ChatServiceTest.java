@@ -196,6 +196,79 @@ class ChatServiceTest {
   }
 
   @Test
+  void shouldPersistClientMessageIdWhenSaving() {
+    User sender = createUser(1L, "user1");
+    Group group = createGroup(10L);
+    ChatMessageDto dto = new ChatMessageDto();
+    dto.setSenderId(1L);
+    dto.setGroupId(10L);
+    dto.setE2eePayload(VALID_E2EE_PAYLOAD);
+    dto.setSenderDeviceId(SENDER_DEVICE_ID);
+    dto.setClientMessageId("client-uuid-123");
+
+    when(userRepository.findById(1L)).thenReturn(Optional.of(sender));
+    when(groupRepository.findById(10L)).thenReturn(Optional.of(group));
+    when(chatMessageRepository.save(any(ChatMessage.class))).thenAnswer(i -> i.getArgument(0));
+
+    ChatMessage result = chatService.saveMessage(dto);
+
+    assertEquals("client-uuid-123", result.getClientMessageId());
+  }
+
+  @Test
+  void shouldAllowNullClientMessageId_forBackwardCompatibility() {
+    User sender = createUser(1L, "user1");
+    Group group = createGroup(10L);
+    ChatMessageDto dto = new ChatMessageDto();
+    dto.setSenderId(1L);
+    dto.setGroupId(10L);
+    dto.setE2eePayload(VALID_E2EE_PAYLOAD);
+    dto.setSenderDeviceId(SENDER_DEVICE_ID);
+    // clientMessageId intentionally left unset, simulating a pre-migration client
+
+    when(userRepository.findById(1L)).thenReturn(Optional.of(sender));
+    when(groupRepository.findById(10L)).thenReturn(Optional.of(group));
+    when(chatMessageRepository.save(any(ChatMessage.class))).thenAnswer(i -> i.getArgument(0));
+
+    ChatMessage result = chatService.saveMessage(dto);
+
+    assertNull(result.getClientMessageId());
+  }
+
+  @Test
+  void shouldEchoClientMessageIdInToDto() {
+    User sender = createUser(1L, "user1");
+    Group group = createGroup(10L);
+    ChatMessage message = new ChatMessage();
+    message.setSender(sender);
+    message.setGroup(group);
+    message.setTimestamp(java.time.Instant.parse("2026-03-26T10:15:30Z"));
+    message.setE2eePayload(VALID_E2EE_PAYLOAD);
+    message.setSenderDeviceId(SENDER_DEVICE_ID);
+    message.setClientMessageId("client-uuid-123");
+
+    ChatMessageDto dto = chatService.toDto(message);
+
+    assertEquals("client-uuid-123", dto.getClientMessageId());
+  }
+
+  @Test
+  void shouldReturnNullClientMessageId_forLegacyMessagesWithoutOne() {
+    User sender = createUser(1L, "user1");
+    Group group = createGroup(10L);
+    ChatMessage message = new ChatMessage();
+    message.setSender(sender);
+    message.setGroup(group);
+    message.setTimestamp(java.time.Instant.parse("2026-03-26T10:15:30Z"));
+    message.setE2eePayload(VALID_E2EE_PAYLOAD);
+    message.setSenderDeviceId(SENDER_DEVICE_ID);
+
+    ChatMessageDto dto = chatService.toDto(message);
+
+    assertNull(dto.getClientMessageId());
+  }
+
+  @Test
   void shouldFailSaveMessage_WhenGroupNotFound() {
     User sender = createUser(1L, "user1");
     ChatMessageDto dto = new ChatMessageDto();

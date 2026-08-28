@@ -1,0 +1,256 @@
+<div class="share-page">
+  <div class="share-card" [class.share-card-wide]="isFolder && opened">
+    <div *ngIf="loading" class="share-state text-xxs sm:text-xs">
+      <i class="pi pi-spin pi-spinner"></i>
+      Loading share...
+    </div>
+
+    <div *ngIf="!loading && unavailable" class="share-centered">
+      <div class="share-icon share-icon-muted">
+        <i class="pi pi-exclamation-triangle"></i>
+      </div>
+      <h1 class="share-title text-sm sm:text-base">Link unavailable</h1>
+      <p class="share-subtitle text-xxs sm:text-xs">
+        This link does not exist, has expired, or was revoked by its owner.
+      </p>
+    </div>
+
+    <!-- A shared single file, and the password gate of a shared folder. -->
+    <div *ngIf="!loading && share && !(isFolder && opened)">
+      <div class="share-centered">
+        <div class="share-icon">
+          <i class="pi" [ngClass]="isFolder ? 'pi-folder' : 'pi-file'"></i>
+        </div>
+        <h1 class="share-title share-filename text-sm sm:text-base">
+          {{ share.fileName }}
+        </h1>
+        <p class="share-subtitle text-xxs sm:text-xs">
+          <ng-container *ngIf="!isFolder">
+            {{ formatSize(share.sizeBytes) }}
+          </ng-container>
+          <ng-container *ngIf="isFolder">Shared folder</ng-container>
+          <span class="share-dot">&middot;</span>
+          available until {{ share.expiresAt | date: "medium" }}
+        </p>
+      </div>
+
+      <div *ngIf="share.passwordProtected" class="share-field">
+        <label for="share-password" class="share-label text-xxs sm:text-xs">
+          Password
+        </label>
+        <input
+          id="share-password"
+          pInputText
+          type="password"
+          name="share-password"
+          autocomplete="off"
+          [(ngModel)]="password"
+          (keyup.enter)="isFolder ? unlockFolder() : download()"
+          [ngClass]="{ 'share-input-invalid': passwordError }"
+          class="w-full text-xxs sm:text-xs"
+          placeholder="Password for this link"
+        />
+        <p *ngIf="passwordError" class="share-error text-xxs sm:text-xs">
+          {{ passwordError }}
+        </p>
+        <p *ngIf="!passwordError" class="share-hint text-xxs sm:text-xs">
+          The owner protected this
+          {{ isFolder ? "folder" : "file" }} with a password.
+        </p>
+      </div>
+
+      <p-button
+        *ngIf="!isFolder"
+        [label]="downloading ? 'Preparing download...' : 'Download'"
+        icon="pi pi-download"
+        styleClass="w-full justify-center text-xxs sm:text-xs"
+        [loading]="downloading"
+        [disabled]="downloading"
+        (click)="download()"
+      ></p-button>
+
+      <p-button
+        *ngIf="isFolder"
+        [label]="browsing ? 'Opening...' : 'Open folder'"
+        icon="pi pi-folder-open"
+        styleClass="w-full justify-center text-xxs sm:text-xs"
+        [loading]="browsing"
+        [disabled]="browsing"
+        (click)="unlockFolder()"
+      ></p-button>
+
+      <p
+        *ngIf="downloadError"
+        class="share-error share-centered text-xxs sm:text-xs"
+      >
+        {{ downloadError }}
+      </p>
+    </div>
+
+    <!-- The shared folder, once it is open. -->
+    <div *ngIf="!loading && share && isFolder && opened" class="share-browser">
+      <div class="share-browser-head">
+        <div>
+          <h1 class="share-title text-sm sm:text-base">{{ share.fileName }}</h1>
+          <p class="share-subtitle text-xxs sm:text-xs">
+            Shared folder
+            <span class="share-dot">&middot;</span>
+            available until {{ share.expiresAt | date: "medium" }}
+          </p>
+        </div>
+        <p-button
+          [label]="archiving ? 'Preparing ZIP...' : 'Download folder'"
+          icon="pi pi-download"
+          styleClass="p-button-sm text-xxs sm:text-xs"
+          [loading]="archiving"
+          [disabled]="archiving"
+          pTooltip="Download this folder and everything in it as a ZIP"
+          tooltipPosition="left"
+          (click)="downloadCurrentFolder()"
+        ></p-button>
+      </div>
+
+      <nav class="share-crumbs text-xxs sm:text-xs">
+        <ng-container *ngFor="let crumb of breadcrumbs; let last = last">
+          <button
+            type="button"
+            class="share-crumb"
+            [disabled]="last"
+            (click)="openFolder(crumb.path)"
+          >
+            {{ crumb.label }}
+          </button>
+          <span *ngIf="!last" class="share-crumb-sep">/</span>
+        </ng-container>
+      </nav>
+
+      <div *ngIf="browsing" class="share-state text-xxs sm:text-xs">
+        <i class="pi pi-spin pi-spinner"></i> Loading folder...
+      </div>
+
+      <div
+        *ngIf="!browsing && entries.length === 0"
+        class="share-empty text-xxs sm:text-xs"
+      >
+        This folder is empty.
+      </div>
+
+      <p-table
+        *ngIf="!browsing && entries.length > 0"
+        [value]="entries"
+        styleClass="text-xxs sm:text-xs"
+        [tableStyle]="{ 'min-width': '100%' }"
+      >
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Name</th>
+            <th>Size</th>
+            <th>Modified</th>
+            <th></th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-entry>
+          <tr>
+            <td>
+              <button
+                type="button"
+                class="cloud-entry-btn"
+                (click)="onEntryOpen(entry)"
+              >
+                <span class="cloud-entry-icon" [class.folder]="entry.directory">
+                  <i class="pi" [ngClass]="iconFor(entry)"></i>
+                </span>
+                <span class="cloud-entry-name">{{ entry.name }}</span>
+              </button>
+            </td>
+            <td class="share-muted">
+              {{ entry.directory ? "" : formatSize(entry.size) }}
+            </td>
+            <td class="share-muted">
+              {{ entry.lastModifiedAt | date: "short" }}
+            </td>
+            <td class="text-right">
+              <p-button
+                *ngIf="!entry.directory"
+                icon="pi pi-download"
+                styleClass="p-button-rounded p-button-text p-button-sm"
+                [loading]="downloadingPath === entry.path"
+                [disabled]="!!downloadingPath"
+                (click)="downloadEntry(entry)"
+                pTooltip="Download this file"
+                tooltipPosition="left"
+                ariaLabel="Download this file"
+              ></p-button>
+              <p-button
+                *ngIf="entry.directory"
+                icon="pi pi-angle-right"
+                styleClass="p-button-rounded p-button-text p-button-sm"
+                (click)="openFolder(entry.path)"
+                pTooltip="Open this folder"
+                tooltipPosition="left"
+                ariaLabel="Open this folder"
+              ></p-button>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+
+      <p *ngIf="downloadError" class="share-error text-xxs sm:text-xs">
+        {{ downloadError }}
+      </p>
+    </div>
+
+    <p class="share-footer text-xxs">Shared securely with Vault Web</p>
+  </div>
+</div>
+
+<p-dialog
+  [(visible)]="showPreview"
+  (onHide)="closePreview()"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [header]="preview?.name ?? ''"
+  [style]="{ width: '52rem', maxWidth: '95vw' }"
+>
+  <div class="share-preview">
+    <div *ngIf="previewLoading" class="share-state text-xxs sm:text-xs">
+      <i class="pi pi-spin pi-spinner"></i> Loading preview...
+    </div>
+
+    <ng-container *ngIf="!previewLoading && preview">
+      <img
+        *ngIf="preview.kind === 'image' && preview.imageUrl"
+        [src]="preview.imageUrl"
+        [alt]="preview.name"
+        class="share-preview-image"
+      />
+      <iframe
+        *ngIf="preview.kind === 'pdf' && preview.pdfUrl"
+        [src]="preview.pdfUrl"
+        [title]="preview.name"
+        class="share-preview-frame"
+      ></iframe>
+      <pre
+        *ngIf="preview.kind === 'text'"
+        class="share-preview-text text-xxs sm:text-xs"
+        >{{ preview.text }}</pre
+      >
+    </ng-container>
+  </div>
+  <ng-template pTemplate="footer">
+    <p-button
+      label="Close"
+      styleClass="p-button-text p-button-sm text-xxs sm:text-xs"
+      (click)="closePreview()"
+    ></p-button>
+    <p-button
+      label="Download"
+      icon="pi pi-download"
+      styleClass="p-button-sm text-xxs sm:text-xs"
+      [disabled]="!!downloadingPath"
+      (click)="downloadPreviewed()"
+    ></p-button>
+  </ng-template>
+</p-dialog>
