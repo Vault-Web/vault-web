@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -30,6 +30,7 @@ const passwordMatchValidator: ValidatorFn = (
   return null;
 };
 
+const IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const LOWER = 'abcdefghijklmnopqrstuvwxyz';
 const NUMBERS = '0123456789';
@@ -45,7 +46,7 @@ type Strength = 'weak' | 'medium' | 'strong';
   templateUrl: './password-manager.component.html',
   styleUrl: './password-manager.component.scss',
 })
-export class PasswordManagerComponent implements OnInit {
+export class PasswordManagerComponent implements OnInit, OnDestroy {
   entries: PasswordEntryDto[] = [];
   isLoading = false;
   hasLoadError = false;
@@ -87,6 +88,16 @@ export class PasswordManagerComponent implements OnInit {
   generatedPreview = '';
   generatorError: string | null = null;
 
+  private idleTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly activityEvents = [
+    'mousemove',
+    'mousedown',
+    'keydown',
+    'click',
+    'touchstart',
+  ];
+  private readonly activityHandler = (): void => this.resetIdleTimer();
+
   constructor(
     private fb: FormBuilder,
     private passwordManagerService: PasswordManagerService,
@@ -94,6 +105,7 @@ export class PasswordManagerComponent implements OnInit {
     private unlockService: PasswordManagerUnlockService,
     private toast: UiToastService,
     private userService: UserService,
+    private zone: NgZone,
   ) {
     this.createForm = this.fb.group(
       {
@@ -216,7 +228,16 @@ export class PasswordManagerComponent implements OnInit {
 
   ngOnInit(): void {
     this.updateUnlockState();
+    this.registerActivityListeners();
     this.refreshVaultStatus();
+    this.startIdleTimerIfNeeded();
+  }
+
+  ngOnDestroy(): void {
+    this.clearIdleTimer();
+    this.activityEvents.forEach((eventName) => {
+      document.removeEventListener(eventName, this.activityHandler);
+    });
   }
 
   private updateUnlockState(): void {
@@ -445,6 +466,7 @@ export class PasswordManagerComponent implements OnInit {
         this.unlockService.setToken(res.token, res.expiresAt);
         this.updateUnlockState();
         this.unlockForm.reset();
+        this.resetIdleTimer();
         this.toast.success(
           'Vault unlocked',
           'Password manager is now available.',
@@ -506,29 +528,70 @@ export class PasswordManagerComponent implements OnInit {
     });
   }
 
-  lockVault(): void {
+  lockVault(autoLocked = false): void {
+    this.clearIdleTimer();
     const token = this.unlockService.getToken();
     this.vaultService.lock(token).subscribe({
       next: () => {
-        this.unlockService.clear();
-        this.updateUnlockState();
-        this.revealedPasswords.clear();
-        this.revealLoadingIds.clear();
-        this.entries = [];
+        this.clearVaultState();
         this.vaultGateError = null;
-        this.toast.info('Vault locked', 'Sensitive data was hidden.');
+        this.toast.info(
+          'Vault locked',
+          autoLocked
+            ? 'Vault was locked after a period of inactivity.'
+            : 'Sensitive data was hidden.',
+        );
         this.userService.logSecurityEvent('VAULT_LOCKED').subscribe({
           error: (err) => console.error('Failed to log vault lock event', err),
         });
       },
       error: () => {
-        this.unlockService.clear();
-        this.updateUnlockState();
-        this.revealedPasswords.clear();
-        this.revealLoadingIds.clear();
-        this.entries = [];
+        this.clearVaultState();
       },
     });
+  }
+
+  private clearVaultState(): void {
+    this.unlockService.clear();
+    this.updateUnlockState();
+    this.revealedPasswords.clear();
+    this.revealLoadingIds.clear();
+    this.entries = [];
+  }
+
+  private registerActivityListeners(): void {
+    this.zone.runOutsideAngular(() => {
+      this.activityEvents.forEach((eventName) => {
+        document.addEventListener(eventName, this.activityHandler, {
+          passive: true,
+        });
+      });
+    });
+  }
+
+  private resetIdleTimer(): void {
+    if (!this.isUnlocked) {
+      this.clearIdleTimer();
+      return;
+    }
+
+    this.clearIdleTimer();
+    this.idleTimer = setTimeout(() => {
+      this.zone.run(() => this.lockVault(true));
+    }, IDLE_TIMEOUT_MS);
+  }
+
+  private startIdleTimerIfNeeded(): void {
+    if (this.isUnlocked) {
+      this.resetIdleTimer();
+    }
+  }
+
+  private clearIdleTimer(): void {
+    if (this.idleTimer !== null) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    }
   }
 
   private refreshVaultStatus(): void {
@@ -542,6 +605,7 @@ export class PasswordManagerComponent implements OnInit {
 
         this.updateUnlockState();
         if (this.vaultInitialized && this.isUnlocked) {
+          this.startIdleTimerIfNeeded();
           this.loadEntries();
         }
       },
@@ -565,18 +629,16 @@ export class PasswordManagerComponent implements OnInit {
     }
 
     if (httpErr.status === 409) {
-      this.unlockService.clear();
-      this.updateUnlockState();
+      this.clearIdleTimer();
+      this.clearVaultState();
       this.vaultInitialized = false;
       this.vaultGateError = 'Vault is not initialized yet.';
       return;
     }
 
     if (httpErr.status === 428) {
-      this.unlockService.clear();
-      this.updateUnlockState();
-      this.revealedPasswords.clear();
-      this.revealLoadingIds.clear();
+      this.clearIdleTimer();
+      this.clearVaultState();
       this.vaultGateError =
         'Vault is locked. Please unlock with your master password.';
       return;
