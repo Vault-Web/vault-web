@@ -35,9 +35,11 @@ export function renderChatMarkdown(content: string): string {
   return `<div class="chat-markdown">${cleanHtml}</div>`;
 }
 
-void import('./private-chat-dialog.component').then(({ PrivateChatDialogComponent }) => {
-  const prototype = PrivateChatDialogComponent.prototype as unknown as {
-    formatMessage: (content?: string) => string;
-  };
-  prototype.formatMessage = (content = '') => renderChatMarkdown(content);
-});
+void import('./private-chat-dialog.component').then(
+  ({ PrivateChatDialogComponent }) => {
+    const prototype = PrivateChatDialogComponent.prototype as unknown as {
+      formatMessage: (content?: string) => string;
+    };
+    prototype.formatMessage = (content = '') => renderChatMarkdown(content);
+  },
+);
