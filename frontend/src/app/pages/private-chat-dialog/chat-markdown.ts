@@ -30,16 +30,10 @@ function installStyles(): void {
 
 export function renderChatMarkdown(content: string): string {
   installStyles();
-  const rendered = marked.parse(content ?? '', { async: false });
+  const rendered = marked.parse(content ?? '', {
+    breaks: true,
+    async: false,
+  }) as string;
   const cleanHtml = DOMPurify.sanitize(rendered);
   return `<div class="chat-markdown">${cleanHtml}</div>`;
 }
-
-void import('./private-chat-dialog.component').then(
-  ({ PrivateChatDialogComponent }) => {
-    const prototype = PrivateChatDialogComponent.prototype as unknown as {
-      formatMessage: (content?: string) => string;
-    };
-    prototype.formatMessage = (content = '') => renderChatMarkdown(content);
-  },
-);
