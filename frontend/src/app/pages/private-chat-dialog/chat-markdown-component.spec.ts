@@ -3,13 +3,11 @@ import { PrivateChatDialogComponent } from './private-chat-dialog.component';
 
 describe('PrivateChatDialogComponent Markdown formatting', () => {
   it('renders Markdown through formatMessage and preserves the SafeHtml contract', () => {
-    const sanitizer = {
-      bypassSecurityTrustHtml: jasmine.createSpy('bypassSecurityTrustHtml'),
-    } as unknown as DomSanitizer;
+    const sanitizer = jasmine.createSpyObj<DomSanitizer>('DomSanitizer', [
+      'bypassSecurityTrustHtml',
+    ]);
     const trustedHtml = {};
-    sanitizer.bypassSecurityTrustHtml = jasmine
-      .createSpy('bypassSecurityTrustHtml')
-      .and.returnValue(trustedHtml as any);
+    sanitizer.bypassSecurityTrustHtml.and.returnValue(trustedHtml as any);
 
     const component = new PrivateChatDialogComponent(
       {} as any,
@@ -32,13 +30,11 @@ describe('PrivateChatDialogComponent Markdown formatting', () => {
   });
 
   it('reuses the formatted message cache for repeated content', () => {
-    const sanitizer = {
-      bypassSecurityTrustHtml: jasmine.createSpy('bypassSecurityTrustHtml'),
-    } as unknown as DomSanitizer;
+    const sanitizer = jasmine.createSpyObj<DomSanitizer>('DomSanitizer', [
+      'bypassSecurityTrustHtml',
+    ]);
     const trustedHtml = {};
-    sanitizer.bypassSecurityTrustHtml = jasmine
-      .createSpy('bypassSecurityTrustHtml')
-      .and.returnValue(trustedHtml as any);
+    sanitizer.bypassSecurityTrustHtml.and.returnValue(trustedHtml as any);
 
     const component = new PrivateChatDialogComponent(
       {} as any,
