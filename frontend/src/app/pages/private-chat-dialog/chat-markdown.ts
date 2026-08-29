@@ -34,6 +34,10 @@ export function renderChatMarkdown(content: string): string {
     breaks: true,
     async: false,
   }) as string;
-  const cleanHtml = DOMPurify.sanitize(rendered);
+  const withSafeLinkAttributes = rendered.replace(
+    /<a\b(?![^>]*\btarget=)([^>]*)>/gi,
+    '<a target="_blank" rel="noopener noreferrer"$1>',
+  );
+  const cleanHtml = DOMPurify.sanitize(withSafeLinkAttributes);
   return `<div class="chat-markdown">${cleanHtml}</div>`;
 }
