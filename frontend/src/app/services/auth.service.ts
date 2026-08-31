@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { finalize, map, Observable, tap } from 'rxjs';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { finalize, map, Observable, tap, catchError } from 'rxjs';
+import { of } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Router } from '@angular/router';
 
@@ -58,23 +59,28 @@ export class AuthService {
     });
   }
 
-  saveToken(token: string): void {
-    localStorage.setItem('token', token);
+  validateTokenWithServer(): Observable<boolean> {
+    const token = this.getToken();
+    if (!token) {
+      return of(false);
+    }
+
+    return this.refresh().pipe(
+      tap((res) => {
+        this.saveToken(res.token);
+      }),
+      map(() => true),
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 401 || error.status === 403) {
+          this.clearAuthState();
+          return of(false);
+        }
+        return of(false);
+      }),
+    );
   }
 
-  saveUsername(username: string): void {
-    localStorage.setItem('username', username);
-  }
-
-  getToken(): string | null {
-    return localStorage.getItem('token') as string | null;
-  }
-
-  getUsername(): string | null {
-    return localStorage.getItem('username') as string | null;
-  }
-
-  isLoggedIn(): boolean {
+  isLoggedInLocally(): boolean {
     const token = localStorage.getItem('token');
     if (!token) {
       return false;
@@ -90,6 +96,31 @@ export class AuthService {
       return true;
     }
     return Date.now() < payload.exp * 1000;
+  }
+
+  isLoggedIn(): boolean {
+    return this.isLoggedInLocally();
+  }
+
+  private clearAuthState(): void {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+  }
+
+  saveToken(token: string): void {
+    localStorage.setItem('token', token);
+  }
+
+  saveUsername(username: string): void {
+    localStorage.setItem('username', username);
+  }
+
+  getToken(): string | null {
+    return localStorage.getItem('token') as string | null;
+  }
+
+  getUsername(): string | null {
+    return localStorage.getItem('username') as string | null;
   }
 
   private decodeTokenPayload(token: string): { exp?: number } | null {
