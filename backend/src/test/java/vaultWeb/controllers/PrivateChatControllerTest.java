@@ -129,7 +129,7 @@ class PrivateChatControllerTest {
     Authentication authentication = org.mockito.Mockito.mock(Authentication.class);
     when(authentication.getName()).thenReturn("alice");
     when(privateChatRepository.findById(7L)).thenReturn(Optional.of(chat));
-    when(chatMessageRepository.findByPrivateChatIdOrderByTimestampAsc(7L))
+    when(chatMessageRepository.findByPrivateChatIdAndDeletedFalseOrderByTimestampAsc(7L))
         .thenReturn(List.of(message));
     ChatMessageDto dto = new ChatMessageDto();
     dto.setPrivateChatId(7L);

@@ -46,4 +46,8 @@ public class ChatMessage {
 
   @Column(name = "client_message_id", length = 36, nullable = true)
   private String clientMessageId;
+
+  @Column(nullable = false)
+  @Builder.Default
+  private boolean deleted = false;
 }

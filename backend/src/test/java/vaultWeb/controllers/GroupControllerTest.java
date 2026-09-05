@@ -350,7 +350,8 @@ class GroupControllerTest {
     when(authService.getCurrentUser()).thenReturn(currentUser);
     when(groupMemberRepository.findByGroupIdAndUserId(10L, 1L))
         .thenReturn(Optional.of(mock(vaultWeb.models.GroupMember.class)));
-    when(chatMessageRepository.findByGroupIdOrderByTimestampAsc(10L)).thenReturn(List.of(message));
+    when(chatMessageRepository.findByGroupIdAndDeletedFalseOrderByTimestampAsc(10L))
+        .thenReturn(List.of(message));
 
     ResponseEntity<List<ChatMessageDto>> response =
         groupController.getGroupMessages(10L, authentication);
@@ -372,13 +373,13 @@ class GroupControllerTest {
 
     assertThrows(
         NotMemberException.class, () -> groupController.getGroupMessages(10L, authentication));
-    verify(chatMessageRepository, times(0)).findByGroupIdOrderByTimestampAsc(any());
+    verify(chatMessageRepository, times(0)).findByGroupIdAndDeletedFalseOrderByTimestampAsc(any());
   }
 
   @Test
   void shouldRejectGetGroupMessages_WhenUnauthenticated() {
     assertThrows(UnauthorizedException.class, () -> groupController.getGroupMessages(10L, null));
-    verify(chatMessageRepository, times(0)).findByGroupIdOrderByTimestampAsc(any());
+    verify(chatMessageRepository, times(0)).findByGroupIdAndDeletedFalseOrderByTimestampAsc(any());
   }
 
   @Test

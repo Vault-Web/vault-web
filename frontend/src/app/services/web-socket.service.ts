@@ -6,6 +6,7 @@ import { TypingIndicatorDto } from '../models/dtos/TypingIndicatorDto';
 import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
 import { Observable, Observer } from 'rxjs';
+import { ChatMessageDeletedDto } from '../models/dtos/ChatMessageDeletedDto';
 
 @Injectable({
   providedIn: 'root',
@@ -152,6 +153,19 @@ export class WebSocketService {
     }
   }
 
+  sendDeleteMessage(clientMessageId: string): boolean {
+    if (this.connected) {
+      this.client?.publish({
+        destination: '/app/chat.delete',
+        body: clientMessageId,
+      });
+      return true;
+    } else {
+      console.warn('WebSocket not connected yet. Message not deleted.');
+      return false;
+    }
+  }
+
   sendTypingIndicator(event: TypingIndicatorDto): boolean {
     if (this.connected) {
       this.client?.publish({
@@ -163,6 +177,58 @@ export class WebSocketService {
       console.warn('WebSocket not connected yet. Typing indicator not sent.');
       return false;
     }
+  }
+
+  subscribeToDeletedPrivateMessages(): Observable<ChatMessageDeletedDto> {
+    return new Observable((observer) => {
+      const subscribeAction = () => {
+        return this.subscribeToDeletedPrivateInternal(observer);
+      };
+
+      let unsubscribeFn: (() => void) | undefined;
+      let isUnsubscribed = false;
+      let queuedSubscribe: (() => void) | undefined;
+
+      if (!this.connected) {
+        queuedSubscribe = () => {
+          if (isUnsubscribed) {
+            return;
+          }
+          unsubscribeFn = subscribeAction();
+        };
+        this.connectCallbacks.push(queuedSubscribe);
+      } else {
+        unsubscribeFn = subscribeAction();
+      }
+
+      return () => {
+        isUnsubscribed = true;
+
+        if (!unsubscribeFn && queuedSubscribe) {
+          this.connectCallbacks = this.connectCallbacks.filter(
+            (cb) => cb !== queuedSubscribe,
+          );
+        }
+
+        if (unsubscribeFn) {
+          unsubscribeFn();
+        }
+      };
+    });
+  }
+
+  private subscribeToDeletedPrivateInternal(
+    observer: Observer<ChatMessageDeletedDto>,
+  ) {
+    const subscription = this.client?.subscribe(
+      '/user/queue/private/deleted',
+      (message) => {
+        const event = JSON.parse(message.body) as ChatMessageDeletedDto;
+        observer.next(event);
+      },
+    );
+
+    return () => subscription?.unsubscribe();
   }
 
   subscribeToPrivateMessages(): Observable<ChatMessageDto> {
@@ -295,6 +361,61 @@ export class WebSocketService {
         }
       };
     });
+  }
+
+  subscribeToDeletedGroupMessages(
+    groupId: number,
+  ): Observable<ChatMessageDeletedDto> {
+    return new Observable((observer) => {
+      const subscribeAction = () => {
+        return this.subscribeToDeletedGroupInternal(groupId, observer);
+      };
+
+      let unsubscribeFn: (() => void) | undefined;
+      let isUnsubscribed = false;
+      let queuedSubscribe: (() => void) | undefined;
+
+      if (!this.connected) {
+        queuedSubscribe = () => {
+          if (isUnsubscribed) {
+            return;
+          }
+          unsubscribeFn = subscribeAction();
+        };
+        this.connectCallbacks.push(queuedSubscribe);
+      } else {
+        unsubscribeFn = subscribeAction();
+      }
+
+      return () => {
+        isUnsubscribed = true;
+
+        if (!unsubscribeFn && queuedSubscribe) {
+          this.connectCallbacks = this.connectCallbacks.filter(
+            (cb) => cb !== queuedSubscribe,
+          );
+        }
+
+        if (unsubscribeFn) {
+          unsubscribeFn();
+        }
+      };
+    });
+  }
+
+  private subscribeToDeletedGroupInternal(
+    groupId: number,
+    observer: Observer<ChatMessageDeletedDto>,
+  ) {
+    const subscription = this.client?.subscribe(
+      `/topic/group/${groupId}/deleted`,
+      (message) => {
+        const event = JSON.parse(message.body) as ChatMessageDeletedDto;
+        observer.next(event);
+      },
+    );
+
+    return () => subscription?.unsubscribe();
   }
 
   private subscribeToGroupInternal(

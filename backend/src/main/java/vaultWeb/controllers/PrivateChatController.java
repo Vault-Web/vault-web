@@ -89,7 +89,7 @@ public class PrivateChatController {
       @RequestParam Long privateChatId, Authentication authentication) {
     PrivateChat chat = getAuthorizedPrivateChat(privateChatId, authentication);
     List<ChatMessage> messages =
-        chatMessageRepository.findByPrivateChatIdOrderByTimestampAsc(chat.getId());
+        chatMessageRepository.findByPrivateChatIdAndDeletedFalseOrderByTimestampAsc(chat.getId());
 
     return messages.stream()
         .map(

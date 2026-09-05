@@ -11,6 +11,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
+import vaultWeb.dtos.ChatMessageDeletedDto;
 import vaultWeb.dtos.ChatMessageDto;
 import vaultWeb.exceptions.UnauthorizedException;
 import vaultWeb.models.ChatMessage;
@@ -94,5 +95,34 @@ public class ChatController {
         "Private message sent from {} to privateChat {}",
         responseDto.getSenderUsername(),
         responseDto.getPrivateChatId());
+  }
+
+  @MessageMapping("/chat.delete")
+  public void deleteMessage(@Payload String clientMessageId, Principal principal) {
+
+    if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+      throw new UnauthorizedException("User not authenticated");
+    }
+
+    ChatMessage deletedMessage = chatService.deleteMessage(clientMessageId, principal.getName());
+
+    ChatMessageDeletedDto responseDto =
+        new ChatMessageDeletedDto(deletedMessage.getClientMessageId());
+
+    if (deletedMessage.getGroup() != null) {
+      messagingTemplate.convertAndSend(
+          "/topic/group/" + deletedMessage.getGroup().getId() + "/deleted", responseDto);
+    } else if (deletedMessage.getPrivateChat() != null) {
+      String user1 = deletedMessage.getPrivateChat().getUser1().getUsername();
+      String user2 = deletedMessage.getPrivateChat().getUser2().getUsername();
+
+      Set<String> recipients = new LinkedHashSet<>();
+      recipients.add(user1);
+      recipients.add(user2);
+
+      recipients.forEach(
+          user ->
+              messagingTemplate.convertAndSendToUser(user, "/queue/private/deleted", responseDto));
+    }
   }
 }

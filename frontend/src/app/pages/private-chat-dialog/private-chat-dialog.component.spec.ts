@@ -10,6 +10,7 @@ import {
 import { of, Subject } from 'rxjs';
 import { UiToastService } from '../../core/services/ui-toast.service';
 import { ChatMessageDto } from '../../models/dtos/ChatMessageDto';
+import { ChatMessageDeletedDto } from '../../models/dtos/ChatMessageDeletedDto';
 import { TypingIndicatorDto } from '../../models/dtos/TypingIndicatorDto';
 import { DeviceDto } from '../../models/dtos/DeviceDto';
 import { E2eeService } from '../../services/e2ee.service';
@@ -37,9 +38,18 @@ describe('PrivateChatDialogComponent typing indicators', () => {
       'sendPrivateMessage',
       'sendGroupMessage',
       'subscribeToGroupMessages',
+      'subscribeToDeletedPrivateMessages',
+      'subscribeToDeletedGroupMessages',
+      'sendDeleteMessage',
     ]);
     wsService.subscribeToPrivateMessages.and.returnValue(of<ChatMessageDto>());
     wsService.subscribeToGroupMessages.and.returnValue(of<ChatMessageDto>());
+    wsService.subscribeToDeletedPrivateMessages.and.returnValue(
+      of<ChatMessageDeletedDto>(),
+    );
+    wsService.subscribeToDeletedGroupMessages.and.returnValue(
+      of<ChatMessageDeletedDto>(),
+    );
     wsService.subscribeToTypingIndicators.and.returnValue(
       typingEvents.asObservable(),
     );
@@ -47,6 +57,7 @@ describe('PrivateChatDialogComponent typing indicators', () => {
     wsService.ensureConnected.and.resolveTo(true);
     wsService.sendPrivateMessage.and.returnValue(true);
     wsService.sendGroupMessage.and.returnValue(true);
+    wsService.sendDeleteMessage.and.returnValue(true);
 
     const chatService = jasmine.createSpyObj<PrivateChatService>(
       'PrivateChatService',
@@ -165,10 +176,19 @@ describe('PrivateChatDialogComponent formatMessage', () => {
         'sendPrivateMessage',
         'sendGroupMessage',
         'subscribeToGroupMessages',
+        'subscribeToDeletedPrivateMessages',
+        'subscribeToDeletedGroupMessages',
+        'sendDeleteMessage',
       ],
     );
     wsService.subscribeToPrivateMessages.and.returnValue(of<ChatMessageDto>());
     wsService.subscribeToGroupMessages.and.returnValue(of<ChatMessageDto>());
+    wsService.subscribeToDeletedPrivateMessages.and.returnValue(
+      of<ChatMessageDeletedDto>(),
+    );
+    wsService.subscribeToDeletedGroupMessages.and.returnValue(
+      of<ChatMessageDeletedDto>(),
+    );
     wsService.subscribeToTypingIndicators.and.returnValue(
       typingEvents.asObservable(),
     );
@@ -176,6 +196,7 @@ describe('PrivateChatDialogComponent formatMessage', () => {
     wsService.ensureConnected.and.resolveTo(true);
     wsService.sendPrivateMessage.and.returnValue(true);
     wsService.sendGroupMessage.and.returnValue(true);
+    wsService.sendDeleteMessage.and.returnValue(true);
 
     const chatService = jasmine.createSpyObj<PrivateChatService>(
       'PrivateChatService',
@@ -323,12 +344,21 @@ describe('PrivateChatDialogComponent duplicate message detection', () => {
       'sendPrivateMessage',
       'sendGroupMessage',
       'subscribeToGroupMessages',
+      'subscribeToDeletedPrivateMessages',
+      'subscribeToDeletedGroupMessages',
+      'sendDeleteMessage',
     ]);
     wsService.subscribeToPrivateMessages.and.returnValue(
       privateMessages.asObservable(),
     );
     wsService.subscribeToGroupMessages.and.returnValue(
       groupMessages.asObservable(),
+    );
+    wsService.subscribeToDeletedPrivateMessages.and.returnValue(
+      of<ChatMessageDeletedDto>(),
+    );
+    wsService.subscribeToDeletedGroupMessages.and.returnValue(
+      of<ChatMessageDeletedDto>(),
     );
     wsService.subscribeToTypingIndicators.and.returnValue(
       new Subject<TypingIndicatorDto>().asObservable(),
@@ -337,6 +367,7 @@ describe('PrivateChatDialogComponent duplicate message detection', () => {
     wsService.ensureConnected.and.resolveTo(true);
     wsService.sendPrivateMessage.and.returnValue(true);
     wsService.sendGroupMessage.and.returnValue(true);
+    wsService.sendDeleteMessage.and.returnValue(true);
 
     const chatService = jasmine.createSpyObj<PrivateChatService>(
       'PrivateChatService',
@@ -532,6 +563,215 @@ describe('PrivateChatDialogComponent duplicate message detection', () => {
   }));
 });
 
+describe('PrivateChatDialogComponent message deletion', () => {
+  let fixture: ComponentFixture<PrivateChatDialogComponent>;
+  let component: PrivateChatDialogComponent;
+  let deletedPrivateMessages: Subject<ChatMessageDeletedDto>;
+  let wsService: jasmine.SpyObj<WebSocketService>;
+  let toast: jasmine.SpyObj<UiToastService>;
+
+  beforeEach(async () => {
+    deletedPrivateMessages = new Subject<ChatMessageDeletedDto>();
+    wsService = jasmine.createSpyObj<WebSocketService>('WebSocketService', [
+      'subscribeToPrivateMessages',
+      'subscribeToTypingIndicators',
+      'sendTypingIndicator',
+      'ensureConnected',
+      'sendPrivateMessage',
+      'sendGroupMessage',
+      'subscribeToGroupMessages',
+      'subscribeToDeletedPrivateMessages',
+      'subscribeToDeletedGroupMessages',
+      'sendDeleteMessage',
+    ]);
+    wsService.subscribeToPrivateMessages.and.returnValue(of<ChatMessageDto>());
+    wsService.subscribeToGroupMessages.and.returnValue(of<ChatMessageDto>());
+    wsService.subscribeToDeletedPrivateMessages.and.returnValue(
+      deletedPrivateMessages.asObservable(),
+    );
+    wsService.subscribeToDeletedGroupMessages.and.returnValue(
+      of<ChatMessageDeletedDto>(),
+    );
+    wsService.subscribeToTypingIndicators.and.returnValue(
+      new Subject<TypingIndicatorDto>().asObservable(),
+    );
+    wsService.sendTypingIndicator.and.returnValue(true);
+    wsService.ensureConnected.and.resolveTo(true);
+    wsService.sendPrivateMessage.and.returnValue(true);
+    wsService.sendGroupMessage.and.returnValue(true);
+    wsService.sendDeleteMessage.and.returnValue(true);
+
+    const chatService = jasmine.createSpyObj<PrivateChatService>(
+      'PrivateChatService',
+      ['getMessages', 'getDevices'],
+    );
+    chatService.getMessages.and.returnValue(of([]));
+    chatService.getDevices.and.returnValue(of<DeviceDto[]>([]));
+
+    const groupChatService = jasmine.createSpyObj<GroupChatService>(
+      'GroupChatService',
+      ['getMessages', 'getDevices'],
+    );
+    groupChatService.getMessages.and.returnValue(of([]));
+    groupChatService.getDevices.and.returnValue(of<DeviceDto[]>([]));
+
+    const e2eeService = jasmine.createSpyObj<E2eeService>('E2eeService', [
+      'ensureDeviceRegistered',
+      'encryptForDevices',
+      'decryptPayload',
+    ]);
+    e2eeService.ensureDeviceRegistered.and.resolveTo();
+
+    toast = jasmine.createSpyObj<UiToastService>('UiToastService', [
+      'error',
+      'warn',
+    ]);
+
+    const groupService = jasmine.createSpyObj<GroupService>('GroupService', [
+      'getGroupDetails',
+    ]);
+    const userService = jasmine.createSpyObj<UserService>('UserService', [
+      'getProfilePictureUrl',
+    ]);
+
+    await TestBed.configureTestingModule({
+      imports: [PrivateChatDialogComponent],
+      providers: [
+        { provide: WebSocketService, useValue: wsService },
+        { provide: PrivateChatService, useValue: chatService },
+        { provide: GroupChatService, useValue: groupChatService },
+        { provide: E2eeService, useValue: e2eeService },
+        { provide: UiToastService, useValue: toast },
+        { provide: GroupService, useValue: groupService },
+        { provide: UserService, useValue: userService },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(PrivateChatDialogComponent);
+    component = fixture.componentInstance;
+    component.username = 'bob';
+    component.currentUsername = 'alice';
+    component.privateChatId = 10;
+    fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    fixture.destroy();
+  });
+
+  function ownMessage(overrides: Partial<any> = {}) {
+    return {
+      senderUsername: 'alice',
+      privateChatId: 10,
+      groupId: undefined,
+      timestamp: '2026-08-19T10:00:00.000Z',
+      clientMessageId: 'own-msg-1',
+      content: 'hi there',
+      kind: 'text' as const,
+      ...overrides,
+    };
+  }
+
+  describe('deleteMessage guards', () => {
+    it('does nothing if the message was not sent by the current user', () => {
+      spyOn(window, 'confirm');
+      component.deleteMessage(ownMessage({ senderUsername: 'bob' }));
+
+      expect(window.confirm).not.toHaveBeenCalled();
+      expect(wsService.sendDeleteMessage).not.toHaveBeenCalled();
+    });
+
+    it('does nothing if the message has no clientMessageId', () => {
+      spyOn(window, 'confirm');
+      component.deleteMessage(ownMessage({ clientMessageId: undefined }));
+
+      expect(window.confirm).not.toHaveBeenCalled();
+      expect(wsService.sendDeleteMessage).not.toHaveBeenCalled();
+    });
+
+    it('does nothing if the message is already marked deleted', () => {
+      spyOn(window, 'confirm');
+      component.deleteMessage(ownMessage({ deleted: true }));
+
+      expect(window.confirm).not.toHaveBeenCalled();
+      expect(wsService.sendDeleteMessage).not.toHaveBeenCalled();
+    });
+
+    it('does not send a delete request if the user cancels the confirmation', () => {
+      spyOn(window, 'confirm').and.returnValue(false);
+      component.deleteMessage(ownMessage());
+
+      expect(window.confirm).toHaveBeenCalled();
+      expect(wsService.sendDeleteMessage).not.toHaveBeenCalled();
+    });
+
+    it('sends the delete request with the correct clientMessageId when confirmed', () => {
+      spyOn(window, 'confirm').and.returnValue(true);
+      component.deleteMessage(ownMessage({ clientMessageId: 'own-msg-42' }));
+
+      expect(wsService.sendDeleteMessage).toHaveBeenCalledWith('own-msg-42');
+    });
+
+    it('shows an error toast if the socket is not connected', () => {
+      spyOn(window, 'confirm').and.returnValue(true);
+      wsService.sendDeleteMessage.and.returnValue(false);
+
+      component.deleteMessage(ownMessage());
+
+      expect(toast.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('handling an incoming delete event', () => {
+    it('marks the matching message as deleted with placeholder content, leaving others untouched', () => {
+      (component as any).messages = [
+        ownMessage({ clientMessageId: 'msg-1', content: 'first' }),
+        ownMessage({ clientMessageId: 'msg-2', content: 'second' }),
+      ];
+
+      deletedPrivateMessages.next({ clientMessageId: 'msg-1' });
+
+      const [first, second] = component.messages as any[];
+      expect(first.deleted).toBe(true);
+      expect(first.content).toBe('Message deleted');
+      expect(second.deleted).toBeFalsy();
+      expect(second.content).toBe('second');
+    });
+
+    it('clears sticker fields on a deleted sticker message so the placeholder renders instead', () => {
+      (component as any).messages = [
+        ownMessage({
+          clientMessageId: 'sticker-1',
+          kind: 'sticker',
+          stickerId: 'cat',
+          stickerSrc: '/stickers/cat.png',
+          stickerLabel: 'Cat',
+        }),
+      ];
+
+      deletedPrivateMessages.next({ clientMessageId: 'sticker-1' });
+
+      const [message] = component.messages as any[];
+      expect(message.deleted).toBe(true);
+      expect(message.stickerSrc).toBeUndefined();
+      expect(message.stickerId).toBeUndefined();
+      expect(message.stickerLabel).toBeUndefined();
+    });
+
+    it('does nothing if no message matches the deleted clientMessageId', () => {
+      (component as any).messages = [
+        ownMessage({ clientMessageId: 'msg-1', content: 'first' }),
+      ];
+
+      deletedPrivateMessages.next({ clientMessageId: 'does-not-exist' });
+
+      const [first] = component.messages as any[];
+      expect(first.deleted).toBeFalsy();
+      expect(first.content).toBe('first');
+    });
+  });
+});
+
 describe('PrivateChatDialogComponent emoji picker', () => {
   let fixture: ComponentFixture<PrivateChatDialogComponent>;
   let component: PrivateChatDialogComponent;
@@ -548,10 +788,19 @@ describe('PrivateChatDialogComponent emoji picker', () => {
         'sendPrivateMessage',
         'sendGroupMessage',
         'subscribeToGroupMessages',
+        'subscribeToDeletedPrivateMessages',
+        'subscribeToDeletedGroupMessages',
+        'sendDeleteMessage',
       ],
     );
     wsService.subscribeToPrivateMessages.and.returnValue(of<ChatMessageDto>());
     wsService.subscribeToGroupMessages.and.returnValue(of<ChatMessageDto>());
+    wsService.subscribeToDeletedPrivateMessages.and.returnValue(
+      of<ChatMessageDeletedDto>(),
+    );
+    wsService.subscribeToDeletedGroupMessages.and.returnValue(
+      of<ChatMessageDeletedDto>(),
+    );
     wsService.subscribeToTypingIndicators.and.returnValue(
       typingEvents.asObservable(),
     );
@@ -559,6 +808,7 @@ describe('PrivateChatDialogComponent emoji picker', () => {
     wsService.ensureConnected.and.resolveTo(true);
     wsService.sendPrivateMessage.and.returnValue(true);
     wsService.sendGroupMessage.and.returnValue(true);
+    wsService.sendDeleteMessage.and.returnValue(true);
 
     const chatService = jasmine.createSpyObj<PrivateChatService>(
       'PrivateChatService',

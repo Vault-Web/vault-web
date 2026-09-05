@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 import vaultWeb.dtos.ChatMessageDto;
 import vaultWeb.dtos.PollResponseDto;
 import vaultWeb.exceptions.notfound.GroupNotFoundException;
@@ -60,9 +62,11 @@ class ChatServiceTest {
     return group;
   }
 
-  private PrivateChat createPrivateChat(Long id) {
+  private PrivateChat createPrivateChat(Long id, User user1, User user2) {
     PrivateChat chat = new PrivateChat();
     chat.setId(id);
+    chat.setUser1(user1);
+    chat.setUser2(user2);
     return chat;
   }
 
@@ -94,7 +98,7 @@ class ChatServiceTest {
   @Test
   void shouldSavePrivateChatMessageSuccessfully() {
     User sender = createUser(1L, "user1");
-    PrivateChat privateChat = createPrivateChat(5L);
+    PrivateChat privateChat = createPrivateChat(5L, sender, createUser(2L, "user2"));
     ChatMessageDto dto = new ChatMessageDto();
     dto.setSenderUsername("user1");
     dto.setPrivateChatId(5L);
@@ -357,6 +361,75 @@ class ChatServiceTest {
     when(userRepository.findById(1L)).thenReturn(Optional.of(sender));
 
     assertThrows(IllegalArgumentException.class, () -> chatService.saveMessage(dto));
+    verify(chatMessageRepository, never()).save(any());
+  }
+
+  @Test
+  void shouldMarkGroupMessageAsDeleted_whenSenderDeletesOwnMessage() {
+    User sender = createUser(1L, "user1");
+    Group group = createGroup(10L);
+    ChatMessage message = new ChatMessage();
+    message.setSender(sender);
+    message.setGroup(group);
+    message.setClientMessageId("client-uuid-123");
+
+    when(chatMessageRepository.findByClientMessageId("client-uuid-123"))
+        .thenReturn(Optional.of(message));
+    when(chatMessageRepository.save(any(ChatMessage.class))).thenAnswer(i -> i.getArgument(0));
+
+    ChatMessage result = chatService.deleteMessage("client-uuid-123", "user1");
+
+    assertTrue(result.isDeleted());
+    assertEquals(group, result.getGroup());
+    verify(chatMessageRepository).save(message);
+  }
+
+  @Test
+  void shouldMarkPrivateMessageAsDeleted_andKeepAssociationsReadable() {
+    User sender = createUser(1L, "user1");
+    User other = createUser(2L, "user2");
+    PrivateChat privateChat = createPrivateChat(5L, sender, other);
+    ChatMessage message = new ChatMessage();
+    message.setSender(sender);
+    message.setPrivateChat(privateChat);
+    message.setClientMessageId("client-uuid-456");
+
+    when(chatMessageRepository.findByClientMessageId("client-uuid-456"))
+        .thenReturn(Optional.of(message));
+    when(chatMessageRepository.save(any(ChatMessage.class))).thenAnswer(i -> i.getArgument(0));
+
+    ChatMessage result = chatService.deleteMessage("client-uuid-456", "user1");
+
+    assertTrue(result.isDeleted());
+    assertEquals("user1", result.getPrivateChat().getUser1().getUsername());
+    assertEquals("user2", result.getPrivateChat().getUser2().getUsername());
+  }
+
+  @Test
+  void shouldThrowAccessDenied_whenNonSenderTriesToDelete() {
+    User sender = createUser(1L, "user1");
+    Group group = createGroup(10L);
+    ChatMessage message = new ChatMessage();
+    message.setSender(sender);
+    message.setGroup(group);
+    message.setClientMessageId("client-uuid-123");
+
+    when(chatMessageRepository.findByClientMessageId("client-uuid-123"))
+        .thenReturn(Optional.of(message));
+
+    assertThrows(
+        AccessDeniedException.class,
+        () -> chatService.deleteMessage("client-uuid-123", "someone-else"));
+    verify(chatMessageRepository, never()).save(any());
+    assertFalse(message.isDeleted());
+  }
+
+  @Test
+  void shouldThrowEntityNotFound_whenClientMessageIdDoesNotExist() {
+    when(chatMessageRepository.findByClientMessageId("missing-id")).thenReturn(Optional.empty());
+
+    assertThrows(
+        EntityNotFoundException.class, () -> chatService.deleteMessage("missing-id", "user1"));
     verify(chatMessageRepository, never()).save(any());
   }
 }
