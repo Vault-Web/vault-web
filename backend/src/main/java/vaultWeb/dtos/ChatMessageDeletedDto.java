@@ -8,5 +8,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatMessageDeletedDto {
-    private String clientMessageId;
+  private String clientMessageId;
 }

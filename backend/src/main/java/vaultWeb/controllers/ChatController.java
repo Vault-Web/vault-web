@@ -47,7 +47,7 @@ public class ChatController {
     ChatMessageDto responseDto = chatService.toDto(savedMessage);
 
     messagingTemplate.convertAndSend(
-        "/topic/group/" + savedMessage.getGroup().getId(), responseDto);
+            "/topic/group/" + savedMessage.getGroup().getId(), responseDto);
   }
 
   private void authorizeGroupMessage(ChatMessageDto messageDto, Principal principal) {
@@ -60,7 +60,7 @@ public class ChatController {
 
     String username = principal.getName();
     boolean isMember =
-        groupMemberRepository.existsByGroupIdAndUserUsername(messageDto.getGroupId(), username);
+            groupMemberRepository.existsByGroupIdAndUserUsername(messageDto.getGroupId(), username);
     if (!isMember) {
       throw new AccessDeniedException("Not allowed to send messages to this group");
     }
@@ -89,12 +89,12 @@ public class ChatController {
     recipients.add(user2);
 
     recipients.forEach(
-        user -> messagingTemplate.convertAndSendToUser(user, "/queue/private", responseDto));
+            user -> messagingTemplate.convertAndSendToUser(user, "/queue/private", responseDto));
 
     log.debug(
-        "Private message sent from {} to privateChat {}",
-        responseDto.getSenderUsername(),
-        responseDto.getPrivateChatId());
+            "Private message sent from {} to privateChat {}",
+            responseDto.getSenderUsername(),
+            responseDto.getPrivateChatId());
   }
 
   @MessageMapping("/chat.delete")
@@ -104,18 +104,14 @@ public class ChatController {
       throw new UnauthorizedException("User not authenticated");
     }
 
-    ChatMessage deletedMessage =
-            chatService.deleteMessage(
-                    clientMessageId,
-                    principal.getName());
+    ChatMessage deletedMessage = chatService.deleteMessage(clientMessageId, principal.getName());
 
     ChatMessageDeletedDto responseDto =
             new ChatMessageDeletedDto(deletedMessage.getClientMessageId());
 
     if (deletedMessage.getGroup() != null) {
       messagingTemplate.convertAndSend(
-              "/topic/group/" + deletedMessage.getGroup().getId(),
-              responseDto);
+              "/topic/group/" + deletedMessage.getGroup().getId() + "/deleted", responseDto);
     } else if (deletedMessage.getPrivateChat() != null) {
       String user1 = deletedMessage.getPrivateChat().getUser1().getUsername();
       String user2 = deletedMessage.getPrivateChat().getUser2().getUsername();
@@ -127,8 +123,7 @@ public class ChatController {
       recipients.forEach(
               user ->
                       messagingTemplate.convertAndSendToUser(
-                              user, "/queue/private", responseDto));
+                              user, "/queue/private/deleted", responseDto));
     }
   }
-
 }
