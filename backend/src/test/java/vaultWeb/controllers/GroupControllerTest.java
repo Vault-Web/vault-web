@@ -350,7 +350,8 @@ class GroupControllerTest {
     when(authService.getCurrentUser()).thenReturn(currentUser);
     when(groupMemberRepository.findByGroupIdAndUserId(10L, 1L))
         .thenReturn(Optional.of(mock(vaultWeb.models.GroupMember.class)));
-    when(chatMessageRepository.findByGroupIdAndDeletedFalseOrderByTimestampAsc(10L)).thenReturn(List.of(message));
+    when(chatMessageRepository.findByGroupIdAndDeletedFalseOrderByTimestampAsc(10L))
+        .thenReturn(List.of(message));
 
     ResponseEntity<List<ChatMessageDto>> response =
         groupController.getGroupMessages(10L, authentication);

@@ -1,9 +1,9 @@
 package vaultWeb.services;
 
-import java.time.Instant;
-
 import jakarta.persistence.EntityNotFoundException;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.Hibernate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -174,16 +174,25 @@ public class ChatService {
   @Transactional
   public ChatMessage deleteMessage(String clientMessageId, String currentUsername) {
     ChatMessage message =
-            chatMessageRepository
-                    .findByClientMessageId(clientMessageId)
-                    .orElseThrow(() -> new EntityNotFoundException("Chat message not found"));
+        chatMessageRepository
+            .findByClientMessageId(clientMessageId)
+            .orElseThrow(() -> new EntityNotFoundException("Chat message not found"));
 
     if (!message.getSender().getUsername().equals(currentUsername)) {
       throw new AccessDeniedException("You can only delete your own messages");
     }
 
     message.setDeleted(true);
-    return chatMessageRepository.save(message);
-  }
+    ChatMessage saved = chatMessageRepository.save(message);
+    if (saved.getPrivateChat() != null) {
+      Hibernate.initialize(saved.getPrivateChat());
+      Hibernate.initialize(saved.getPrivateChat().getUser1());
+      Hibernate.initialize(saved.getPrivateChat().getUser2());
+    }
+    if (saved.getGroup() != null) {
+      Hibernate.initialize(saved.getGroup());
+    }
 
+    return saved;
+  }
 }
