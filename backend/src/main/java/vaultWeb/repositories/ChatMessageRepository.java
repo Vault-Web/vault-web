@@ -2,7 +2,6 @@ package vaultWeb.repositories;
 
 import java.util.List;
 import java.util.Optional;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import vaultWeb.models.ChatMessage;
@@ -12,11 +11,9 @@ import vaultWeb.models.User;
 
 @Repository
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
-  List<ChatMessage> findByPrivateChatIdAndDeletedFalseOrderByTimestampAsc(
-          Long privateChatId);
+  List<ChatMessage> findByPrivateChatIdAndDeletedFalseOrderByTimestampAsc(Long privateChatId);
 
-  List<ChatMessage> findByGroupIdAndDeletedFalseOrderByTimestampAsc(
-          Long groupId);
+  List<ChatMessage> findByGroupIdAndDeletedFalseOrderByTimestampAsc(Long groupId);
 
   long countBySender(User sender);
 
