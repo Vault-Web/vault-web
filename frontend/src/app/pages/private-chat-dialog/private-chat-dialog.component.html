@@ -119,7 +119,7 @@
 
         <div
           #messageBubble
-          class="chat-bubble max-w-[75%] px-4 py-2 rounded-xl text-sm break-words flex flex-col"
+          class="chat-bubble group max-w-[75%] px-4 py-2 rounded-xl text-sm break-words flex flex-col"
           [ngClass]="{
             'my-message rounded-br-none bg-[var(--primary-color)] text-[var(--primary-color-text)]':
               msg.senderUsername === currentUsername,
@@ -136,21 +136,42 @@
           >
             {{ msg.senderUsername }}
           </div>
-          <ng-container [ngSwitch]="msg.kind">
-            <img
-              *ngSwitchCase="'sticker'"
-              class="chat-sticker"
-              [src]="msg.stickerSrc"
-              [alt]="msg.stickerLabel || msg.content"
-              loading="lazy"
-            />
-            <div
-              *ngSwitchDefault
-              [innerHTML]="formatMessage(msg.content)"
-            ></div>
+
+          <ng-container *ngIf="msg.deleted; else activeMessageContent">
+            <div class="deleted-message-placeholder text-xs italic opacity-60">
+              Message deleted
+            </div>
           </ng-container>
-          <div class="message-time text-[10px] self-end mt-1 opacity-70">
-            {{ msg.timestamp | date: "shortTime" }}
+          <ng-template #activeMessageContent>
+            <ng-container [ngSwitch]="msg.kind">
+              <img
+                *ngSwitchCase="'sticker'"
+                class="chat-sticker"
+                [src]="msg.stickerSrc"
+                [alt]="msg.stickerLabel || msg.content"
+                loading="lazy"
+              />
+              <div
+                *ngSwitchDefault
+                [innerHTML]="formatMessage(msg.content)"
+              ></div>
+            </ng-container>
+          </ng-template>
+
+          <div class="message-time-row flex items-baseline gap-2 self-end mt-1">
+            <button
+              *ngIf="msg.senderUsername === currentUsername && !msg.deleted"
+              type="button"
+              class="delete-message-inline text-[10px] opacity-0 group-hover:opacity-70 hover:!opacity-100 transition-opacity"
+              (click)="deleteMessage(msg)"
+              aria-label="Delete message"
+              title="Delete message"
+            >
+              Delete
+            </button>
+            <div class="message-time text-[10px] opacity-70">
+              {{ msg.timestamp | date: "shortTime" }}
+            </div>
           </div>
         </div>
 
