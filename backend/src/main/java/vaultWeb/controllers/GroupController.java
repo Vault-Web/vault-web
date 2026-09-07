@@ -71,12 +71,16 @@ public class GroupController {
       responseCode = "401",
       description = "Unauthorized request. You must provide an authentication token.")
   @ApiResponse(responseCode = "404", description = "Group was not found.")
-  public ResponseEntity<GroupResponseDto> getGroupById(@PathVariable Long id) {
-    return groupService
-        .getGroupById(id)
-        .map(GroupResponseDto::from)
-        .map(ResponseEntity::ok)
-        .orElse(ResponseEntity.notFound().build());
+  public ResponseEntity<GroupResponseDto> getGroupById(
+      @PathVariable Long id, Authentication authentication) {
+    Group group =
+        groupService
+            .getGroupById(id)
+            .orElseThrow(() -> new vaultWeb.exceptions.notfound.GroupNotFoundException("Group not found with id: " + id));
+    if (!group.getIsPublic()) {
+      getAuthenticatedGroupMember(id, authentication);
+    }
+    return ResponseEntity.ok(GroupResponseDto.from(group));
   }
 
   /**
@@ -91,7 +95,15 @@ public class GroupController {
   @ApiResponse(
       responseCode = "401",
       description = "Unauthorized request. You must provide an authentication token.")
-  public ResponseEntity<List<User>> getGroupMembers(@PathVariable Long id) {
+  public ResponseEntity<List<User>> getGroupMembers(
+      @PathVariable Long id, Authentication authentication) {
+    Group group =
+        groupService
+            .getGroupById(id)
+            .orElseThrow(() -> new vaultWeb.exceptions.notfound.GroupNotFoundException("Group not found with id: " + id));
+    if (!group.getIsPublic()) {
+      getAuthenticatedGroupMember(id, authentication);
+    }
     List<User> members = groupService.getMembers(id);
     return ResponseEntity.ok(members);
   }
