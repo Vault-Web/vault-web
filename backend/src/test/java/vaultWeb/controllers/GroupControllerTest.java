@@ -111,7 +111,6 @@ class GroupControllerTest {
     User user = createTestUser(5L, "User 5");
     when(groupService.getGroupById(1L)).thenReturn(Optional.of(group));
 
-    when(authService.getCurrentUser()).thenReturn(user);
     ResponseEntity<GroupResponseDto> response = groupController.getGroupById(1L, authentication);
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -185,7 +184,6 @@ class GroupControllerTest {
     User currentUser = createTestUser(5L, "User 5");
     when(groupService.getGroupById(1L)).thenReturn(Optional.of(group));
     when(groupService.getMembers(1L)).thenReturn(expectedMembers);
-    when(authService.getCurrentUser()).thenReturn(currentUser);
 
     ResponseEntity<List<User>> response = groupController.getGroupMembers(1L, authentication);
 
