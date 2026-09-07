@@ -7,7 +7,14 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import vaultWeb.dtos.ChatMessageDto;
 import vaultWeb.dtos.DeviceDto;
 import vaultWeb.dtos.GroupDto;
@@ -78,9 +85,11 @@ public class GroupController {
         groupService
             .getGroupById(id)
             .orElseThrow(() -> new GroupNotFoundException("Group not found with id: " + id));
+
     if (!Boolean.TRUE.equals(group.getIsPublic())) {
       getAuthenticatedGroupMember(id, authentication);
     }
+
     return ResponseEntity.ok(GroupResponseDto.from(group));
   }
 
@@ -98,29 +107,38 @@ public class GroupController {
       description = "Unauthorized request. You must provide an authentication token.")
   public ResponseEntity<List<User>> getGroupMembers(
       @PathVariable Long id, Authentication authentication) {
+
     Group group =
         groupService
             .getGroupById(id)
             .orElseThrow(() -> new GroupNotFoundException("Group not found with id: " + id));
+
     if (!Boolean.TRUE.equals(group.getIsPublic())) {
       getAuthenticatedGroupMember(id, authentication);
     }
-    List<User> members = groupService.getMembers(id);
+
+    List<User> members =
+        groupMemberRepository.findAllByGroup(group).stream().map(gm -> gm.getUser()).toList();
+
     return ResponseEntity.ok(members);
   }
 
   @GetMapping("/{id}/devices")
   public ResponseEntity<List<DeviceDto>> getGroupDevices(@PathVariable Long id) {
     User currentUser = authService.getCurrentUser();
+
     if (currentUser == null) {
       throw new UnauthorizedException("User not authenticated");
     }
+
     if (groupMemberRepository.findByGroupIdAndUserId(id, currentUser.getId()).isEmpty()) {
       throw new NotMemberException(id, currentUser.getId());
     }
+
     List<User> members = groupService.getMembers(id);
     List<DeviceDto> devices =
         deviceRepository.findByUserIn(members).stream().map(DeviceDto::from).toList();
+
     return ResponseEntity.ok(devices);
   }
 
@@ -136,6 +154,7 @@ public class GroupController {
                     """)
   public ResponseEntity<List<ChatMessageDto>> getGroupMessages(
       @PathVariable Long id, Authentication authentication) {
+
     User currentUser = getAuthenticatedGroupMember(id, authentication);
     List<ChatMessage> messages = chatMessageRepository.findByGroupIdOrderByTimestampAsc(id);
 
@@ -162,13 +181,17 @@ public class GroupController {
     if (authentication == null) {
       throw new UnauthorizedException("User not authenticated");
     }
+
     User currentUser = authService.getCurrentUser();
+
     if (currentUser == null) {
       throw new UnauthorizedException("User not authenticated");
     }
+
     if (groupMemberRepository.findByGroupIdAndUserId(groupId, currentUser.getId()).isEmpty()) {
       throw new NotMemberException(groupId, currentUser.getId());
     }
+
     return currentUser;
   }
 
@@ -304,11 +327,14 @@ public class GroupController {
       description = "Unauthorized request. You must provide an authentication token.")
   public ResponseEntity<List<GroupResponseDto>> getMyGroups() {
     User currentUser = authService.getCurrentUser();
+
     if (currentUser == null) {
       throw new UnauthorizedException("User not authenticated");
     }
+
     List<GroupResponseDto> userGroups =
         groupService.getUserGroups(currentUser).stream().map(GroupResponseDto::from).toList();
+
     return ResponseEntity.ok(userGroups);
   }
 
