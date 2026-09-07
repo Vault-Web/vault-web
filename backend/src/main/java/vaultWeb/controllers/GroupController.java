@@ -78,7 +78,7 @@ public class GroupController {
         groupService
             .getGroupById(id)
             .orElseThrow(() -> new GroupNotFoundException("Group not found with id: " + id));
-    if (!group.getIsPublic()) {
+    if (!Boolean.TRUE.equals(group.getIsPublic())) {
       getAuthenticatedGroupMember(id, authentication);
     }
     return ResponseEntity.ok(GroupResponseDto.from(group));
@@ -102,7 +102,7 @@ public class GroupController {
         groupService
             .getGroupById(id)
             .orElseThrow(() -> new GroupNotFoundException("Group not found with id: " + id));
-    if (!group.getIsPublic()) {
+    if (!Boolean.TRUE.equals(group.getIsPublic())) {
       getAuthenticatedGroupMember(id, authentication);
     }
     List<User> members = groupService.getMembers(id);

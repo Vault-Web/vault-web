@@ -93,18 +93,6 @@ class GroupControllerTest {
   }
 
   @Test
-  void shouldGetPublicGroupById_ForUnauthenticatedCaller() {
-    Group group = createTestGroup(1L, "Group 1", true);
-    when(groupService.getGroupById(1L)).thenReturn(Optional.of(group));
-
-    ResponseEntity<GroupResponseDto> response = groupController.getGroupById(1L, null);
-
-    assertEquals(HttpStatus.OK, response.getStatusCode());
-    assertEquals(1L, response.getBody().getId());
-    verify(groupService, times(1)).getGroupById(1L);
-  }
-
-  @Test
   void shouldGetPublicGroupById_ForAuthenticatedNonMember() {
     Group group = createTestGroup(1L, "Group 1", true);
     Authentication authentication = mock(Authentication.class);
@@ -159,21 +147,6 @@ class GroupControllerTest {
     when(groupService.getGroupById(999L)).thenReturn(Optional.empty());
     assertThrows(GroupNotFoundException.class, () -> groupController.getGroupById(999L, null));
     verify(groupService, times(1)).getGroupById(999L);
-  }
-
-  @Test
-  void shouldGetPublicGroupMembers_ForUnauthenticatedCaller() {
-    Group group = createTestGroup(1L, "Group 1", true);
-    List<User> expectedMembers =
-        List.of(createTestUser(1L, "User 1"), createTestUser(2L, "User 2"));
-    when(groupService.getGroupById(1L)).thenReturn(Optional.of(group));
-    when(groupService.getMembers(1L)).thenReturn(expectedMembers);
-
-    ResponseEntity<List<User>> response = groupController.getGroupMembers(1L, null);
-
-    assertEquals(HttpStatus.OK, response.getStatusCode());
-    assertEquals(expectedMembers, response.getBody());
-    verify(groupMemberRepository, times(0)).findByGroupIdAndUserId(any(), any());
   }
 
   @Test

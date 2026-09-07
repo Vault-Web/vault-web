@@ -119,7 +119,7 @@ public class GroupService {
       throw new AlreadyMemberException(groupId, currentUser.getId());
     }
 
-    if (!group.getIsPublic()) {
+    if (!Boolean.TRUE.equals(group.getIsPublic())) {
       throw new PrivateGroupJoinException(groupId);
     }
 
