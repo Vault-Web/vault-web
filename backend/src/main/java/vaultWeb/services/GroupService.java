@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import vaultWeb.dtos.GroupDto;
 import vaultWeb.exceptions.AlreadyMemberException;
 import vaultWeb.exceptions.LastAdminException;
+import vaultWeb.exceptions.PrivateGroupJoinException;
 import vaultWeb.exceptions.notfound.GroupNotFoundException;
 import vaultWeb.exceptions.notfound.NotMemberException;
 import vaultWeb.exceptions.notfound.UserNotFoundException;
@@ -104,6 +105,7 @@ public class GroupService {
    * @return the group the user joined.
    * @throws GroupNotFoundException if no group exists with the given ID.
    * @throws AlreadyMemberException if the user is already a member of the group.
+   * @throws PrivateGroupJoinException if the group is private.
    */
   public Group joinGroup(Long groupId, User currentUser) {
     Group group =
@@ -115,6 +117,10 @@ public class GroupService {
         groupMemberRepository.findByGroupAndUser(group, currentUser).isPresent();
     if (alreadyMember) {
       throw new AlreadyMemberException(groupId, currentUser.getId());
+    }
+
+    if (!group.getIsPublic()) {
+      throw new PrivateGroupJoinException(groupId);
     }
 
     groupMemberRepository.save(new GroupMember(group, currentUser, Role.USER));
