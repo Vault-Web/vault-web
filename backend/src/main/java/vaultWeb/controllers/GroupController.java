@@ -13,6 +13,7 @@ import vaultWeb.dtos.DeviceDto;
 import vaultWeb.dtos.GroupDto;
 import vaultWeb.dtos.GroupResponseDto;
 import vaultWeb.exceptions.UnauthorizedException;
+import vaultWeb.exceptions.notfound.GroupNotFoundException;
 import vaultWeb.exceptions.notfound.NotMemberException;
 import vaultWeb.models.ChatMessage;
 import vaultWeb.models.Group;
@@ -76,7 +77,7 @@ public class GroupController {
     Group group =
         groupService
             .getGroupById(id)
-            .orElseThrow(() -> new vaultWeb.exceptions.notfound.GroupNotFoundException("Group not found with id: " + id));
+            .orElseThrow(() -> new GroupNotFoundException("Group not found with id: " + id));
     if (!group.getIsPublic()) {
       getAuthenticatedGroupMember(id, authentication);
     }
@@ -100,7 +101,7 @@ public class GroupController {
     Group group =
         groupService
             .getGroupById(id)
-            .orElseThrow(() -> new vaultWeb.exceptions.notfound.GroupNotFoundException("Group not found with id: " + id));
+            .orElseThrow(() -> new GroupNotFoundException("Group not found with id: " + id));
     if (!group.getIsPublic()) {
       getAuthenticatedGroupMember(id, authentication);
     }
