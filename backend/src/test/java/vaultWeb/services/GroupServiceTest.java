@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import vaultWeb.dtos.GroupDto;
 import vaultWeb.exceptions.AlreadyMemberException;
 import vaultWeb.exceptions.LastAdminException;
+import vaultWeb.exceptions.PrivateGroupJoinException;
 import vaultWeb.exceptions.notfound.GroupNotFoundException;
 import vaultWeb.exceptions.notfound.NotMemberException;
 import vaultWeb.exceptions.notfound.UserNotFoundException;
@@ -73,6 +74,18 @@ class GroupServiceTest {
 
     assertEquals(group, result);
     verify(groupMemberRepository, times(1)).save(any(GroupMember.class));
+  }
+
+  @Test
+  void shouldFailJoinGroup_WhenPrivateAndNotMember() {
+    User user = createUser(2L);
+    Group group = createGroup(10L, false);
+
+    when(groupRepository.findById(10L)).thenReturn(Optional.of(group));
+    when(groupMemberRepository.findByGroupAndUser(group, user)).thenReturn(Optional.empty());
+
+    assertThrows(PrivateGroupJoinException.class, () -> groupService.joinGroup(10L, user));
+    verify(groupMemberRepository, never()).save(any(GroupMember.class));
   }
 
   @Test
