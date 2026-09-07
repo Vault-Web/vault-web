@@ -3,7 +3,6 @@ package vaultWeb.controllers;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -33,7 +32,6 @@ import vaultWeb.models.Device;
 import vaultWeb.models.Group;
 import vaultWeb.models.GroupMember;
 import vaultWeb.models.User;
-import vaultWeb.models.enums.Role;
 import vaultWeb.repositories.ChatMessageRepository;
 import vaultWeb.repositories.DeviceRepository;
 import vaultWeb.repositories.GroupMemberRepository;
@@ -146,8 +144,7 @@ class GroupControllerTest {
     when(authService.getCurrentUser()).thenReturn(user);
     when(groupMemberRepository.findByGroupIdAndUserId(1L, 5L)).thenReturn(Optional.empty());
 
-    assertThrows(
-        NotMemberException.class, () -> groupController.getGroupById(1L, authentication));
+    assertThrows(NotMemberException.class, () -> groupController.getGroupById(1L, authentication));
   }
 
   @Test
