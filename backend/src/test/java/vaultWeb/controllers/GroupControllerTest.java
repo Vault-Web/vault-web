@@ -32,6 +32,7 @@ import vaultWeb.models.Device;
 import vaultWeb.models.Group;
 import vaultWeb.models.GroupMember;
 import vaultWeb.models.User;
+import vaultWeb.models.enums.Role;
 import vaultWeb.repositories.ChatMessageRepository;
 import vaultWeb.repositories.DeviceRepository;
 import vaultWeb.repositories.GroupMemberRepository;
@@ -96,14 +97,14 @@ class GroupControllerTest {
   void shouldGetPublicGroupById_ForAuthenticatedNonMember() {
     Group group = createTestGroup(1L, "Group 1", true);
     Authentication authentication = mock(Authentication.class);
-    User user = createTestUser(5L, "User 5");
     when(groupService.getGroupById(1L)).thenReturn(Optional.of(group));
 
     ResponseEntity<GroupResponseDto> response = groupController.getGroupById(1L, authentication);
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEquals(1L, response.getBody().getId());
-    verify(groupMemberRepository, times(0)).findByGroupIdAndUserId(1L, 5L);
+    assertEquals("Group 1", response.getBody().getName());
+    verify(groupMemberRepository, times(0)).findByGroupIdAndUserId(any(), any());
   }
 
   @Test
@@ -154,7 +155,6 @@ class GroupControllerTest {
     Group group = createTestGroup(1L, "Group 1", true);
     List<User> expectedMembers = List.of(createTestUser(1L, "User 1"));
     Authentication authentication = mock(Authentication.class);
-    User currentUser = createTestUser(5L, "User 5");
     when(groupService.getGroupById(1L)).thenReturn(Optional.of(group));
     GroupMember groupMember = mock(GroupMember.class);
     when(groupMember.getUser()).thenReturn(expectedMembers.get(0));
@@ -164,7 +164,7 @@ class GroupControllerTest {
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEquals(expectedMembers, response.getBody());
-    verify(groupMemberRepository, times(0)).findByGroupIdAndUserId(1L, 5L);
+    verify(groupMemberRepository, times(0)).findByGroupIdAndUserId(any(), any());
   }
 
   @Test
@@ -393,7 +393,12 @@ class GroupControllerTest {
   @Test
   void shouldGetMyGroups_AsDtoWithoutLeakingUserEntity() {
     User currentUser = createTestUser(1L, "member");
+    User otherMember = createTestUser(2L, "friend");
     Group group = createTestGroup(10L, "My Group");
+    GroupMember membership = new GroupMember(group, otherMember, Role.USER);
+    membership.setId(100L);
+    group.setMembers(List.of(membership));
+
     when(authService.getCurrentUser()).thenReturn(currentUser);
     when(groupService.getUserGroups(currentUser)).thenReturn(List.of(group));
 
@@ -401,8 +406,13 @@ class GroupControllerTest {
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEquals(1, response.getBody().size());
-    assertEquals(10L, response.getBody().get(0).getId());
-    assertEquals("My Group", response.getBody().get(0).getName());
+    GroupResponseDto dto = response.getBody().get(0);
+    assertEquals(10L, dto.getId());
+    assertEquals("My Group", dto.getName());
+    assertEquals(1, dto.getMembers().size());
+    assertEquals(2L, dto.getMembers().get(0).getUser().getId());
+    assertEquals("friend", dto.getMembers().get(0).getUser().getUsername());
+    assertEquals("USER", dto.getMembers().get(0).getRole());
     verify(groupService, times(1)).getUserGroups(currentUser);
   }
 
