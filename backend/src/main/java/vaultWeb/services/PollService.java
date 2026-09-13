@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vaultWeb.dtos.PollRequestDto;
@@ -211,6 +213,7 @@ public class PollService {
    * @throws PollOptionNotFoundException if the poll option invalid
    * @throws AlreadyVotedException if the user has already voted
    */
+  @Transactional
   public void vote(Long pollId, Long optionId, User user) {
 
     Poll poll =
@@ -219,10 +222,12 @@ public class PollService {
     vote(poll, optionId, user);
   }
 
+  @Transactional
   public void voteInGroup(Long groupId, Long pollId, Long optionId, User user) {
     vote(getPollForGroup(groupId, pollId), optionId, user);
   }
 
+  @Transactional
   public void voteInPrivateChat(Long privateChatId, Long pollId, Long optionId, User user) {
     vote(getPollForPrivateChat(privateChatId, pollId), optionId, user);
   }
@@ -244,14 +249,24 @@ public class PollService {
       throw new AlreadyVotedException(poll.getId(), user.getId());
     }
 
-    PollVote vote = PollVote.builder().option(option).user(user).build();
+    PollVote vote = PollVote.builder().poll(poll).option(option).user(user).build();
+
+    try {
+      pollVoteRepository.saveAndFlush(vote);
+    } catch (DataIntegrityViolationException ex) {
+      for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
+        if (cause instanceof ConstraintViolationException violation
+            && "uk_poll_votes_poll_user".equalsIgnoreCase(violation.getConstraintName())) {
+          throw new AlreadyVotedException(poll.getId(), user.getId());
+        }
+      }
+      throw ex;
+    }
 
     if (option.getVotes() == null) {
       option.setVotes(new ArrayList<>());
     }
     option.getVotes().add(vote);
-
-    pollVoteRepository.save(vote);
   }
 
   /**

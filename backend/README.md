@@ -74,6 +74,30 @@ FATAL: invalid value for parameter "TimeZone"
 See `../common_problems.md` for platform-specific troubleshooting and startup
 guidance.
 
+## Upgrading existing poll data
+
+Before deploying the poll vote uniqueness fix to an existing database, stop all
+backend instances and run [sql/pollVoteUniqueness.sql](sql/pollVoteUniqueness.sql)
+against the application database. The script backfills `poll_votes.poll_id` from
+each vote's option and adds the unique constraint on `(poll_id, user_id)`.
+Hibernate's `ddl-auto=update` cannot backfill this required column. New databases
+get the column and constraint from the entity mapping.
+
+Check for existing duplicates before running the script:
+
+```sql
+SELECT option.poll_id, vote.user_id, COUNT(*) AS vote_count,
+       ARRAY_AGG(vote.id ORDER BY vote.id) AS vote_ids
+FROM poll_votes AS vote
+JOIN poll_options AS option ON option.id = vote.poll_option_id
+GROUP BY option.poll_id, vote.user_id
+HAVING COUNT(*) > 1;
+```
+
+Resolve any duplicates according to the intended vote before applying the script.
+The script runs in a transaction and fails if duplicates remain; it does not
+delete votes. Apply it once, before restarting the backend with the new code.
+
 ## Running tests
 
 Run the backend test suite using the Maven Wrapper:
