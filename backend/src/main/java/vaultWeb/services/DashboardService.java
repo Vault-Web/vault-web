@@ -23,6 +23,7 @@ import vaultWeb.models.Poll;
 import vaultWeb.models.PrivateChat;
 import vaultWeb.models.User;
 import vaultWeb.repositories.ChatMessageRepository;
+import vaultWeb.repositories.ChatMessageRepository.PrivateChatLastMessage;
 import vaultWeb.repositories.GroupMemberRepository;
 import vaultWeb.repositories.GroupMemberRepository.GroupMemberCount;
 import vaultWeb.repositories.PollRepository;
@@ -126,14 +127,21 @@ public class DashboardService {
 
   private List<PrivateChatSummary> buildPrivateChatSummaries(
       List<PrivateChat> privateChats, User currentUser) {
+    List<Long> privateChatIds = privateChats.stream().map(PrivateChat::getId).distinct().toList();
+    Map<Long, PrivateChatLastMessage> lastMessagesByChat =
+        privateChatIds.isEmpty()
+            ? Map.of()
+            : chatMessageRepository.findLastMessagesByPrivateChatIds(privateChatIds).stream()
+                .collect(
+                    Collectors.toMap(PrivateChatLastMessage::getPrivateChatId, message -> message));
+
     return privateChats.stream()
         .map(
             chat -> {
               String participant = resolveParticipantName(chat, currentUser);
-              ChatMessage lastMessage =
-                  chatMessageRepository.findTop1ByPrivateChatOrderByTimestampDesc(chat);
-              Instant lastTimestamp = lastMessage != null ? lastMessage.getTimestamp() : null;
-              String preview = buildMessagePreview(lastMessage);
+              PrivateChatLastMessage lastMessage = lastMessagesByChat.get(chat.getId());
+              Instant lastTimestamp = lastMessage != null ? lastMessage.getLastMessageAt() : null;
+              String preview = lastMessage != null ? "Encrypted message" : null;
               return new PrivateChatSummary(chat.getId(), participant, preview, lastTimestamp);
             })
         .sorted(

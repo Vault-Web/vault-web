@@ -4,8 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,9 +21,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import vaultWeb.dtos.dashboard.UserDashboardDto;
 import vaultWeb.models.Group;
 import vaultWeb.models.GroupMember;
+import vaultWeb.models.PrivateChat;
 import vaultWeb.models.User;
 import vaultWeb.models.enums.Role;
 import vaultWeb.repositories.ChatMessageRepository;
+import vaultWeb.repositories.ChatMessageRepository.PrivateChatLastMessage;
 import vaultWeb.repositories.GroupMemberRepository;
 import vaultWeb.repositories.GroupMemberRepository.GroupMemberCount;
 import vaultWeb.repositories.PollRepository;
@@ -36,6 +40,63 @@ class DashboardServiceTest {
   @Mock private ChatMessageRepository chatMessageRepository;
 
   @InjectMocks private DashboardService dashboardService;
+
+  @Test
+  void shouldLoadLastMessagesForAllPrivateChatsWithOneQuery() {
+    User user = new User();
+    user.setId(1L);
+    user.setUsername("alice");
+    User participant = new User();
+    participant.setId(2L);
+    participant.setUsername("bob");
+    Instant older = Instant.parse("2026-09-01T10:00:00Z");
+    Instant newer = older.plusSeconds(60);
+    PrivateChatLastMessage firstMessage = lastMessage(10L, older);
+    PrivateChatLastMessage secondMessage = lastMessage(20L, newer);
+
+    when(privateChatRepository.findByUser1OrUser2(user, user))
+        .thenReturn(
+            List.of(
+                new PrivateChat(10L, user, participant),
+                new PrivateChat(20L, participant, user),
+                new PrivateChat(30L, user, participant)));
+    when(chatMessageRepository.findLastMessagesByPrivateChatIds(List.of(10L, 20L, 30L)))
+        .thenReturn(List.of(secondMessage, firstMessage));
+
+    UserDashboardDto dashboard = dashboardService.buildDashboard(user);
+
+    assertEquals(
+        List.of(
+            new UserDashboardDto.PrivateChatSummary(20L, "bob", "Encrypted message", newer),
+            new UserDashboardDto.PrivateChatSummary(10L, "bob", "Encrypted message", older),
+            new UserDashboardDto.PrivateChatSummary(30L, "bob", null, null)),
+        dashboard.privateChats());
+    assertEquals(3, dashboard.profile().privateChatCount());
+    verify(chatMessageRepository).findLastMessagesByPrivateChatIds(List.of(10L, 20L, 30L));
+    verify(chatMessageRepository).countBySender(user);
+    verify(chatMessageRepository).findTop10BySenderOrderByTimestampDesc(user);
+    verifyNoMoreInteractions(chatMessageRepository);
+  }
+
+  @Test
+  void shouldSkipLastMessageQueryWhenThereAreNoPrivateChats() {
+    User user = new User();
+    user.setId(1L);
+
+    UserDashboardDto dashboard = dashboardService.buildDashboard(user);
+
+    assertEquals(List.of(), dashboard.privateChats());
+    verify(chatMessageRepository).countBySender(user);
+    verify(chatMessageRepository).findTop10BySenderOrderByTimestampDesc(user);
+    verifyNoMoreInteractions(chatMessageRepository);
+  }
+
+  private PrivateChatLastMessage lastMessage(Long privateChatId, Instant timestamp) {
+    PrivateChatLastMessage projection = mock(PrivateChatLastMessage.class);
+    when(projection.getPrivateChatId()).thenReturn(privateChatId);
+    when(projection.getLastMessageAt()).thenReturn(timestamp);
+    return projection;
+  }
 
   @Test
   void shouldLoadMemberCountsForAllGroupsWithOneQuery() {
