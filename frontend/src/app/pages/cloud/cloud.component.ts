@@ -2222,21 +2222,52 @@ export class CloudComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Extensions the browser can render natively via the streaming media proxy:
+  // images and PDFs render as before (now streamed rather than blob-buffered),
+  // and video/audio are new — previously these fell through to a plain download
+  // since no in-browser preview path existed for them at all.
+  private readonly streamableExt = new Set([
+    'png',
+    'jpg',
+    'jpeg',
+    'gif',
+    'bmp',
+    'webp',
+    'svg',
+    'pdf',
+    'mp4',
+    'webm',
+    'mov',
+    'ogg',
+    'ogv',
+    'mp3',
+    'wav',
+    'flac',
+    'm4a',
+    'aac',
+  ]);
+
   previewFile(file: FileDto) {
     const ext = file.name.split('.').pop()?.toLowerCase();
-    const imageExt = ['png', 'jpg', 'jpeg', 'gif', 'bmp'];
-    const pdfExt = ['pdf'];
     const textExt = ['txt', 'md', 'json', 'xml', 'log'];
 
-    if (ext && (imageExt.includes(ext) || pdfExt.includes(ext))) {
+    if (ext && this.streamableExt.has(ext)) {
+      // window.open is called synchronously, inside the click handler's call
+      // stack, and only pointed at a real URL once the token arrives. Opening
+      // it after the async response instead would land outside the original
+      // user gesture and get blocked as a popup by some browsers.
+      const tab = window.open('', '_blank');
       const relativePath = this.getRelativePath(file.path);
-      this.cloudService.getFileView(relativePath).subscribe({
-        next: (blob) => {
-          const url = URL.createObjectURL(blob);
-          window.open(url, '_blank');
+      this.cloudService.getMediaStreamUrl(relativePath).subscribe({
+        next: (url) => {
+          if (tab) {
+            tab.location.href = url;
+          }
         },
-        error: (err) =>
-          this.toast.error('Preview failed', this.getErrorMessage(err)),
+        error: (err) => {
+          tab?.close();
+          this.toast.error('Preview failed', this.getErrorMessage(err));
+        },
       });
     } else if (ext && textExt.includes(ext)) {
       this.editFile(file);

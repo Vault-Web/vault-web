@@ -198,6 +198,30 @@ export class CloudService {
     });
   }
 
+  /**
+   * Returns a URL that natively streams the given file — with real HTTP range
+   * support, so a browser <video>/<audio> element can seek without downloading
+   * the whole file first.
+   *
+   * This does NOT go through cloud-page's own API (this.apiUrl / :8090).
+   * A native media element cannot attach an Authorization header, so cloud-page's
+   * endpoints aren't directly usable here. Instead this calls vault-web's own
+   * backend (mainApiUrl / :8080), which mints a short-lived, single-file token
+   * and exposes an unauthenticated-by-header streaming route that is secured by
+   * that token instead. See MediaController in vault-web/backend.
+   */
+  getMediaStreamUrl(relativePath: string): Observable<string> {
+    const path = this.normalizePath(relativePath);
+    return this.http
+      .post<{
+        token: string;
+        expiresIn: number;
+      }>(`${environment.mainApiUrl}/media/token`, { path })
+      .pipe(
+        map((res) => `${environment.mainApiUrl}/media/stream/${res.token}`),
+      );
+  }
+
   listTrash(): Observable<TrashEntryDto[]> {
     return this.http.get<TrashEntryDto[]>(`${this.apiUrl}/files/trash`);
   }
