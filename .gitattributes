@@ -33,3 +33,5 @@
 *.eot   binary
 *.jar   binary
 *.zip   binary
+
+.github/workflows/*.lock.yml linguist-generated=true
