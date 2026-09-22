@@ -18,7 +18,7 @@ public class RefreshTokenCleanupService {
   @Value("${refresh.cleanup.days}")
   private long cleanupDays;
 
-  private static final org.slf4j.Logger log =
+  static final org.slf4j.Logger log =
       org.slf4j.LoggerFactory.getLogger(RefreshTokenCleanupService.class);
 
   @Scheduled(cron = "0 0 3 * * ?") // every day at 3 AM

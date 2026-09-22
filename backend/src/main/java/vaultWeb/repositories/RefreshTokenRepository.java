@@ -1,4 +1,7 @@
 package vaultWeb.repositories;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import jakarta.transaction.Transactional;
 import java.time.Instant;
@@ -16,11 +19,12 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
       """
               update RefreshToken rt
               set rt.revoked = true
-              where rt.user.id = :userId
+              where rt.user.id = :userId AND r.revoked = false
             """)
   void revokeAllByUser(@Param("userId") Long userId);
 
   Optional<RefreshToken> findByTokenIdAndRevokedFalse(String tokenId);
+  Optional<RefreshToken> findByTokenId(String tokenId);
 
   @Modifying
   @Transactional
@@ -30,5 +34,6 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
                 WHERE rt.expiresAt < :now
                    OR (rt.revoked = true AND rt.createdAt < :cutoff)
             """)
+
   int deleteExpiredAndOldRevoked(@Param("now") Instant now, @Param("cutoff") Instant cutoff);
 }
