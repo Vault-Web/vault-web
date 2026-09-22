@@ -1,9 +1,9 @@
 ---
-description: Weekly repository audit that files at most two high-confidence issues, or none.
+description: Biweekly repository audit that files at most two high-confidence issues, or none.
 intent: Find the small number of genuinely actionable problems in the repository each week — security gaps, correctness bugs, untested critical paths — and file them as issues only when they are strong enough to be worth a maintainer's attention.
 
 on:
-  schedule: weekly on monday
+  schedule: every 14 days
   workflow_dispatch:
   skip-if-match:
     query: "is:issue is:open label:agent-audit"
@@ -39,7 +39,7 @@ network:
   allowed: [defaults]
 ---
 
-# Weekly Repository Audit
+# Repository Audit
 
 Audit `Vault-Web/vault-web` — a Java (Spring Boot) backend with an Angular
 frontend — for work that is genuinely worth doing.
