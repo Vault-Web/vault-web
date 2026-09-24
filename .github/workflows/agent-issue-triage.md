@@ -23,18 +23,24 @@ permissions:
 
 timeout-minutes: 8
 max-turns: 20
-max-ai-credits: 40
+max-ai-credits: 80
 max-daily-ai-credits: 300
 
 concurrency:
   group: "agent-issue-triage-${{ github.event.issue.number }}"
 
 tools:
+  # Required by strict mode once min-integrity is none: shell access to
+  # untrusted input must be deliberate. Read-only commands only.
+  bash: ["cat", "ls", "find", "grep", "head", "tail", "wc", "sort", "sed", "awk", "jq", "git", "gh"]
   github:
     mode: gh-proxy
     toolsets: [repos, issues]
     allowed-repos: ["vault-web/vault-web"]
-    min-integrity: approved
+    # The whole point of this agent is to handle outside contributions, and a
+    # first-time contributor's items sit at integrity 'none'. With 'approved'
+    # the agent could not read the very PRs/issues it exists to process.
+    min-integrity: none
 
 safe-outputs:
   add-comment:
