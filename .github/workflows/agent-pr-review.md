@@ -12,6 +12,15 @@ on:
     paths-ignore: ["DIRECTORY.md"]
   skip-bots: [dependabot, renovate, copilot-swe-agent]
   reaction: eyes
+  # Anyone may trigger this agent: most contributions here come from outside
+  # collaborators, and gh-aw otherwise only runs for users with write access.
+  roles: all
+
+# Keeps a single account from draining the credit budget now that anyone can
+# trigger this workflow.
+user-rate-limit:
+  max-runs-per-window: 3
+  window: 60
 
 permissions:
   contents: read
