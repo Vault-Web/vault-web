@@ -9,6 +9,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
 
 import java.util.List;
 import java.util.Optional;
@@ -130,6 +131,26 @@ class GroupControllerTest {
   }
 
   @Test
+  void shouldRejectPrivateGroupDetails_WhenUserIsNotMember() {
+    Group group = createTestGroup(10L, "Private Group");
+    group.setIsPublic(false);
+
+    User currentUser = createTestUser(1L, "nonMember");
+
+    when(groupService.getGroupById(10L)).thenReturn(Optional.of(group));
+    when(authService.getCurrentUser()).thenReturn(currentUser);
+    when(groupMemberRepository.findByGroupIdAndUserId(10L, 1L))
+            .thenReturn(Optional.empty());
+
+    assertThrows(
+            NotMemberException.class,
+            () -> groupController.getGroupById(10L));
+
+    verify(groupMemberRepository)
+            .findByGroupIdAndUserId(10L, 1L);
+  }
+
+  @Test
   void shouldReturnNotFound_WhenGroupDoesNotExist() {
     when(groupService.getGroupById(999L)).thenReturn(Optional.empty());
     ResponseEntity<GroupResponseDto> response = groupController.getGroupById(999L);
@@ -146,6 +167,25 @@ class GroupControllerTest {
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEquals(expectedMembers, response.getBody());
     verify(groupService, times(1)).getMembers(1L);
+  }
+
+  @Test
+  void shouldRejectPrivateGroupMembers_WhenUserIsNotMember() {
+    Group group = createTestGroup(10L, "Private Group");
+    group.setIsPublic(false);
+
+    User currentUser = createTestUser(1L, "nonMember");
+
+    when(groupService.getGroupById(10L)).thenReturn(Optional.of(group));
+    when(authService.getCurrentUser()).thenReturn(currentUser);
+    when(groupMemberRepository.findByGroupIdAndUserId(10L, 1L))
+            .thenReturn(Optional.empty());
+
+    assertThrows(
+            NotMemberException.class,
+            () -> groupController.getGroupMembers(10L));
+
+    verify(groupService, never()).getMembers(10L);
   }
 
   @Test
