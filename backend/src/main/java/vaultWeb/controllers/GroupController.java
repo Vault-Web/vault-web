@@ -13,6 +13,7 @@ import vaultWeb.dtos.DeviceDto;
 import vaultWeb.dtos.GroupDto;
 import vaultWeb.dtos.GroupResponseDto;
 import vaultWeb.exceptions.UnauthorizedException;
+import vaultWeb.exceptions.notfound.GroupNotFoundException;
 import vaultWeb.exceptions.notfound.NotMemberException;
 import vaultWeb.models.ChatMessage;
 import vaultWeb.models.Group;
@@ -70,10 +71,18 @@ public class GroupController {
   @ApiResponse(
       responseCode = "401",
       description = "Unauthorized request. You must provide an authentication token.")
+  @ApiResponse(
+      responseCode = "403",
+      description = "Forbidden. The group is private and you are not a member of it.")
   @ApiResponse(responseCode = "404", description = "Group was not found.")
   public ResponseEntity<GroupResponseDto> getGroupById(@PathVariable Long id) {
     return groupService
         .getGroupById(id)
+        .map(
+            group -> {
+              ensureGroupVisibleToCurrentUser(group);
+              return group;
+            })
         .map(GroupResponseDto::from)
         .map(ResponseEntity::ok)
         .orElse(ResponseEntity.notFound().build());
@@ -91,7 +100,17 @@ public class GroupController {
   @ApiResponse(
       responseCode = "401",
       description = "Unauthorized request. You must provide an authentication token.")
+  @ApiResponse(
+      responseCode = "403",
+      description = "Forbidden. The group is private and you are not a member of it.")
+  @ApiResponse(responseCode = "404", description = "Group was not found.")
   public ResponseEntity<List<User>> getGroupMembers(@PathVariable Long id) {
+    Group group =
+        groupService
+            .getGroupById(id)
+            .orElseThrow(() -> new GroupNotFoundException("Group with id " + id + " not found"));
+
+    ensureGroupVisibleToCurrentUser(group);
     List<User> members = groupService.getMembers(id);
     return ResponseEntity.ok(members);
   }
@@ -158,6 +177,24 @@ public class GroupController {
       throw new NotMemberException(groupId, currentUser.getId());
     }
     return currentUser;
+  }
+
+  private void ensureGroupVisibleToCurrentUser(Group group) {
+    if (Boolean.TRUE.equals(group.getIsPublic())) {
+      return;
+    }
+
+    User currentUser = authService.getCurrentUser();
+
+    if (currentUser == null) {
+      throw new UnauthorizedException("User not authenticated");
+    }
+
+    if (groupMemberRepository
+        .findByGroupIdAndUserId(group.getId(), currentUser.getId())
+        .isEmpty()) {
+      throw new NotMemberException(group.getId(), currentUser.getId());
+    }
   }
 
   /**
