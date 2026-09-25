@@ -43,11 +43,16 @@ tools:
     min-integrity: none
 
 safe-outputs:
+  # Labels are applied through the vault-web-agents app so that "agent-ready"
+  # raises a labeled event the coding agent can react to. GITHUB_TOKEN would not.
+  github-app:
+    app-id: ${{ vars.VAULTWEB_AGENT_APP_ID }}
+    private-key: ${{ secrets.VAULTWEB_AGENT_APP_KEY }}
   add-comment:
     max: 1
     target: triggering
   add-labels:
-    max: 3
+    max: 4
     allowed:
       - backend
       - frontend
@@ -59,6 +64,10 @@ safe-outputs:
       - question
       - duplicate
       - "good first issue"
+      - "help wanted"
+      # agent-approved is deliberately absent: only a human may vouch that an
+      # outside contributor's issue is safe to hand to the coding agent.
+      - agent-ready
 
 network:
   allowed: [defaults]
@@ -77,14 +86,26 @@ Hacktoberfest and similar events.
 2. **Classify.** Apply labels from the allowed list only. Use `backend` or
    `frontend` when the area is clear, and a type label (`bug`, `enhancement`,
    `documentation`, `security`, `Tests`, `question`).
-3. **Identify missing information.** For a bug report, that usually means
+3. **Decide who should work on it.** Pick at most one of these:
+   - `good first issue` — small, clearly scoped, and a good way into the code
+     base. Prefer this for well-described reports from contributors: people come
+     to this project to contribute, and these issues are theirs.
+   - `help wanted` — worth doing but larger, or needing design judgement.
+   - `agent-ready` — a narrow, mechanical change with an unambiguous expected
+     result (a failing test to fix, a small refactor, a dependency or config
+     update) where no human has shown interest. Issues filed by the audit agent
+     usually fit here.
+   Leave all three off if the issue still needs information, discussion, or a
+   maintainer decision. Never use `agent-ready` for anything security-relevant,
+   for new features, or when the expected behaviour is open to interpretation.
+4. **Identify missing information.** For a bug report, that usually means
    reproduction steps, the expected versus actual behaviour, and the browser or
    environment. Ask only for what is genuinely missing and genuinely needed.
 
 ## What not to do
 
 Do not close the issue. Do not dismiss a security report as invalid — label it
-`security` and let a human judge. Do not assign anyone. Do not promise that
+`security` and let a human judge. Do not assign anyone, and never add `agent-ready` to an issue that already has an assignee or a linked pull request. Do not promise that
 anything will be implemented. Do not answer a question you are not confident about.
 
 ## How to respond

@@ -109,6 +109,20 @@ Pull requests should be opened from your forked repository to the main branch of
 
 If you are new to the project, feel free to open an issue before starting work to discuss your idea.
 
+### Finding something to work on
+
+Some maintenance in this repository is handled by automated agents. Labels tell you
+who an issue is meant for:
+
+| Label | Meaning |
+|---|---|
+| `good first issue` | Reserved for contributors, a good way into the code base. Agents never take these. |
+| `help wanted` | Larger work where contributions are welcome. |
+| `agent-ready` | An agent may pick this up. If you would rather do it yourself, just say so in a comment — agents leave issues alone once someone has claimed them, is assigned, or has opened a pull request. |
+
+Pull requests opened by agents carry the `agent-managed` label and are always reviewed
+by a maintainer before they are merged.
+
 ---
 
 ## Troubleshooting
