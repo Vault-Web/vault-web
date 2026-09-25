@@ -44,7 +44,7 @@ public class Group {
     name = dto.getName();
     description = dto.getDescription();
     this.members = new ArrayList<>();
-    isPublic = true;
+    isPublic = dto.getIsPublic() != null ? dto.getIsPublic() : true;
     createdAt = Instant.now();
   }
 }
