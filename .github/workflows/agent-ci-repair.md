@@ -1,27 +1,33 @@
 ---
-description: Repairs failing CI on agent-managed pull requests, with a hard re-entry limit.
-intent: Fix the cause of a failing check on a pull request the agents own, at most twice per pull request, and hand back to a human when two attempts were not enough.
+description: Repairs failing CI on agent-managed pull requests automatically, at most twice per pull request.
+intent: When CI fails on a pull request the agents opened, find the cause and push a fix to that pull request's branch, at most twice, and hand back to a human when two attempts were not enough. Never touch main.
 
 on:
-  # Command semantics: the label is removed automatically after activation, so a
-  # second repair requires a maintainer to deliberately re-apply it.
-  label_command:
-    name: agent-repair
-    events: [pull_request]
-  roles: [admin, maintainer, write]
-  reaction: eyes
-  # Deterministic gate, evaluated BEFORE the agent runs. Two conditions:
-  #   1. the PR must be agent-owned (agent-managed)
+  workflow_run:
+    workflows: ["Backend CI", "Frontend CI"]
+    types: [completed]
+    # The coding agent names its branches agent/issue-<n>-<slug>. Nothing else
+    # is in scope.
+    branches: ["agent/**"]
+  # CI on agent branches is started by pushes from the vault-web-agents app.
+  bots: ["vault-web-agents[bot]"]
+  # Deterministic gates, evaluated before the agent runs:
+  #   1. an open pull request from this branch must carry agent-managed
   #   2. it must not already have used its final attempt (agent-reentry-2)
-  # Neither depends on the model following instructions.
   skip-if-no-match:
     query: >-
-      is:pr ${{ github.event.pull_request.number }} label:agent-managed
+      is:pr is:open label:agent-managed head:${{ github.event.workflow_run.head_branch }}
     min: 1
   skip-if-match:
     query: >-
-      is:pr ${{ github.event.pull_request.number }} label:agent-reentry-2
+      is:pr is:open label:agent-reentry-2 head:${{ github.event.workflow_run.head_branch }}
     max: 1
+
+# Only failed runs, and only for branches in this repository — a fork could
+# name a branch agent/… too, but its CI must never start this agent.
+if: >-
+  github.event.workflow_run.conclusion == 'failure' &&
+  github.event.workflow_run.head_repository.full_name == github.repository
 
 permissions:
   contents: read
@@ -36,8 +42,11 @@ max-ai-credits: 150
 max-daily-ai-credits: 450
 
 concurrency:
-  group: "agent-ci-repair-${{ github.event.pull_request.number }}"
-  job-discriminator: ${{ github.run_id }}
+  group: "agent-ci-repair-${{ github.event.workflow_run.head_branch }}"
+
+# Check out the failing agent branch so a fix can be pushed to it.
+checkout:
+  ref: ${{ github.event.workflow_run.head_branch }}
 
 tools:
   github:
@@ -45,21 +54,28 @@ tools:
     toolsets: [repos, issues, pull_requests, actions]
     allowed-repos: ["vault-web/vault-web"]
     min-integrity: approved
+    trusted-users: ["vault-web-agents[bot]"]
 
 safe-outputs:
+  # Pushes go through the app so CI runs again on the fixed branch.
+  github-app:
+    app-id: ${{ vars.VAULTWEB_AGENT_APP_ID }}
+    private-key: ${{ secrets.VAULTWEB_AGENT_APP_KEY }}
   push-to-pull-request-branch:
     max: 1
-    # Defense in depth: even if everything above were bypassed, the push is
-    # refused unless the PR is agent-owned.
+    target: "*"
+    # Defense in depth: the push is refused unless the PR is agent-owned.
     required-labels: [agent-managed]
   add-comment:
     max: 1
-    target: triggering
+    target: "*"
   add-labels:
     max: 1
+    target: "*"
     allowed: [agent-reentry-1, agent-reentry-2]
   remove-labels:
     max: 1
+    target: "*"
     allowed: [agent-reentry-1]
 
 network:
@@ -68,12 +84,17 @@ network:
 
 # CI Repair
 
-A pull request in `Vault-Web/vault-web` was labelled `agent-repair`. Your job is to
-find why its checks are failing and fix the cause.
+CI failed in `Vault-Web/vault-web` on a pull request opened by the coding agent.
+Find why CI failed and fix the cause on that pull request's branch.
+
+The failed run is ${{ github.event.workflow_run.html_url }}, on commit
+`${{ github.event.workflow_run.head_sha }}`. First find the open pull request
+whose head is that commit — you have it checked out — and use its number for every
+output you emit.
 
 ## Attempt counter
 
-Before anything else, read the labels on this pull request.
+Read the labels on that pull request.
 
 - No `agent-reentry-*` label → this is attempt 1. Add `agent-reentry-1` before you
   finish.
@@ -81,25 +102,24 @@ Before anything else, read the labels on this pull request.
   add `agent-reentry-2` before you finish.
 
 You will never see a pull request that already carries `agent-reentry-2`: the
-workflow refuses to start in that case, before you are invoked. The counter you
-maintain here is bookkeeping — the actual loop bound sits outside your control.
-
-The `agent-repair` label is removed automatically when this run starts, so a
-further attempt requires a maintainer to apply it again deliberately.
+workflow refuses to start in that case, before you are invoked. After a second
+failed attempt a maintainer takes over — say so in your comment.
 
 ## What to do
 
-Read the failing check runs and their logs. Find the actual cause — a compilation
-error, a failing test, a formatting violation that Spotless or Prettier rejects.
+Read the failing job logs. Find the actual cause — a compilation error, a failing
+test, a formatting violation that Spotless or Prettier rejects.
 
 Fix the cause, not the symptom. Do not delete or skip a failing test to make CI
 green: if a test fails because the code is wrong, fix the code. If you believe the
 test itself is wrong, say so in a comment and stop rather than changing it.
 
-Keep the change as small as the failure requires.
+Keep the change as small as the failure requires, and push it to the pull
+request's own branch.
 
 ## Limits
 
-Do not touch anything unrelated to the failure. Do not merge. Do not change
-workflow files. If you cannot determine the cause, comment with what you found and
-stop — a clear "I could not fix this, here is why" is more useful than a guess.
+Do not touch anything unrelated to the failure. Never push to `main`. Do not
+merge. Do not change workflow files. If you cannot determine the cause, comment
+with what you found and stop — a clear "I could not fix this, here is why" is more
+useful than a guess.

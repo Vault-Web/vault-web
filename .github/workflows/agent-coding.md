@@ -110,6 +110,11 @@ request.
 
 ## The pull request
 
+Work on a branch named `agent/issue-<number>-<short-slug>`, for example
+`agent/issue-412-fix-null-group-name`. The CI repair agent only acts on branches
+under `agent/`, so any other name means failing CI on your pull request will not
+be picked up.
+
 Open it as a **draft**. Describe what you changed, why, and anything a reviewer
 should check carefully. Link the issue. Be explicit about what you did not do and
 about any assumption you had to make.
