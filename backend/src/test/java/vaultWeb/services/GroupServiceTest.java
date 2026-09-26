@@ -62,6 +62,32 @@ class GroupServiceTest {
   }
 
   @Test
+  void shouldCreatePrivateGroup_WhenIsPublicIsFalse() {
+    User creator = createUser(1L);
+    GroupDto dto = new GroupDto("Private Group", "Private Description", false);
+
+    when(groupRepository.save(any(Group.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    Group group = groupService.createGroup(dto, creator);
+
+    assertFalse(group.getIsPublic());
+  }
+
+  @Test
+  void shouldCreatePublicGroup_WhenIsPublicIsNull() {
+    User creator = createUser(1L);
+    GroupDto dto = new GroupDto("Default Group", "Default Description", null);
+
+    when(groupRepository.save(any(Group.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    Group group = groupService.createGroup(dto, creator);
+
+    assertTrue(group.getIsPublic());
+  }
+
+  @Test
   void shouldJoinGroupSuccessfully() {
     User user = createUser(2L);
     Group group = createGroup(10L, true);
