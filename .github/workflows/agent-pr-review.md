@@ -58,6 +58,14 @@ tools:
     min-integrity: none
 
 safe-outputs:
+  report-failure-as-issue: false
+  create-pull-request-review-comment:
+    max: 5
+    target: triggering
+  submit-pull-request-review:
+    max: 1
+    allowed-events: [COMMENT, REQUEST_CHANGES]
+    supersede-older-reviews: true
   add-comment:
     max: 1
     target: triggering
@@ -108,5 +116,13 @@ If you find nothing substantive, produce **no comment at all** — emit `noop`
 instead. A quiet review is a correct review when the code is fine. Never comment
 merely to show you ran.
 
-Begin your comment with `### Agent review` so it is distinguishable from human
-reviews.
+When a finding maps to a changed line, create an inline review comment on that
+line. Submit one consolidated pull request review:
+
+- use `REQUEST_CHANGES` when at least one finding is merge-blocking;
+- use `COMMENT` when the findings are useful but not merge-blocking;
+- begin the review body with `### Agent review`;
+- keep the body to a short summary and let inline comments carry line-specific
+  detail.
+
+Use `add-comment` only when GitHub cannot attach any finding to the changed diff.

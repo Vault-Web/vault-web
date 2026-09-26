@@ -57,6 +57,7 @@ tools:
     trusted-users: ["vault-web-agents[bot]"]
 
 safe-outputs:
+  report-failure-as-issue: false
   # Pushes go through the app so CI runs again on the fixed branch.
   github-app:
     app-id: ${{ vars.VAULTWEB_AGENT_APP_ID }}

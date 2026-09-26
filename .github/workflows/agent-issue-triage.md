@@ -43,6 +43,7 @@ tools:
     min-integrity: none
 
 safe-outputs:
+  report-failure-as-issue: false
   # Labels are applied through the vault-web-agents app so that "agent-ready"
   # raises a labeled event the coding agent can react to. GITHUB_TOKEN would not.
   github-app:
@@ -78,6 +79,14 @@ network:
 A new issue was opened in `Vault-Web/vault-web`, a Java (Spring Boot) backend with
 an Angular frontend. Many issues come from first-time contributors during
 Hacktoberfest and similar events.
+
+If the issue was opened by repository automation and starts with `[aw]`, treat it
+as agentic-workflow infrastructure, not a product bug. Do not label transient
+provider failures such as HTTP 429 as `agent-ready`; add a short comment saying
+the failed workflow should be retried and only escalate if the same workflow keeps
+failing repeatedly. For repeated deterministic workflow failures, label the issue
+`bug` and `agent-ready` only when the fix is a narrow workflow/configuration
+change.
 
 ## What to do
 

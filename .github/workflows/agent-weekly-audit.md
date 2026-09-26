@@ -30,6 +30,7 @@ tools:
     min-integrity: approved
 
 safe-outputs:
+  report-failure-as-issue: false
   github-app:
     app-id: ${{ vars.VAULTWEB_AGENT_APP_ID }}
     private-key: ${{ secrets.VAULTWEB_AGENT_APP_KEY }}
