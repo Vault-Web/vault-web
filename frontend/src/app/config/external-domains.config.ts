@@ -7,6 +7,7 @@ export interface ExternalDomainLink {
 declare global {
   interface Window {
     __VAULT_WEB_EXTERNAL_LINKS__?: unknown;
+    __VAULT_WEB_VAULTWARDEN_URL__?: unknown;
   }
 }
 
@@ -47,6 +48,22 @@ function resolveExternalLinks(): ExternalDomainLink[] {
 
 export const EXTERNAL_DOMAIN_LINKS: ExternalDomainLink[] =
   resolveExternalLinks();
+
+export function resolveVaultwardenUrl(): string | null {
+  if (
+    typeof window.__VAULT_WEB_VAULTWARDEN_URL__ === 'string' &&
+    window.__VAULT_WEB_VAULTWARDEN_URL__.trim().length > 0
+  ) {
+    return window.__VAULT_WEB_VAULTWARDEN_URL__.trim();
+  }
+
+  return (
+    EXTERNAL_DOMAIN_LINKS.find((link) => {
+      const name = link.name.toLowerCase();
+      return name.includes('password') || name.includes('vaultwarden');
+    })?.url ?? null
+  );
+}
 
 export function resolveExternalLinkUrl(
   link: ExternalDomainLink,

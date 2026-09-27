@@ -7,5 +7,4 @@ export const environment = {
   mainHostAddress: `${protocol}://${host}:8080`,
   mainApiUrl: `${protocol}://${host}:8080/api`,
   cloudServiceApiUrl: `${protocol}://${host}:8090/api`,
-  passwordManagerApiUrl: `${protocol}://${host}:8091/api`,
 };
