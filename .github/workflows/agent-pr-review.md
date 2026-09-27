@@ -1,6 +1,6 @@
 ---
 description: Reviews pull requests for correctness, security, regressions, and missing tests.
-intent: Surface concrete, high-confidence defects in pull requests before a human reviewer spends time on them, and stay silent when there is nothing substantive to report.
+intent: Surface concrete, high-confidence defects in pull requests before a human reviewer spends time on them, and leave a short approve suggestion when there is nothing substantive to report.
 
 on:
   pull_request_target:
@@ -99,7 +99,7 @@ wrong only in a specific reachable state, regressions against existing behaviour
 elsewhere in the repository, and critical paths shipped without tests.
 
 If you would only repeat what any reviewer would say about the diff in isolation,
-emit `noop` instead.
+submit a short non-blocking review instead of inventing a finding.
 
 ## What to ignore
 
@@ -112,9 +112,14 @@ Do not praise. Do not suggest changes you cannot justify with a concrete failure
 Report at most the five most important findings. For each one give the file, the
 line, what breaks, and a concrete input or state that triggers it.
 
-If you find nothing substantive, produce **no comment at all** — emit `noop`
-instead. A quiet review is a correct review when the code is fine. Never comment
-merely to show you ran.
+If you find nothing substantive, submit a single `COMMENT` review with exactly:
+
+`### Agent review`
+
+`Suggestion: approve. I did not find any high-confidence correctness, security,
+regression, or missing-test issues in this diff.`
+
+Do not create inline comments in that case.
 
 When a finding maps to a changed line, create an inline review comment on that
 line. Submit one consolidated pull request review:
