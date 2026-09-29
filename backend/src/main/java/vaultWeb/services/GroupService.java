@@ -111,11 +111,19 @@ public class GroupService {
             .findById(groupId)
             .orElseThrow(() -> new GroupNotFoundException("Group not found with id: " + groupId));
 
+    if (!Boolean.TRUE.equals(group.getIsPublic())) {
+      throw new NotMemberException(groupId, currentUser.getId());
+    }
+
     boolean alreadyMember =
         groupMemberRepository.findByGroupAndUser(group, currentUser).isPresent();
     if (alreadyMember) {
       throw new AlreadyMemberException(groupId, currentUser.getId());
     }
+
+    groupMemberRepository.save(new GroupMember(group, currentUser, Role.USER));
+    return group;
+  }
 
     groupMemberRepository.save(new GroupMember(group, currentUser, Role.USER));
     return group;
