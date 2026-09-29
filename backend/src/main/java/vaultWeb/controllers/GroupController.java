@@ -74,8 +74,11 @@ public class GroupController {
   public ResponseEntity<GroupResponseDto> getGroupById(@PathVariable Long id) {
     return groupService
         .getGroupById(id)
-        .map(GroupResponseDto::from)
-        .map(ResponseEntity::ok)
+        .map(
+            group -> {
+              requireGroupAccess(group);
+              return ResponseEntity.ok(GroupResponseDto.from(group));
+            })
         .orElse(ResponseEntity.notFound().build());
   }
 
@@ -92,8 +95,34 @@ public class GroupController {
       responseCode = "401",
       description = "Unauthorized request. You must provide an authentication token.")
   public ResponseEntity<List<User>> getGroupMembers(@PathVariable Long id) {
-    List<User> members = groupService.getMembers(id);
-    return ResponseEntity.ok(members);
+    Group group =
+        groupService
+            .getGroupById(id)
+            .orElseThrow(
+                () ->
+                    new vaultWeb.exceptions.notfound.GroupNotFoundException(
+                        "Group not found with id: " + id));
+
+    requireGroupAccess(group);
+
+    return ResponseEntity.ok(groupService.getMembers(id));
+  }
+
+  private void requireGroupAccess(Group group) {
+    if (Boolean.TRUE.equals(group.getIsPublic())) {
+      return;
+    }
+
+    User currentUser = authService.getCurrentUser();
+    if (currentUser == null) {
+      throw new UnauthorizedException("User not authenticated");
+    }
+
+    if (groupMemberRepository
+        .findByGroupIdAndUserId(group.getId(), currentUser.getId())
+        .isEmpty()) {
+      throw new NotMemberException(group.getId(), currentUser.getId());
+    }
   }
 
   @GetMapping("/{id}/devices")
