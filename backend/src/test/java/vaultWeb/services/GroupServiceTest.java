@@ -375,4 +375,18 @@ class GroupServiceTest {
     assertThrows(AlreadyMemberException.class, () -> groupService.addMember(10L, 2L));
     verify(groupMemberRepository, times(0)).save(any(GroupMember.class));
   }
+
+  @Test
+  void shouldRejectJoiningPrivateGroup() {
+    User user = createUser(2L);
+    Group privateGroup = createGroup(10L, false);
+
+    when(groupRepository.findById(10L)).thenReturn(Optional.of(privateGroup));
+
+    assertThrows(
+        org.springframework.security.access.AccessDeniedException.class,
+        () -> groupService.joinGroup(10L, user));
+
+    verify(groupMemberRepository, never()).save(any(GroupMember.class));
+  }
 }

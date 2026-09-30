@@ -3,6 +3,7 @@ package vaultWeb.services;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import vaultWeb.dtos.GroupDto;
 import vaultWeb.exceptions.AlreadyMemberException;
@@ -37,7 +38,7 @@ public class GroupService {
    */
   public List<Group> getPublicGroups() {
     List<Group> allGroups = groupRepository.findAll();
-    return allGroups.stream().filter(Group::getIsPublic).toList();
+    return allGroups.stream().filter(group -> Boolean.TRUE.equals(group.getIsPublic())).toList();
   }
 
   /**
@@ -111,8 +112,13 @@ public class GroupService {
             .findById(groupId)
             .orElseThrow(() -> new GroupNotFoundException("Group not found with id: " + groupId));
 
+    if (!Boolean.TRUE.equals(group.getIsPublic())) {
+      throw new AccessDeniedException("Cannot join a private group");
+    }
+
     boolean alreadyMember =
         groupMemberRepository.findByGroupAndUser(group, currentUser).isPresent();
+
     if (alreadyMember) {
       throw new AlreadyMemberException(groupId, currentUser.getId());
     }
