@@ -111,7 +111,9 @@ public class GroupController {
             .orElseThrow(() -> new GroupNotFoundException("Group with id " + id + " not found"));
 
     ensureGroupVisibleToCurrentUser(group);
-    List<User> members = groupService.getMembers(id);
+
+    List<User> members = groupService.getMembers(group);
+
     return ResponseEntity.ok(members);
   }
 
@@ -180,20 +182,18 @@ public class GroupController {
   }
 
   private void ensureGroupVisibleToCurrentUser(Group group) {
-    if (Boolean.TRUE.equals(group.getIsPublic())) {
-      return;
-    }
+    if (!Boolean.TRUE.equals(group.getIsPublic())) {
+      User currentUser = authService.getCurrentUser();
 
-    User currentUser = authService.getCurrentUser();
+      if (currentUser == null) {
+        throw new UnauthorizedException("User not authenticated");
+      }
 
-    if (currentUser == null) {
-      throw new UnauthorizedException("User not authenticated");
-    }
-
-    if (groupMemberRepository
-        .findByGroupIdAndUserId(group.getId(), currentUser.getId())
-        .isEmpty()) {
-      throw new NotMemberException(group.getId(), currentUser.getId());
+      if (groupMemberRepository
+          .findByGroupIdAndUserId(group.getId(), currentUser.getId())
+          .isEmpty()) {
+        throw new NotMemberException(group.getId(), currentUser.getId());
+      }
     }
   }
 
@@ -227,6 +227,7 @@ public class GroupController {
   @ApiResponse(
       responseCode = "401",
       description = "Unauthorized request. You must provide an authentication token.")
+  @ApiResponse(responseCode = "403", description = "Forbidden. Private groups cannot be joined")
   public ResponseEntity<Group> joinGroup(@PathVariable Long id) {
     User currentUser = authService.getCurrentUser();
     Group updatedGroup = groupService.joinGroup(id, currentUser);

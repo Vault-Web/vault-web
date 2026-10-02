@@ -182,7 +182,10 @@ class GroupControllerTest {
         List.of(createTestUser(1L, "User 1"), createTestUser(2L, "User 2"));
 
     when(groupService.getGroupById(1L)).thenReturn(Optional.of(group));
-    when(groupService.getMembers(1L)).thenReturn(expectedMembers);
+    List<GroupMember> memberships =
+        expectedMembers.stream().map(user -> new GroupMember(group, user, Role.USER)).toList();
+
+    when(groupService.getMembers(group)).thenReturn(expectedMembers);
 
     ResponseEntity<List<User>> response = groupController.getGroupMembers(1L);
 
@@ -190,7 +193,7 @@ class GroupControllerTest {
     assertEquals(expectedMembers, response.getBody());
 
     verify(groupService, times(1)).getGroupById(1L);
-    verify(groupService, times(1)).getMembers(1L);
+    verify(groupService).getMembers(group);
   }
 
   @Test
@@ -221,14 +224,17 @@ class GroupControllerTest {
     when(authService.getCurrentUser()).thenReturn(currentUser);
     when(groupMemberRepository.findByGroupIdAndUserId(10L, 1L))
         .thenReturn(Optional.of(mock(GroupMember.class)));
-    when(groupService.getMembers(10L)).thenReturn(expectedMembers);
+    List<GroupMember> memberships =
+        expectedMembers.stream().map(user -> new GroupMember(group, user, Role.USER)).toList();
+
+    when(groupService.getMembers(group)).thenReturn(expectedMembers);
 
     ResponseEntity<List<User>> response = groupController.getGroupMembers(10L);
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEquals(expectedMembers, response.getBody());
 
-    verify(groupService, times(1)).getMembers(10L);
+    verify(groupService).getMembers(group);
   }
 
   @Test
@@ -348,12 +354,11 @@ class GroupControllerTest {
   void shouldHandleEmptyMemberList() {
     Group group = createTestGroup(1L, "Group 1");
     when(groupService.getGroupById(1L)).thenReturn(Optional.of(group));
-    when(groupService.getMembers(1L)).thenReturn(List.of());
+    when(groupService.getMembers(group)).thenReturn(List.of());
     ResponseEntity<List<User>> response = groupController.getGroupMembers(1L);
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEquals(List.of(), response.getBody());
-    verify(groupService, times(1)).getGroupById(1L);
-    verify(groupService, times(1)).getMembers(1L);
+    verify(groupService).getMembers(group);
   }
 
   @Test
