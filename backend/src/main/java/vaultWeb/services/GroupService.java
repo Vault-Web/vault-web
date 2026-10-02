@@ -164,8 +164,11 @@ public class GroupService {
             .findById(groupId)
             .orElseThrow(() -> new GroupNotFoundException("Group not found"));
 
-    List<GroupMember> groupMembers = groupMemberRepository.findAllByGroup(group);
-    return groupMembers.stream().map(GroupMember::getUser).toList();
+    return getMembers(group);
+  }
+
+  public List<User> getMembers(Group group) {
+    return groupMemberRepository.findAllByGroup(group).stream().map(GroupMember::getUser).toList();
   }
 
   /**

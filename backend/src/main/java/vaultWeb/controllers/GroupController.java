@@ -17,7 +17,6 @@ import vaultWeb.exceptions.notfound.GroupNotFoundException;
 import vaultWeb.exceptions.notfound.NotMemberException;
 import vaultWeb.models.ChatMessage;
 import vaultWeb.models.Group;
-import vaultWeb.models.GroupMember;
 import vaultWeb.models.User;
 import vaultWeb.repositories.ChatMessageRepository;
 import vaultWeb.repositories.DeviceRepository;
@@ -113,8 +112,7 @@ public class GroupController {
 
     ensureGroupVisibleToCurrentUser(group);
 
-    List<User> members =
-        groupMemberRepository.findAllByGroup(group).stream().map(GroupMember::getUser).toList();
+    List<User> members = groupService.getMembers(group);
 
     return ResponseEntity.ok(members);
   }
@@ -229,9 +227,7 @@ public class GroupController {
   @ApiResponse(
       responseCode = "401",
       description = "Unauthorized request. You must provide an authentication token.")
-  @ApiResponse(
-      responseCode = "403",
-      description = "Forbidden. Private groups cannot be joined without an invitation.")
+  @ApiResponse(responseCode = "403", description = "Forbidden. Private groups cannot be joined")
   public ResponseEntity<Group> joinGroup(@PathVariable Long id) {
     User currentUser = authService.getCurrentUser();
     Group updatedGroup = groupService.joinGroup(id, currentUser);

@@ -185,7 +185,7 @@ class GroupControllerTest {
     List<GroupMember> memberships =
         expectedMembers.stream().map(user -> new GroupMember(group, user, Role.USER)).toList();
 
-    when(groupMemberRepository.findAllByGroup(group)).thenReturn(memberships);
+    when(groupService.getMembers(group)).thenReturn(expectedMembers);
 
     ResponseEntity<List<User>> response = groupController.getGroupMembers(1L);
 
@@ -193,8 +193,7 @@ class GroupControllerTest {
     assertEquals(expectedMembers, response.getBody());
 
     verify(groupService, times(1)).getGroupById(1L);
-    verify(groupMemberRepository).findAllByGroup(group);
-    verify(groupService, never()).getMembers(1L);
+    verify(groupService).getMembers(group);
   }
 
   @Test
@@ -228,15 +227,14 @@ class GroupControllerTest {
     List<GroupMember> memberships =
         expectedMembers.stream().map(user -> new GroupMember(group, user, Role.USER)).toList();
 
-    when(groupMemberRepository.findAllByGroup(group)).thenReturn(memberships);
+    when(groupService.getMembers(group)).thenReturn(expectedMembers);
 
     ResponseEntity<List<User>> response = groupController.getGroupMembers(10L);
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEquals(expectedMembers, response.getBody());
 
-    verify(groupMemberRepository).findAllByGroup(group);
-    verify(groupService, never()).getMembers(10L);
+    verify(groupService).getMembers(group);
   }
 
   @Test
@@ -356,12 +354,11 @@ class GroupControllerTest {
   void shouldHandleEmptyMemberList() {
     Group group = createTestGroup(1L, "Group 1");
     when(groupService.getGroupById(1L)).thenReturn(Optional.of(group));
-    when(groupMemberRepository.findAllByGroup(group)).thenReturn(List.of());
+    when(groupService.getMembers(group)).thenReturn(List.of());
     ResponseEntity<List<User>> response = groupController.getGroupMembers(1L);
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEquals(List.of(), response.getBody());
-    verify(groupMemberRepository).findAllByGroup(group);
-    verify(groupService, never()).getMembers(1L);
+    verify(groupService).getMembers(group);
   }
 
   @Test

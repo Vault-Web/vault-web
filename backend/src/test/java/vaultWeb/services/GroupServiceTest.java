@@ -10,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 import vaultWeb.dtos.GroupDto;
 import vaultWeb.exceptions.AlreadyMemberException;
 import vaultWeb.exceptions.LastAdminException;
@@ -383,10 +384,23 @@ class GroupServiceTest {
 
     when(groupRepository.findById(10L)).thenReturn(Optional.of(privateGroup));
 
-    assertThrows(
-        org.springframework.security.access.AccessDeniedException.class,
-        () -> groupService.joinGroup(10L, user));
+    assertThrows(AccessDeniedException.class, () -> groupService.joinGroup(10L, user));
 
+    verify(groupMemberRepository, never()).save(any(GroupMember.class));
+  }
+
+  @Test
+  void shouldRejectJoiningGroup_WhenVisibilityIsNull() {
+    User user = createUser(2L);
+    Group group = new Group();
+    group.setId(10L);
+    group.setIsPublic(null);
+
+    when(groupRepository.findById(10L)).thenReturn(Optional.of(group));
+
+    assertThrows(AccessDeniedException.class, () -> groupService.joinGroup(10L, user));
+
+    verify(groupMemberRepository, never()).findByGroupAndUser(any(), any());
     verify(groupMemberRepository, never()).save(any(GroupMember.class));
   }
 }
