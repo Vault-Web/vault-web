@@ -1,5 +1,7 @@
 package vaultWeb.services.auth;
-
+import vaultWeb.repositories.SecurityEventRepository;
+import vaultWeb.models.SecurityEvent;
+import vaultWeb.security.annotations.SecurityEventType;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletResponse;
@@ -24,7 +26,10 @@ import vaultWeb.repositories.RefreshTokenRepository;
 import vaultWeb.repositories.UserRepository;
 import vaultWeb.security.JwtUtil;
 import vaultWeb.security.TokenHashUtil;
+import org.slf4j.Logger;
 
+import static vaultWeb.services.auth.RefreshTokenCleanupService.log;
+private final SecurityEventRepository securityEventRepository;
 /**
  * Service class responsible for handling authentication and user session-related operations.
  *
@@ -178,15 +183,43 @@ public class AuthService {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
-    String tokenId = claims.getId();
+    RefreshToken storedToken = refreshTokenRepository.findByTokenId(tokenId).orElse(null);
 
-    RefreshToken storedToken =
-        refreshTokenRepository.findByTokenIdAndRevokedFalse(tokenId).orElse(null);
+    // Case 1: token kabhi tha hi nahi
+    if (storedToken == null) {
+      log.warn("Refresh failed: unknown tokenId={}", tokenId);
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    // Case 2: token already revoked tha, phir bhi dobara use hua -> REPLAY ATTACK
+    if (storedToken.isRevoked()) {
+      User suspectUser = storedToken.getUser();
+
+      log.error(
+              "SECURITY ALERT: revoked refresh token reused. tokenId={}, userId={}",
+              tokenId, suspectUser.getId());
+
+      // DB mein security event save karo (audit trail)
+      SecurityEvent event = new SecurityEvent();
+      event.setUser(suspectUser);
+      event.setUsername(suspectUser.getUsername());
+      event.setEventType(SecurityEventType.TOKEN_REPLAY_DETECTED);
+      event.setStatus("FAILURE");
+      event.setTimestamp(Instant.now());
+      securityEventRepository.save(event);
+
+      // defense-in-depth: is user ke saare active refresh tokens revoke kardo
+      refreshTokenRepository.revokeAllByUser(suspectUser.getId());
+
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    // Case 3: token exist karta hai, revoked nahi — normal validation
     String incomingHash = TokenHashUtil.sha256(rawRefreshToken);
-    if (storedToken == null
-        || !TokenHashUtil.constantTimeEquals(incomingHash, storedToken.getTokenHash())
-        || storedToken.getExpiresAt().isBefore(Instant.now())) {
+    if (!TokenHashUtil.constantTimeEquals(incomingHash, storedToken.getTokenHash())
+            || storedToken.getExpiresAt().isBefore(Instant.now())) {
 
+      log.warn("Refresh failed: invalid hash or expired token. tokenId={}", tokenId);
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
@@ -217,12 +250,19 @@ public class AuthService {
         String tokenId = jwtUtil.extractTokenId(rawRefreshToken);
 
         refreshTokenRepository
-            .findByTokenIdAndRevokedFalse(tokenId)
-            .ifPresent(
-                token -> {
-                  token.setRevoked(true);
-                  refreshTokenRepository.save(token);
-                });
+                .findByTokenId(tokenId)
+                .ifPresent(
+                        token -> {
+                          if (token.isRevoked()) {
+                            log.warn(
+                                    "Logout called with already-revoked token, userId={}, tokenId={}",
+                                    token.getUser().getId(),
+                                    tokenId);
+                          } else {
+                            token.setRevoked(true);
+                            refreshTokenRepository.save(token);
+                          }
+                        });
 
       } catch (JwtException ignored) {
         // Token already invalid / expired — nothing to revoke
