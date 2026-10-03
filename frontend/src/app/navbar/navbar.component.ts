@@ -9,6 +9,10 @@ import {
   ExternalDomainLink,
   resolveExternalLinkUrl,
 } from '../config/external-domains.config';
+import {
+  ServiceRegistryService,
+  ServiceManifest,
+} from '../services/service-registry.service';
 
 @Component({
   selector: 'app-navbar',
@@ -21,6 +25,7 @@ export class NavbarComponent implements OnInit {
   isMobileMenuOpen = false;
   isDomainDropdownOpen = false;
   readonly externalDomainLinks: ExternalDomainLink[] = EXTERNAL_DOMAIN_LINKS;
+  services: ServiceManifest[] = [];
 
   // Stores the full URL to the profile picture (e.g. "http://localhost:8080/uploads/...")
   // null means no picture is set — the template will show the fallback initial instead
@@ -30,12 +35,16 @@ export class NavbarComponent implements OnInit {
     public themeService: ThemeService,
     public authService: AuthService,
     private userService: UserService,
+    private serviceRegistry: ServiceRegistryService,
   ) {}
 
   /**
    * Loads the profile picture when the navbar initializes.
    */
   ngOnInit(): void {
+    this.serviceRegistry.services$.subscribe((services) => {
+      this.services = services;
+    });
     if (this.authService.isLoggedIn()) {
       // Subscribe to reactive profile picture updates
       this.userService.profilePicUrl$.subscribe((url) => {
@@ -48,6 +57,10 @@ export class NavbarComponent implements OnInit {
         },
       });
     }
+  }
+
+  isExternalUrl(url: string): boolean {
+    return !!url && (url.startsWith('http://') || url.startsWith('https://'));
   }
 
   /**

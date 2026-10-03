@@ -1,0 +1,15 @@
+{
+  "name": "habits",
+  "displayName": "Habits",
+  "icon": "pi-calendar-plus",
+  "route": "/habits",
+  "baseUrl": "http://{host}:8092",
+  "apiUrl": "http://{host}:8092/api",
+  "healthEndpoint": "http://{host}:8092/api/health",
+  "requiredScopes": ["habits:read"],
+  "tokenForwarding": {
+    "enabled": true,
+    "type": "header",
+    "name": "Authorization"
+  }
+}
