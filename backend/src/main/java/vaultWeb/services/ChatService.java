@@ -15,6 +15,7 @@ import vaultWeb.models.ChatMessage;
 import vaultWeb.models.Group;
 import vaultWeb.models.PrivateChat;
 import vaultWeb.models.User;
+import vaultWeb.models.enums.MessageStatus;
 import vaultWeb.models.enums.MessageType;
 import vaultWeb.repositories.ChatMessageRepository;
 import vaultWeb.repositories.GroupRepository;
@@ -123,6 +124,7 @@ public class ChatService {
       message.setE2eePayload(dto.getE2eePayload());
       message.setSenderDeviceId(dto.getSenderDeviceId());
       message.setPrivateChat(privateChat);
+      message.setStatus(MessageStatus.SENT);
     } else {
       throw new GroupNotFoundException("Either groupId or privateChatId must be provided");
     }
@@ -156,6 +158,13 @@ public class ChatService {
     if (message.getPrivateChat() != null) {
 
       dto.setPrivateChatId(message.getPrivateChat().getId());
+      dto.setStatus(message.getStatus());
+      if (message.getDeliveredAt() != null) {
+        dto.setDeliveredAt(message.getDeliveredAt().toString());
+      }
+      if (message.getReadAt() != null) {
+        dto.setReadAt(message.getReadAt().toString());
+      }
     }
 
     if (messageType == MessageType.TEXT) {

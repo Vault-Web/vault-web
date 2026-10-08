@@ -23,6 +23,7 @@ import vaultWeb.models.Group;
 import vaultWeb.models.Poll;
 import vaultWeb.models.PrivateChat;
 import vaultWeb.models.User;
+import vaultWeb.models.enums.MessageStatus;
 import vaultWeb.models.enums.MessageType;
 import vaultWeb.repositories.ChatMessageRepository;
 import vaultWeb.repositories.GroupRepository;
@@ -116,6 +117,7 @@ class ChatServiceTest {
     assertEquals(VALID_E2EE_PAYLOAD, result.getE2eePayload());
     assertEquals(SENDER_DEVICE_ID, result.getSenderDeviceId());
     assertEquals(MessageType.TEXT, result.getMessageType());
+    assertEquals(MessageStatus.SENT, result.getStatus());
     verify(chatMessageRepository).save(any(ChatMessage.class));
   }
 
@@ -270,6 +272,27 @@ class ChatServiceTest {
     ChatMessageDto dto = chatService.toDto(message);
 
     assertNull(dto.getClientMessageId());
+  }
+
+  @Test
+  void shouldMapPrivateMessageStatusAndTimesInToDto() {
+    User sender = createUser(1L, "user1");
+    PrivateChat privateChat = createPrivateChat(5L, sender, createUser(2L, "user2"));
+    ChatMessage message = new ChatMessage();
+    message.setSender(sender);
+    message.setPrivateChat(privateChat);
+    message.setTimestamp(java.time.Instant.parse("2026-03-26T10:15:30Z"));
+    message.setE2eePayload(VALID_E2EE_PAYLOAD);
+    message.setSenderDeviceId(SENDER_DEVICE_ID);
+    message.setStatus(MessageStatus.READ);
+    message.setDeliveredAt(java.time.Instant.parse("2026-03-26T10:16:00Z"));
+    message.setReadAt(java.time.Instant.parse("2026-03-26T10:17:00Z"));
+
+    ChatMessageDto dto = chatService.toDto(message);
+
+    assertEquals(MessageStatus.READ, dto.getStatus());
+    assertEquals("2026-03-26T10:16:00Z", dto.getDeliveredAt());
+    assertEquals("2026-03-26T10:17:00Z", dto.getReadAt());
   }
 
   @Test

@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import vaultWeb.models.enums.MessageStatus;
 import vaultWeb.models.enums.MessageType;
 
 @Data
@@ -23,4 +24,8 @@ public class ChatMessageDto {
   private PollResponseDto poll;
 
   private String clientMessageId;
+
+  private MessageStatus status;
+  private String deliveredAt;
+  private String readAt;
 }
