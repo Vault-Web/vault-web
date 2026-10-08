@@ -264,6 +264,47 @@ class ChatControllerTest {
     verify(privateChatService, never()).markChatAsRead(any(), any());
   }
 
+  @Test
+  void shouldSendDeliveredReceipt_toSender() {
+    Principal principal = () -> "bob";
+    ChatMessage message = createSavedPrivateMessage(5L, "alice", "bob");
+    message.setClientMessageId("client-uuid-1");
+    message.setStatus(MessageStatus.DELIVERED);
+    message.setDeliveredAt(java.time.Instant.parse("2026-03-26T10:16:00Z"));
+    when(chatService.markMessageDelivered("client-uuid-1", "bob")).thenReturn(message);
+
+    chatController.markPrivateMessageDelivered("client-uuid-1", principal);
+
+    ArgumentCaptor<MessageStatusUpdateDto> captor =
+        ArgumentCaptor.forClass(MessageStatusUpdateDto.class);
+    verify(messagingTemplate)
+        .convertAndSendToUser(eq("alice"), eq("/queue/private/status"), captor.capture());
+    assertEquals(5L, captor.getValue().getPrivateChatId());
+    assertEquals("client-uuid-1", captor.getValue().getClientMessageId());
+    assertEquals(MessageStatus.DELIVERED, captor.getValue().getStatus());
+    assertEquals("2026-03-26T10:16:00Z", captor.getValue().getTimestamp());
+  }
+
+  @Test
+  void shouldNotSendDeliveredReceipt_WhenUserIsNotRecipient() {
+    Principal principal = () -> "alice";
+    when(chatService.markMessageDelivered("client-uuid-1", "alice"))
+        .thenThrow(new AccessDeniedException("Only the recipient can confirm delivery"));
+
+    assertThrows(
+        AccessDeniedException.class,
+        () -> chatController.markPrivateMessageDelivered("client-uuid-1", principal));
+    verify(messagingTemplate, never()).convertAndSendToUser(any(), any(), any());
+  }
+
+  @Test
+  void shouldRejectDelivered_WhenUnauthenticated() {
+    assertThrows(
+        UnauthorizedException.class,
+        () -> chatController.markPrivateMessageDelivered("client-uuid-1", null));
+    verify(chatService, never()).markMessageDelivered(any(), any());
+  }
+
   private ChatMessageDto createGroupMessageRequest(Long groupId) {
     ChatMessageDto dto = new ChatMessageDto();
     dto.setGroupId(groupId);

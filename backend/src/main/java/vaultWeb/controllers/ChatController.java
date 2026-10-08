@@ -158,6 +158,24 @@ public class ChatController {
     }
   }
 
+  @MessageMapping("/chat.private.delivered")
+  public void markPrivateMessageDelivered(@Payload String clientMessageId, Principal principal) {
+    if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+      throw new UnauthorizedException("User not authenticated");
+    }
+
+    ChatMessage message = chatService.markMessageDelivered(clientMessageId, principal.getName());
+
+    messagingTemplate.convertAndSendToUser(
+        message.getSender().getUsername(),
+        "/queue/private/status",
+        new MessageStatusUpdateDto(
+            message.getPrivateChat().getId(),
+            message.getClientMessageId(),
+            message.getStatus(),
+            message.getDeliveredAt().toString()));
+  }
+
   @MessageMapping("/chat.private.read")
   public void markPrivateChatAsRead(@Payload Long privateChatId, Principal principal) {
     if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
