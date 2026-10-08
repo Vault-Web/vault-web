@@ -19,6 +19,7 @@ import vaultWeb.dtos.ChatErrorDto;
 import vaultWeb.dtos.ChatMessageDeletedDto;
 import vaultWeb.dtos.ChatMessageDto;
 import vaultWeb.dtos.MessageStatusUpdateDto;
+import vaultWeb.exceptions.PrivateMessageSendException;
 import vaultWeb.exceptions.UnauthorizedException;
 import vaultWeb.exceptions.notfound.PrivateChatNotFoundException;
 import vaultWeb.exceptions.notfound.UserNotFoundException;
@@ -90,8 +91,18 @@ public class ChatController {
    */
   @MessageMapping("/chat.private.send")
   public void sendPrivateMessage(@Valid @Payload ChatMessageDto messageDto, Principal principal) {
-    authorizePrivateMessage(messageDto, principal);
-    ChatMessage savedMessage = chatService.saveMessage(messageDto);
+    ChatMessage savedMessage;
+    try {
+      authorizePrivateMessage(messageDto, principal);
+      savedMessage = chatService.saveMessage(messageDto);
+    } catch (EntityNotFoundException
+        | AccessDeniedException
+        | UnauthorizedException
+        | IllegalArgumentException
+        | PrivateChatNotFoundException
+        | UserNotFoundException ex) {
+      throw new PrivateMessageSendException(messageDto.getClientMessageId(), ex);
+    }
 
     ChatMessageDto responseDto = chatService.toDto(savedMessage);
 
@@ -222,7 +233,8 @@ public class ChatController {
     UnauthorizedException.class,
     IllegalArgumentException.class,
     PrivateChatNotFoundException.class,
-    UserNotFoundException.class
+    UserNotFoundException.class,
+    PrivateMessageSendException.class
   })
   @SendToUser("/queue/errors")
   public ChatErrorDto handleChatException(Exception ex, Principal principal) {
@@ -230,6 +242,8 @@ public class ChatController {
         "Chat operation failed for user {}: {}",
         principal != null ? principal.getName() : "unauthenticated",
         ex.getMessage());
-    return new ChatErrorDto(ex.getMessage());
+    String clientMessageId =
+        ex instanceof PrivateMessageSendException sendEx ? sendEx.getClientMessageId() : null;
+    return new ChatErrorDto(ex.getMessage(), clientMessageId);
   }
 }
