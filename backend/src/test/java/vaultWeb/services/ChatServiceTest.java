@@ -455,4 +455,68 @@ class ChatServiceTest {
         EntityNotFoundException.class, () -> chatService.deleteMessage("missing-id", "user1"));
     verify(chatMessageRepository, never()).save(any());
   }
+
+  @Test
+  void shouldMarkSentMessageAsDelivered_whenRecipientConfirmsDelivery() {
+    User sender = createUser(1L, "user1");
+    User recipient = createUser(2L, "user2");
+    PrivateChat privateChat = createPrivateChat(5L, sender, recipient);
+    ChatMessage message = new ChatMessage();
+    message.setSender(sender);
+    message.setPrivateChat(privateChat);
+    message.setClientMessageId("client-uuid-789");
+    message.setStatus(MessageStatus.SENT);
+
+    when(chatMessageRepository.findByClientMessageId("client-uuid-789"))
+        .thenReturn(Optional.of(message));
+
+    ChatMessage result = chatService.markMessageDelivered("client-uuid-789", "user2");
+
+    assertEquals(MessageStatus.DELIVERED, result.getStatus());
+    assertNotNull(result.getDeliveredAt());
+    verify(chatMessageRepository).save(message);
+  }
+
+  @Test
+  void shouldThrowAccessDenied_whenSenderTriesToMarkOwnMessageDelivered() {
+    User sender = createUser(1L, "user1");
+    User recipient = createUser(2L, "user2");
+    PrivateChat privateChat = createPrivateChat(5L, sender, recipient);
+    ChatMessage message = new ChatMessage();
+    message.setSender(sender);
+    message.setPrivateChat(privateChat);
+    message.setClientMessageId("client-uuid-789");
+    message.setStatus(MessageStatus.SENT);
+
+    when(chatMessageRepository.findByClientMessageId("client-uuid-789"))
+        .thenReturn(Optional.of(message));
+
+    assertThrows(
+        AccessDeniedException.class,
+        () -> chatService.markMessageDelivered("client-uuid-789", "user1"));
+    verify(chatMessageRepository, never()).save(any());
+    assertEquals(MessageStatus.SENT, message.getStatus());
+    assertNull(message.getDeliveredAt());
+  }
+
+  @Test
+  void shouldKeepReadStatus_whenMarkingAlreadyReadMessageDelivered() {
+    User sender = createUser(1L, "user1");
+    User recipient = createUser(2L, "user2");
+    PrivateChat privateChat = createPrivateChat(5L, sender, recipient);
+    ChatMessage message = new ChatMessage();
+    message.setSender(sender);
+    message.setPrivateChat(privateChat);
+    message.setClientMessageId("client-uuid-789");
+    message.setStatus(MessageStatus.READ);
+    message.setReadAt(java.time.Instant.parse("2026-03-26T10:17:00Z"));
+
+    when(chatMessageRepository.findByClientMessageId("client-uuid-789"))
+        .thenReturn(Optional.of(message));
+
+    ChatMessage result = chatService.markMessageDelivered("client-uuid-789", "user2");
+
+    assertEquals(MessageStatus.READ, result.getStatus());
+    verify(chatMessageRepository, never()).save(any());
+  }
 }

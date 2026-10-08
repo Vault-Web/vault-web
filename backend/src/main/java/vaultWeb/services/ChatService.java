@@ -181,6 +181,35 @@ public class ChatService {
   }
 
   @Transactional
+  public ChatMessage markMessageDelivered(String clientMessageId, String currentUsername) {
+    ChatMessage message =
+        chatMessageRepository
+            .findByClientMessageId(clientMessageId)
+            .orElseThrow(() -> new EntityNotFoundException("Chat message not found"));
+
+    PrivateChat chat = message.getPrivateChat();
+    if (chat == null) {
+      throw new IllegalArgumentException("Delivery receipts are only supported in private chats");
+    }
+
+    boolean isRecipient =
+        !message.getSender().getUsername().equals(currentUsername)
+            && (chat.getUser1().getUsername().equals(currentUsername)
+                || chat.getUser2().getUsername().equals(currentUsername));
+    if (!isRecipient) {
+      throw new AccessDeniedException("Only the recipient can confirm delivery");
+    }
+
+    // Never move backwards. a READ message stays READ.
+    if (message.getStatus() == null || message.getStatus() == MessageStatus.SENT) {
+      message.setStatus(MessageStatus.DELIVERED);
+      message.setDeliveredAt(Instant.now());
+      chatMessageRepository.save(message);
+    }
+    return message;
+  }
+
+  @Transactional
   public ChatMessage deleteMessage(String clientMessageId, String currentUsername) {
     ChatMessage message =
         chatMessageRepository
