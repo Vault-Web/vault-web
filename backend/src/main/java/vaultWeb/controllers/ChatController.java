@@ -3,6 +3,7 @@ package vaultWeb.controllers;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import java.security.Principal;
+import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -17,11 +18,14 @@ import org.springframework.stereotype.Controller;
 import vaultWeb.dtos.ChatErrorDto;
 import vaultWeb.dtos.ChatMessageDeletedDto;
 import vaultWeb.dtos.ChatMessageDto;
+import vaultWeb.dtos.MessageStatusUpdateDto;
 import vaultWeb.exceptions.UnauthorizedException;
 import vaultWeb.models.ChatMessage;
+import vaultWeb.models.enums.MessageStatus;
 import vaultWeb.repositories.GroupMemberRepository;
 import vaultWeb.repositories.PrivateChatRepository;
 import vaultWeb.services.ChatService;
+import vaultWeb.services.PrivateChatService;
 
 /**
  * Controller responsible for handling WebSocket-based chat functionality.
@@ -38,6 +42,7 @@ public class ChatController {
   private final ChatService chatService;
   private final GroupMemberRepository groupMemberRepository;
   private final PrivateChatRepository privateChatRepository;
+  private final PrivateChatService privateChatService;
 
   /**
    * Handles incoming group chat messages from clients and broadcasts them to all subscribers of the
@@ -151,6 +156,21 @@ public class ChatController {
           user ->
               messagingTemplate.convertAndSendToUser(user, "/queue/private/deleted", responseDto));
     }
+  }
+
+  @MessageMapping("/chat.private.read")
+  public void markPrivateChatAsRead(@Payload Long privateChatId, Principal principal) {
+    if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+      throw new UnauthorizedException("User not authenticated");
+    }
+
+    String otherUser = privateChatService.markChatAsRead(privateChatId, principal.getName());
+
+    messagingTemplate.convertAndSendToUser(
+        otherUser,
+        "/queue/private/status",
+        new MessageStatusUpdateDto(
+            privateChatId, null, MessageStatus.READ, Instant.now().toString()));
   }
 
   /**
