@@ -184,7 +184,7 @@ public class ChatService {
   public ChatMessage markMessageDelivered(String clientMessageId, String currentUsername) {
     ChatMessage message =
         chatMessageRepository
-            .findByClientMessageId(clientMessageId)
+            .findWithLockByClientMessageId(clientMessageId)
             .orElseThrow(() -> new EntityNotFoundException("Chat message not found"));
 
     PrivateChat chat = message.getPrivateChat();
@@ -200,7 +200,7 @@ public class ChatService {
       throw new AccessDeniedException("Only the recipient can confirm delivery");
     }
 
-    // Never move backwards. a READ message stays READ.
+    // Never move backwards: a READ message stays READ.
     if (message.getStatus() == null || message.getStatus() == MessageStatus.SENT) {
       message.setStatus(MessageStatus.DELIVERED);
       message.setDeliveredAt(Instant.now());

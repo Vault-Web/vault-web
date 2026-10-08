@@ -20,6 +20,8 @@ import vaultWeb.dtos.ChatMessageDeletedDto;
 import vaultWeb.dtos.ChatMessageDto;
 import vaultWeb.dtos.MessageStatusUpdateDto;
 import vaultWeb.exceptions.UnauthorizedException;
+import vaultWeb.exceptions.notfound.PrivateChatNotFoundException;
+import vaultWeb.exceptions.notfound.UserNotFoundException;
 import vaultWeb.models.ChatMessage;
 import vaultWeb.models.enums.MessageStatus;
 import vaultWeb.repositories.GroupMemberRepository;
@@ -158,6 +160,12 @@ public class ChatController {
     }
   }
 
+  /**
+   * Handles a delivery receipt from the recipient of a private message and notifies the sender on
+   * {@code /user/queue/private/status}. A message that is already READ is never downgraded.
+   *
+   * @param clientMessageId client-generated ID of the delivered message
+   */
   @MessageMapping("/chat.private.delivered")
   public void markPrivateMessageDelivered(@Payload String clientMessageId, Principal principal) {
     if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
@@ -176,6 +184,13 @@ public class ChatController {
             message.getDeliveredAt().toString()));
   }
 
+  /**
+   * Marks all messages from the other participant in a private chat as READ and notifies them on
+   * {@code /user/queue/private/status}. The update carries no clientMessageId because it applies to
+   * the whole chat.
+   *
+   * @param privateChatId ID of the private chat the user opened
+   */
   @MessageMapping("/chat.private.read")
   public void markPrivateChatAsRead(@Payload Long privateChatId, Principal principal) {
     if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
@@ -198,14 +213,16 @@ public class ChatController {
    * exception-to-response translation: an uncaught exception here is only logged server-side and
    * the caller's socket receives nothing, leaving the client's UI in a stale state (e.g. a message
    * the user tried to delete silently stays visible after an already-deleted or not-the-sender
-   * failure). This handler catches the failure modes {@link #deleteMessage} and {@link
-   * #sendMessage} can throw and relays them to the user's private error queue.
+   * failure). This handler catches the failure modes {@link #deleteMessage}, {@link #sendMessage}
+   * and the status receipt handlers can throw and relays them to the user's private error queue.
    */
   @MessageExceptionHandler({
     EntityNotFoundException.class,
     AccessDeniedException.class,
     UnauthorizedException.class,
-    IllegalArgumentException.class
+    IllegalArgumentException.class,
+    PrivateChatNotFoundException.class,
+    UserNotFoundException.class
   })
   @SendToUser("/queue/errors")
   public ChatErrorDto handleChatException(Exception ex, Principal principal) {

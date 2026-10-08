@@ -1,10 +1,12 @@
 package vaultWeb.repositories;
 
+import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -51,16 +53,19 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
 
   Optional<ChatMessage> findByClientMessageId(String clientMessageId);
 
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  Optional<ChatMessage> findWithLockByClientMessageId(String clientMessageId);
+
   /** Marks messages sent by the other participant as READ. Never moves a status backwards. */
   @Modifying
   @Query(
       """
-          update ChatMessage m
-          set m.status = :read, m.readAt = :now, m.deliveredAt = coalesce(m.deliveredAt, :now)
-                    where m.privateChat.id = :privateChatId
-                      and m.sender.id <> :readerId
-                      and (m.status is null or m.status <> :read)
-          """)
+      update ChatMessage m
+      set m.status = :read, m.readAt = :now, m.deliveredAt = coalesce(m.deliveredAt, :now)
+      where m.privateChat.id = :privateChatId
+        and m.sender.id <> :readerId
+        and (m.status is null or m.status <> :read)
+      """)
   int markPrivateChatAsRead(
       @Param("privateChatId") Long privateChatId,
       @Param("readerId") Long readerId,

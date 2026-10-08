@@ -467,7 +467,7 @@ class ChatServiceTest {
     message.setClientMessageId("client-uuid-789");
     message.setStatus(MessageStatus.SENT);
 
-    when(chatMessageRepository.findByClientMessageId("client-uuid-789"))
+    when(chatMessageRepository.findWithLockByClientMessageId("client-uuid-789"))
         .thenReturn(Optional.of(message));
 
     ChatMessage result = chatService.markMessageDelivered("client-uuid-789", "user2");
@@ -488,7 +488,7 @@ class ChatServiceTest {
     message.setClientMessageId("client-uuid-789");
     message.setStatus(MessageStatus.SENT);
 
-    when(chatMessageRepository.findByClientMessageId("client-uuid-789"))
+    when(chatMessageRepository.findWithLockByClientMessageId("client-uuid-789"))
         .thenReturn(Optional.of(message));
 
     assertThrows(
@@ -511,7 +511,7 @@ class ChatServiceTest {
     message.setStatus(MessageStatus.READ);
     message.setReadAt(java.time.Instant.parse("2026-03-26T10:17:00Z"));
 
-    when(chatMessageRepository.findByClientMessageId("client-uuid-789"))
+    when(chatMessageRepository.findWithLockByClientMessageId("client-uuid-789"))
         .thenReturn(Optional.of(message));
 
     ChatMessage result = chatService.markMessageDelivered("client-uuid-789", "user2");
