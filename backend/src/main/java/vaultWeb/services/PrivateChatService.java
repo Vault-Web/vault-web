@@ -16,6 +16,7 @@ import vaultWeb.models.Group;
 import vaultWeb.models.GroupMember;
 import vaultWeb.models.PrivateChat;
 import vaultWeb.models.User;
+import vaultWeb.models.enums.MessageStatus;
 import vaultWeb.models.enums.Role;
 import vaultWeb.repositories.ChatMessageRepository;
 import vaultWeb.repositories.GroupMemberRepository;
@@ -106,6 +107,29 @@ public class PrivateChatService {
       log.info("Cleared {} messages from private chat {}", count, privateChatId);
     }
     return totalCount;
+  }
+
+  @Transactional
+  public int markChatAsRead(Long privateChatId, String currentUsername) {
+    User currentUser =
+        userRepository
+            .findByUsername(currentUsername)
+            .orElseThrow(() -> new UserNotFoundException("User not found: " + currentUsername));
+    PrivateChat chat =
+        privateChatRepository
+            .findById(privateChatId)
+            .orElseThrow(
+                () ->
+                    new PrivateChatNotFoundException(
+                        "No private chat with this id " + privateChatId));
+
+    if (!(chat.getUser1().getId().equals(currentUser.getId())
+        || chat.getUser2().getId().equals(currentUser.getId()))) {
+      throw new AccessDeniedException("You are not a participant of chat " + privateChatId);
+    }
+
+    return chatMessageRepository.markPrivateChatAsRead(
+        privateChatId, currentUser.getId(), MessageStatus.READ, Instant.now());
   }
 
   public List<PrivateChat> getUserPrivateChats(String username) {
