@@ -22,14 +22,17 @@ import org.springframework.security.access.AccessDeniedException;
 import vaultWeb.dtos.ChatErrorDto;
 import vaultWeb.dtos.ChatMessageDeletedDto;
 import vaultWeb.dtos.ChatMessageDto;
+import vaultWeb.dtos.MessageStatusUpdateDto;
 import vaultWeb.exceptions.UnauthorizedException;
 import vaultWeb.models.ChatMessage;
 import vaultWeb.models.Group;
 import vaultWeb.models.PrivateChat;
 import vaultWeb.models.User;
+import vaultWeb.models.enums.MessageStatus;
 import vaultWeb.repositories.GroupMemberRepository;
 import vaultWeb.repositories.PrivateChatRepository;
 import vaultWeb.services.ChatService;
+import vaultWeb.services.PrivateChatService;
 
 @ExtendWith(MockitoExtension.class)
 class ChatControllerTest {
@@ -44,6 +47,8 @@ class ChatControllerTest {
   @Mock private GroupMemberRepository groupMemberRepository;
 
   @Mock private PrivateChatRepository privateChatRepository;
+
+  @Mock private PrivateChatService privateChatService;
 
   @InjectMocks private ChatController chatController;
 
@@ -225,6 +230,38 @@ class ChatControllerTest {
     verify(chatService, never()).deleteMessage(any(), any());
     verify(messagingTemplate, never()).convertAndSend(any(String.class), any(Object.class));
     verify(messagingTemplate, never()).convertAndSendToUser(any(), any(), any());
+  }
+
+  @Test
+  void shouldSendReadReceipt_toOtherParticipant() {
+    Principal principal = () -> "bob";
+    when(privateChatService.markChatAsRead(5L, "bob")).thenReturn("alice");
+
+    chatController.markPrivateChatAsRead(5L, principal);
+
+    ArgumentCaptor<MessageStatusUpdateDto> captor =
+        ArgumentCaptor.forClass(MessageStatusUpdateDto.class);
+    verify(messagingTemplate)
+        .convertAndSendToUser(eq("alice"), eq("/queue/private/status"), captor.capture());
+    assertEquals(5L, captor.getValue().getPrivateChatId());
+    assertEquals(MessageStatus.READ, captor.getValue().getStatus());
+  }
+
+  @Test
+  void shouldNotSendReadReceipt_WhenUserIsNotParticipant() {
+    Principal principal = () -> "mallory";
+    when(privateChatService.markChatAsRead(5L, "mallory"))
+        .thenThrow(new AccessDeniedException("not a participant"));
+
+    assertThrows(
+        AccessDeniedException.class, () -> chatController.markPrivateChatAsRead(5L, principal));
+    verify(messagingTemplate, never()).convertAndSendToUser(any(), any(), any());
+  }
+
+  @Test
+  void shouldRejectRead_WhenUnauthenticated() {
+    assertThrows(UnauthorizedException.class, () -> chatController.markPrivateChatAsRead(5L, null));
+    verify(privateChatService, never()).markChatAsRead(any(), any());
   }
 
   private ChatMessageDto createGroupMessageRequest(Long groupId) {
