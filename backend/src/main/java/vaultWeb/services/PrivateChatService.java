@@ -110,7 +110,7 @@ public class PrivateChatService {
   }
 
   @Transactional
-  public int markChatAsRead(Long privateChatId, String currentUsername) {
+  public String markChatAsRead(Long privateChatId, String currentUsername) {
     User currentUser =
         userRepository
             .findByUsername(currentUsername)
@@ -128,8 +128,12 @@ public class PrivateChatService {
       throw new AccessDeniedException("You are not a participant of chat " + privateChatId);
     }
 
-    return chatMessageRepository.markPrivateChatAsRead(
+    chatMessageRepository.markPrivateChatAsRead(
         privateChatId, currentUser.getId(), MessageStatus.READ, Instant.now());
+
+    return chat.getUser1().getId().equals(currentUser.getId())
+        ? chat.getUser2().getUsername()
+        : chat.getUser1().getUsername();
   }
 
   public List<PrivateChat> getUserPrivateChats(String username) {

@@ -145,13 +145,11 @@ class PrivateChatServiceTest {
     PrivateChat chat = createPrivateChat(10L, alice, createUser(2L, "bob"));
     when(userRepository.findByUsername("alice")).thenReturn(Optional.of(alice));
     when(privateChatRepository.findById(10L)).thenReturn(Optional.of(chat));
-    when(chatMessageRepository.markPrivateChatAsRead(
-            eq(10L), eq(1L), eq(MessageStatus.READ), any()))
-        .thenReturn(3);
+    String otherUser = privateChatService.markChatAsRead(10L, "alice");
 
-    int updated = privateChatService.markChatAsRead(10L, "alice");
-
-    assertEquals(3, updated);
+    assertEquals("bob", otherUser);
+    verify(chatMessageRepository)
+        .markPrivateChatAsRead(eq(10L), eq(1L), eq(MessageStatus.READ), any());
   }
 
   @Test
