@@ -2,6 +2,7 @@ package vaultWeb.services;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import java.util.Optional;
@@ -10,9 +11,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
+import vaultWeb.exceptions.notfound.PrivateChatNotFoundException;
 import vaultWeb.exceptions.notfound.UserNotFoundException;
 import vaultWeb.models.PrivateChat;
 import vaultWeb.models.User;
+import vaultWeb.models.enums.MessageStatus;
+import vaultWeb.repositories.ChatMessageRepository;
 import vaultWeb.repositories.PrivateChatRepository;
 import vaultWeb.repositories.UserRepository;
 
@@ -22,6 +27,8 @@ class PrivateChatServiceTest {
   @Mock private PrivateChatRepository privateChatRepository;
 
   @Mock private UserRepository userRepository;
+
+  @Mock private ChatMessageRepository chatMessageRepository;
 
   @InjectMocks private PrivateChatService privateChatService;
 
@@ -130,5 +137,38 @@ class PrivateChatServiceTest {
 
     verify(privateChatRepository, never()).findByUser1AndUser2(any(), any());
     verify(privateChatRepository, never()).save(any());
+  }
+
+  @Test
+  void shouldMarkChatAsRead_WhenUserIsParticipant() {
+    User alice = createUser(1L, "alice");
+    PrivateChat chat = createPrivateChat(10L, alice, createUser(2L, "bob"));
+    when(userRepository.findByUsername("alice")).thenReturn(Optional.of(alice));
+    when(privateChatRepository.findById(10L)).thenReturn(Optional.of(chat));
+    String otherUser = privateChatService.markChatAsRead(10L, "alice");
+
+    assertEquals("bob", otherUser);
+    verify(chatMessageRepository)
+        .markPrivateChatAsRead(eq(10L), eq(1L), eq(MessageStatus.READ), any());
+  }
+
+  @Test
+  void shouldFailMarkChatAsRead_WhenUserIsNotParticipant() {
+    User eve = createUser(3L, "eve");
+    PrivateChat chat = createPrivateChat(10L, createUser(1L, "alice"), createUser(2L, "bob"));
+    when(userRepository.findByUsername("eve")).thenReturn(Optional.of(eve));
+    when(privateChatRepository.findById(10L)).thenReturn(Optional.of(chat));
+
+    assertThrows(AccessDeniedException.class, () -> privateChatService.markChatAsRead(10L, "eve"));
+    verify(chatMessageRepository, never()).markPrivateChatAsRead(any(), any(), any(), any());
+  }
+
+  @Test
+  void shouldFailMarkChatAsRead_WhenChatNotFound() {
+    when(userRepository.findByUsername("alice")).thenReturn(Optional.of(createUser(1L, "alice")));
+    when(privateChatRepository.findById(99L)).thenReturn(Optional.empty());
+
+    assertThrows(
+        PrivateChatNotFoundException.class, () -> privateChatService.markChatAsRead(99L, "alice"));
   }
 }

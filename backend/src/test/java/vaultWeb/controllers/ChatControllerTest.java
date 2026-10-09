@@ -1,6 +1,8 @@
 package vaultWeb.controllers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -22,14 +24,19 @@ import org.springframework.security.access.AccessDeniedException;
 import vaultWeb.dtos.ChatErrorDto;
 import vaultWeb.dtos.ChatMessageDeletedDto;
 import vaultWeb.dtos.ChatMessageDto;
+import vaultWeb.dtos.MessageStatusUpdateDto;
+import vaultWeb.exceptions.PrivateMessageSendException;
 import vaultWeb.exceptions.UnauthorizedException;
+import vaultWeb.exceptions.notfound.PrivateChatNotFoundException;
 import vaultWeb.models.ChatMessage;
 import vaultWeb.models.Group;
 import vaultWeb.models.PrivateChat;
 import vaultWeb.models.User;
+import vaultWeb.models.enums.MessageStatus;
 import vaultWeb.repositories.GroupMemberRepository;
 import vaultWeb.repositories.PrivateChatRepository;
 import vaultWeb.services.ChatService;
+import vaultWeb.services.PrivateChatService;
 
 @ExtendWith(MockitoExtension.class)
 class ChatControllerTest {
@@ -44,6 +51,8 @@ class ChatControllerTest {
   @Mock private GroupMemberRepository groupMemberRepository;
 
   @Mock private PrivateChatRepository privateChatRepository;
+
+  @Mock private PrivateChatService privateChatService;
 
   @InjectMocks private ChatController chatController;
 
@@ -117,12 +126,17 @@ class ChatControllerTest {
     // Mallory is not a participant of private chat 20 (alice/bob), and attempts to
     // inject a message while spoofing "alice" as the sender in the payload.
     ChatMessageDto request = createPrivateMessageRequest(20L);
+    request.setClientMessageId("client-uuid-1");
     Principal principal = () -> "mallory";
 
     when(privateChatRepository.existsByIdAndParticipantUsername(20L, "mallory")).thenReturn(false);
 
-    assertThrows(
-        AccessDeniedException.class, () -> chatController.sendPrivateMessage(request, principal));
+    PrivateMessageSendException ex =
+        assertThrows(
+            PrivateMessageSendException.class,
+            () -> chatController.sendPrivateMessage(request, principal));
+    assertEquals("client-uuid-1", ex.getClientMessageId());
+    assertInstanceOf(AccessDeniedException.class, ex.getCause());
     verify(chatService, never()).saveMessage(any());
     verify(messagingTemplate, never())
         .convertAndSendToUser(any(String.class), any(String.class), any(ChatMessageDto.class));
@@ -131,13 +145,53 @@ class ChatControllerTest {
   @Test
   void shouldRejectPrivateMessage_WhenUnauthenticated() {
     ChatMessageDto request = createPrivateMessageRequest(20L);
+    request.setClientMessageId("client-uuid-1");
 
-    assertThrows(
-        UnauthorizedException.class, () -> chatController.sendPrivateMessage(request, null));
+    PrivateMessageSendException ex =
+        assertThrows(
+            PrivateMessageSendException.class,
+            () -> chatController.sendPrivateMessage(request, null));
+    assertEquals("client-uuid-1", ex.getClientMessageId());
+    assertInstanceOf(UnauthorizedException.class, ex.getCause());
     verify(privateChatRepository, never()).existsByIdAndParticipantUsername(any(), any());
     verify(chatService, never()).saveMessage(any());
     verify(messagingTemplate, never())
         .convertAndSendToUser(any(String.class), any(String.class), any(ChatMessageDto.class));
+  }
+
+  @Test
+  void shouldWrapPrivateMessageSaveFailure_WithClientMessageId() {
+    ChatMessageDto request = createPrivateMessageRequest(20L);
+    request.setClientMessageId("client-uuid-1");
+    Principal principal = () -> "alice";
+
+    when(privateChatRepository.existsByIdAndParticipantUsername(20L, "alice")).thenReturn(true);
+    when(chatService.saveMessage(any(ChatMessageDto.class)))
+        .thenThrow(new PrivateChatNotFoundException("Private chat not found"));
+
+    PrivateMessageSendException ex =
+        assertThrows(
+            PrivateMessageSendException.class,
+            () -> chatController.sendPrivateMessage(request, principal));
+    assertEquals("client-uuid-1", ex.getClientMessageId());
+    assertEquals("Private chat not found", ex.getMessage());
+    verify(messagingTemplate, never())
+        .convertAndSendToUser(any(String.class), any(String.class), any(ChatMessageDto.class));
+  }
+
+  @Test
+  void shouldNotWrapPrivateMessageFailure_WhenErrorIsUnexpected() {
+    // Unexpected errors must not be relayed to the client, so they are not wrapped.
+    ChatMessageDto request = createPrivateMessageRequest(20L);
+    request.setClientMessageId("client-uuid-1");
+    Principal principal = () -> "alice";
+
+    when(privateChatRepository.existsByIdAndParticipantUsername(20L, "alice")).thenReturn(true);
+    when(chatService.saveMessage(any(ChatMessageDto.class)))
+        .thenThrow(new IllegalStateException("database down"));
+
+    assertThrows(
+        IllegalStateException.class, () -> chatController.sendPrivateMessage(request, principal));
   }
 
   @Test
@@ -227,6 +281,79 @@ class ChatControllerTest {
     verify(messagingTemplate, never()).convertAndSendToUser(any(), any(), any());
   }
 
+  @Test
+  void shouldSendReadReceipt_toOtherParticipant() {
+    Principal principal = () -> "bob";
+    when(privateChatService.markChatAsRead(5L, "bob")).thenReturn("alice");
+
+    chatController.markPrivateChatAsRead(5L, principal);
+
+    ArgumentCaptor<MessageStatusUpdateDto> captor =
+        ArgumentCaptor.forClass(MessageStatusUpdateDto.class);
+    verify(messagingTemplate)
+        .convertAndSendToUser(eq("alice"), eq("/queue/private/status"), captor.capture());
+    assertEquals(5L, captor.getValue().getPrivateChatId());
+    assertEquals(MessageStatus.READ, captor.getValue().getStatus());
+  }
+
+  @Test
+  void shouldNotSendReadReceipt_WhenUserIsNotParticipant() {
+    Principal principal = () -> "mallory";
+    when(privateChatService.markChatAsRead(5L, "mallory"))
+        .thenThrow(new AccessDeniedException("not a participant"));
+
+    assertThrows(
+        AccessDeniedException.class, () -> chatController.markPrivateChatAsRead(5L, principal));
+    verify(messagingTemplate, never()).convertAndSendToUser(any(), any(), any());
+  }
+
+  @Test
+  void shouldRejectRead_WhenUnauthenticated() {
+    assertThrows(UnauthorizedException.class, () -> chatController.markPrivateChatAsRead(5L, null));
+    verify(privateChatService, never()).markChatAsRead(any(), any());
+  }
+
+  @Test
+  void shouldSendDeliveredReceipt_toSender() {
+    Principal principal = () -> "bob";
+    ChatMessage message = createSavedPrivateMessage(5L, "alice", "bob");
+    message.setClientMessageId("client-uuid-1");
+    message.setStatus(MessageStatus.DELIVERED);
+    message.setDeliveredAt(java.time.Instant.parse("2026-03-26T10:16:00Z"));
+    when(chatService.markMessageDelivered("client-uuid-1", "bob")).thenReturn(message);
+
+    chatController.markPrivateMessageDelivered("client-uuid-1", principal);
+
+    ArgumentCaptor<MessageStatusUpdateDto> captor =
+        ArgumentCaptor.forClass(MessageStatusUpdateDto.class);
+    verify(messagingTemplate)
+        .convertAndSendToUser(eq("alice"), eq("/queue/private/status"), captor.capture());
+    assertEquals(5L, captor.getValue().getPrivateChatId());
+    assertEquals("client-uuid-1", captor.getValue().getClientMessageId());
+    assertEquals(MessageStatus.DELIVERED, captor.getValue().getStatus());
+    assertEquals("2026-03-26T10:16:00Z", captor.getValue().getTimestamp());
+  }
+
+  @Test
+  void shouldNotSendDeliveredReceipt_WhenUserIsNotRecipient() {
+    Principal principal = () -> "alice";
+    when(chatService.markMessageDelivered("client-uuid-1", "alice"))
+        .thenThrow(new AccessDeniedException("Only the recipient can confirm delivery"));
+
+    assertThrows(
+        AccessDeniedException.class,
+        () -> chatController.markPrivateMessageDelivered("client-uuid-1", principal));
+    verify(messagingTemplate, never()).convertAndSendToUser(any(), any(), any());
+  }
+
+  @Test
+  void shouldRejectDelivered_WhenUnauthenticated() {
+    assertThrows(
+        UnauthorizedException.class,
+        () -> chatController.markPrivateMessageDelivered("client-uuid-1", null));
+    verify(chatService, never()).markMessageDelivered(any(), any());
+  }
+
   private ChatMessageDto createGroupMessageRequest(Long groupId) {
     ChatMessageDto dto = new ChatMessageDto();
     dto.setGroupId(groupId);
@@ -311,6 +438,20 @@ class ChatControllerTest {
     ChatErrorDto result = chatController.handleChatException(ex, principal);
 
     assertEquals("Chat message not found", result.getError());
+    assertNull(result.getClientMessageId());
+  }
+
+  @Test
+  void shouldReportPrivateMessageSendFailure_withClientMessageId() {
+    Principal principal = () -> "alice";
+    PrivateMessageSendException ex =
+        new PrivateMessageSendException(
+            "client-uuid-1", new AccessDeniedException("Not allowed to send messages"));
+
+    ChatErrorDto result = chatController.handleChatException(ex, principal);
+
+    assertEquals("Not allowed to send messages", result.getError());
+    assertEquals("client-uuid-1", result.getClientMessageId());
   }
 
   @Test

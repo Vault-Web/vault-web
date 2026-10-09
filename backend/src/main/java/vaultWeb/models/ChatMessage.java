@@ -3,6 +3,7 @@ package vaultWeb.models;
 import jakarta.persistence.*;
 import java.time.Instant;
 import lombok.*;
+import vaultWeb.models.enums.MessageStatus;
 import vaultWeb.models.enums.MessageType;
 
 @Entity
@@ -50,4 +51,13 @@ public class ChatMessage {
   @Column(nullable = false)
   @Builder.Default
   private boolean deleted = false;
+
+  @Enumerated(EnumType.STRING)
+  private MessageStatus status;
+
+  @Column(name = "delivered_at")
+  private Instant deliveredAt;
+
+  @Column(name = "read_at")
+  private Instant readAt;
 }

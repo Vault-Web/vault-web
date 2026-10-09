@@ -3,6 +3,7 @@ package vaultWeb.controllers;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import java.security.Principal;
+import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -17,11 +18,17 @@ import org.springframework.stereotype.Controller;
 import vaultWeb.dtos.ChatErrorDto;
 import vaultWeb.dtos.ChatMessageDeletedDto;
 import vaultWeb.dtos.ChatMessageDto;
+import vaultWeb.dtos.MessageStatusUpdateDto;
+import vaultWeb.exceptions.PrivateMessageSendException;
 import vaultWeb.exceptions.UnauthorizedException;
+import vaultWeb.exceptions.notfound.PrivateChatNotFoundException;
+import vaultWeb.exceptions.notfound.UserNotFoundException;
 import vaultWeb.models.ChatMessage;
+import vaultWeb.models.enums.MessageStatus;
 import vaultWeb.repositories.GroupMemberRepository;
 import vaultWeb.repositories.PrivateChatRepository;
 import vaultWeb.services.ChatService;
+import vaultWeb.services.PrivateChatService;
 
 /**
  * Controller responsible for handling WebSocket-based chat functionality.
@@ -38,6 +45,7 @@ public class ChatController {
   private final ChatService chatService;
   private final GroupMemberRepository groupMemberRepository;
   private final PrivateChatRepository privateChatRepository;
+  private final PrivateChatService privateChatService;
 
   /**
    * Handles incoming group chat messages from clients and broadcasts them to all subscribers of the
@@ -83,8 +91,18 @@ public class ChatController {
    */
   @MessageMapping("/chat.private.send")
   public void sendPrivateMessage(@Valid @Payload ChatMessageDto messageDto, Principal principal) {
-    authorizePrivateMessage(messageDto, principal);
-    ChatMessage savedMessage = chatService.saveMessage(messageDto);
+    ChatMessage savedMessage;
+    try {
+      authorizePrivateMessage(messageDto, principal);
+      savedMessage = chatService.saveMessage(messageDto);
+    } catch (EntityNotFoundException
+        | AccessDeniedException
+        | UnauthorizedException
+        | IllegalArgumentException
+        | PrivateChatNotFoundException
+        | UserNotFoundException ex) {
+      throw new PrivateMessageSendException(messageDto.getClientMessageId(), ex);
+    }
 
     ChatMessageDto responseDto = chatService.toDto(savedMessage);
 
@@ -154,20 +172,69 @@ public class ChatController {
   }
 
   /**
+   * Handles a delivery receipt from the recipient of a private message and notifies the sender on
+   * {@code /user/queue/private/status}. A message that is already READ is never downgraded.
+   *
+   * @param clientMessageId client-generated ID of the delivered message
+   */
+  @MessageMapping("/chat.private.delivered")
+  public void markPrivateMessageDelivered(@Payload String clientMessageId, Principal principal) {
+    if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+      throw new UnauthorizedException("User not authenticated");
+    }
+
+    ChatMessage message = chatService.markMessageDelivered(clientMessageId, principal.getName());
+
+    messagingTemplate.convertAndSendToUser(
+        message.getSender().getUsername(),
+        "/queue/private/status",
+        new MessageStatusUpdateDto(
+            message.getPrivateChat().getId(),
+            message.getClientMessageId(),
+            message.getStatus(),
+            message.getDeliveredAt().toString()));
+  }
+
+  /**
+   * Marks all messages from the other participant in a private chat as READ and notifies them on
+   * {@code /user/queue/private/status}. The update carries no clientMessageId because it applies to
+   * the whole chat.
+   *
+   * @param privateChatId ID of the private chat the user opened
+   */
+  @MessageMapping("/chat.private.read")
+  public void markPrivateChatAsRead(@Payload Long privateChatId, Principal principal) {
+    if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+      throw new UnauthorizedException("User not authenticated");
+    }
+
+    String otherUser = privateChatService.markChatAsRead(privateChatId, principal.getName());
+
+    messagingTemplate.convertAndSendToUser(
+        otherUser,
+        "/queue/private/status",
+        new MessageStatusUpdateDto(
+            privateChatId, null, MessageStatus.READ, Instant.now().toString()));
+  }
+
+  /**
    * Reports failures from STOMP handlers in this controller back to the client.
    *
    * <p>Unlike {@code @RestController} endpoints, {@code @MessageMapping} methods have no automatic
    * exception-to-response translation: an uncaught exception here is only logged server-side and
    * the caller's socket receives nothing, leaving the client's UI in a stale state (e.g. a message
    * the user tried to delete silently stays visible after an already-deleted or not-the-sender
-   * failure). This handler catches the failure modes {@link #deleteMessage} and {@link
-   * #sendMessage} can throw and relays them to the user's private error queue.
+   * failure). This handler catches the failure modes {@link #deleteMessage}, {@link #sendMessage}
+   * and the status receipt handlers can throw and relays them to the user's private error queue.
    */
   @MessageExceptionHandler({
     EntityNotFoundException.class,
     AccessDeniedException.class,
     UnauthorizedException.class,
-    IllegalArgumentException.class
+    IllegalArgumentException.class,
+    PrivateChatNotFoundException.class,
+    UserNotFoundException.class,
+    PrivateMessageSendException.class
   })
   @SendToUser("/queue/errors")
   public ChatErrorDto handleChatException(Exception ex, Principal principal) {
@@ -175,6 +242,8 @@ public class ChatController {
         "Chat operation failed for user {}: {}",
         principal != null ? principal.getName() : "unauthenticated",
         ex.getMessage());
-    return new ChatErrorDto(ex.getMessage());
+    String clientMessageId =
+        ex instanceof PrivateMessageSendException sendEx ? sendEx.getClientMessageId() : null;
+    return new ChatErrorDto(ex.getMessage(), clientMessageId);
   }
 }
