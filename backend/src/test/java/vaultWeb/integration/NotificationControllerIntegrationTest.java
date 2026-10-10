@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -108,4 +109,18 @@ class NotificationControllerIntegrationTest extends IntegrationTestBase {
                 .content("{\"read\":null}"))
         .andExpect(status().isBadRequest());
   }
+
+  @Test
+  void nullMutedValueReturnsBadRequest() throws Exception {
+    User alice = createUser("alice");
+
+    mockMvc
+        .perform(
+            put("/api/notifications/preferences/CHAT")
+                .header("Authorization", token(alice))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"muted\":null}"))
+        .andExpect(status().isBadRequest());
+  }
+
 }

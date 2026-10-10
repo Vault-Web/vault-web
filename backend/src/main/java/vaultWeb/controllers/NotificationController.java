@@ -66,4 +66,13 @@ public class NotificationController {
     }
     return notificationService.setMuted(principal.getName(), source, muted);
   }
+
+  @ExceptionHandler(ResponseStatusException.class)
+  public ResponseEntity<Map<String, String>> handleNotificationRequestException(
+      ResponseStatusException exception) {
+    String message =
+        exception.getReason() == null ? "Request rejected" : exception.getReason();
+    return ResponseEntity.status(exception.getStatusCode()).body(Map.of("message", message));
+  }
+
 }
