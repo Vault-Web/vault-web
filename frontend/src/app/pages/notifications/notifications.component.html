@@ -85,20 +85,16 @@
         class="source-icon"
         [class.security-icon]="item.source === 'SECURITY'"
         [class.chat-icon]="item.source === 'CHAT'"
-        [ngClass]="
-          item.source === 'SECURITY' ? 'pi pi-shield' : 'pi pi-comments'
-        "
+        [ngClass]="item.source === 'SECURITY' ? 'pi pi-shield' : 'pi pi-comments'"
         aria-hidden="true"
       ></span>
       <div class="notification-copy">
         <div class="meta-line">
-          <span class="source-label">{{
-            item.source === 'SECURITY' ? 'Security' : 'Chat'
-          }}</span>
+          <span class="source-label">{{ item.source === 'SECURITY' ? 'Security' : 'Chat' }}</span>
           <span class="dot" *ngIf="!item.readAt" aria-label="Unread"></span>
-          <time [attr.datetime]="item.createdAt">{{
-            item.createdAt | date: "medium"
-          }}</time>
+          <time [attr.datetime]="item.createdAt">
+            {{ item.createdAt | date: "medium" }}
+          </time>
         </div>
         <h2>{{ item.title }}</h2>
         <p>{{ item.message }}</p>

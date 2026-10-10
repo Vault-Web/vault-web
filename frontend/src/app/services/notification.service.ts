@@ -29,9 +29,7 @@ export class NotificationService {
   constructor(private readonly http: HttpClient) {}
 
   refreshUnreadCount(): Observable<number> {
-    return this.http
-      .get<{ count: number }>(`${this.apiUrl}/unread-count`)
-      .pipe(
+    return this.http.get<{ count: number }>(`${this.apiUrl}/unread-count`).pipe(
         map((response) => response.count),
         tap((count) => this.unreadSubject.next(count)),
         catchError(() => of(this.unreadSubject.value)),
@@ -39,7 +37,9 @@ export class NotificationService {
   }
 
   list(source = '', unreadOnly = false): Observable<InboxNotification[]> {
-    let params = new HttpParams().set("unreadOnly", unreadOnly).set("limit", 100);
+    let params = new HttpParams()
+      .set('unreadOnly', unreadOnly)
+      .set('limit', 100);
     if (source) {
       params = params.set('source', source);
     }

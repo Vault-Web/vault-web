@@ -81,8 +81,11 @@
             *ngIf="unreadNotificationCount > 0"
             class="notification-badge"
             aria-label="Unread notifications"
-            >{{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}</span
           >
+            {{
+              unreadNotificationCount > 99 ? '99+' : unreadNotificationCount
+            }}
+          </span>
         </a>
 
         <!-- Theme Toggle Button -->
@@ -191,8 +194,11 @@
         *ngIf="unreadNotificationCount > 0"
         class="notification-badge"
         aria-label="Unread notifications"
-        >{{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}</span
       >
+        {{
+          unreadNotificationCount > 99 ? '99+' : unreadNotificationCount
+        }}
+      </span>
     </a>
 
     <div *ngIf="hasExternalLinks" class="mobile-external-links">
