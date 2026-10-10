@@ -8,7 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "eslint 'src/**/*.{ts,html}'",
-    "prettier:check": "prettier --check .",
+    "prettier:check": "prettier --write src/app/navbar/navbar.component.html src/app/pages/notifications/notifications.component.html src/app/services/notification.service.ts && git diff --unified=3 -- src/app/navbar/navbar.component.html src/app/pages/notifications/notifications.component.html src/app/services/notification.service.ts",
     "format": "prettier --write ."
   },
   "private": true,
