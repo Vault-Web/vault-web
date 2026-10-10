@@ -29,11 +29,13 @@ export class NotificationService {
   constructor(private readonly http: HttpClient) {}
 
   refreshUnreadCount(): Observable<number> {
-    return this.http.get<{ count: number }>(`${this.apiUrl}/unread-count`).pipe(
-      map((response) => response.count),
-      tap((count) => this.unreadSubject.next(count)),
-      catchError(() => of(this.unreadSubject.value)),
-    );
+    return this.http
+      .get<{ count: number }>(`${this.apiUrl}/unread-count`)
+      .pipe(
+        map((response) => response.count),
+        tap((count) => this.unreadSubject.next(count)),
+        catchError(() => of(this.unreadSubject.value)),
+      );
   }
 
   list(source = '', unreadOnly = false): Observable<InboxNotification[]> {
@@ -47,15 +49,15 @@ export class NotificationService {
   }
 
   markRead(id: number, read: boolean): Observable<InboxNotification> {
-    return this.http.patch<InboxNotification>(`${this.apiUrl}/${id}/read`, { read }).pipe(
-      tap(() => this.refreshUnreadCount().subscribe()),
-    );
+    return this.http
+      .patch<InboxNotification>(`${this.apiUrl}/${id}/read`, { read })
+      .pipe(tap(() => this.refreshUnreadCount().subscribe()));
   }
 
   markAllRead(): Observable<{ updated: number }> {
-    return this.http.post<{ updated: number }>(`${this.apiUrl}/mark-all-read`, {}).pipe(
-      tap(() => this.unreadSubject.next(0)),
-    );
+    return this.http
+      .post<{ updated: number }>(`${this.apiUrl}/mark-all-read`, {})
+      .pipe(tap(() => this.unreadSubject.next(0)));
   }
 
   preferences(): Observable<NotificationPreference[]> {

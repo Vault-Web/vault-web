@@ -53,16 +53,23 @@ class NotificationControllerIntegrationTest extends IntegrationTestBase {
     createNotification(alice);
     Notification bobsItem = createNotification(bob);
 
-    mockMvc.perform(get("/api/notifications").header("Authorization", token(alice)))
-        .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(1)))
+    mockMvc
+        .perform(get("/api/notifications").header("Authorization", token(alice)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$", hasSize(1)))
         .andExpect(jsonPath("$[0].title").value("New login"));
 
-    mockMvc.perform(get("/api/notifications/unread-count").header("Authorization", token(alice)))
-        .andExpect(status().isOk()).andExpect(jsonPath("$.count").value(1));
+    mockMvc
+        .perform(get("/api/notifications/unread-count").header("Authorization", token(alice)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.count").value(1));
 
-    mockMvc.perform(patch("/api/notifications/" + bobsItem.getId() + "/read")
-            .header("Authorization", token(alice))
-            .contentType(MediaType.APPLICATION_JSON).content("{\"read\":true}"))
+    mockMvc
+        .perform(
+            patch("/api/notifications/" + bobsItem.getId() + "/read")
+                .header("Authorization", token(alice))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"read\":true}"))
         .andExpect(status().isNotFound());
   }
 
@@ -73,14 +80,19 @@ class NotificationControllerIntegrationTest extends IntegrationTestBase {
     createNotification(alice);
     createNotification(bob);
 
-    mockMvc.perform(post("/api/notifications/mark-all-read")
-            .header("Authorization", token(alice)))
-        .andExpect(status().isOk()).andExpect(jsonPath("$.updated").value(1));
+    mockMvc
+        .perform(post("/api/notifications/mark-all-read").header("Authorization", token(alice)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.updated").value(1));
 
-    mockMvc.perform(get("/api/notifications/unread-count").header("Authorization", token(alice)))
-        .andExpect(status().isOk()).andExpect(jsonPath("$.count").value(0));
-    mockMvc.perform(get("/api/notifications/unread-count").header("Authorization", token(bob)))
-        .andExpect(status().isOk()).andExpect(jsonPath("$.count").value(1));
+    mockMvc
+        .perform(get("/api/notifications/unread-count").header("Authorization", token(alice)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.count").value(0));
+    mockMvc
+        .perform(get("/api/notifications/unread-count").header("Authorization", token(bob)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.count").value(1));
   }
 
   @Test
@@ -96,5 +108,4 @@ class NotificationControllerIntegrationTest extends IntegrationTestBase {
                 .content("{\"read\":null}"))
         .andExpect(status().isBadRequest());
   }
-
 }

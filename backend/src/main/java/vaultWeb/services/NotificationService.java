@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -241,10 +242,14 @@ public class NotificationService {
     Long senderId = message.getSender().getId();
     Map<Long, User> uniqueRecipients =
         members.stream()
-            .filter(user -> user != null && user.getId() != null && !senderId.equals(user.getId()))
+            .filter(
+                user -> user != null && user.getId() != null && !senderId.equals(user.getId()))
             .collect(
                 Collectors.toMap(
-                    User::getId, user -> user, (first, ignored) -> first, LinkedHashMap::new));
+                    User::getId,
+                    user -> user,
+                    (first, ignored) -> first,
+                    LinkedHashMap::new));
     List<User> recipients = new ArrayList<>(uniqueRecipients.values());
     if (recipients.isEmpty()) {
       return;
@@ -306,9 +311,10 @@ public class NotificationService {
     if (source == null) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "source is required");
     }
-    String normalized = source.trim().toUpperCase();
+    String normalized = source.trim().toUpperCase(Locale.ROOT);
     if (!SOURCES.contains(normalized)) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "unsupported notification source");
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "unsupported notification source");
     }
     return normalized;
   }

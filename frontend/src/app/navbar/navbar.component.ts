@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
-import { interval, Subscription } from 'rxjs';
 import { RouterModule } from '@angular/router';
+import { interval, Subscription } from 'rxjs';
 import { ThemeService } from '../services/theme.service';
 import { AuthService } from '../services/auth.service';
 import { UserService } from '../services/user.service';
@@ -44,9 +44,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     if (this.authService.isLoggedIn()) {
       this.notificationService.refreshUnreadCount().subscribe();
-      this.unreadSubscription = this.notificationService.unreadCount$.subscribe((count) => {
-        this.unreadNotificationCount = count;
-      });
+      this.unreadSubscription = this.notificationService.unreadCount$.subscribe(
+        (count) => {
+          this.unreadNotificationCount = count;
+        },
+      );
       this.pollingSubscription = interval(30000).subscribe(() => {
         if (this.authService.isLoggedIn()) {
           this.notificationService.refreshUnreadCount().subscribe();

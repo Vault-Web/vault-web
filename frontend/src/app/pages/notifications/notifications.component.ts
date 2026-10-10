@@ -87,7 +87,9 @@ export class NotificationsComponent implements OnInit {
   }
 
   isMuted(source: string): boolean {
-    return this.preferences.find((item) => item.source === source)?.muted ?? false;
+    return (
+      this.preferences.find((item) => item.source === source)?.muted ?? false
+    );
   }
 
   toggleMuted(source: string): void {

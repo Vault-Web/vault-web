@@ -36,8 +36,8 @@ import vaultWeb.models.enums.MessageStatus;
 import vaultWeb.repositories.GroupMemberRepository;
 import vaultWeb.repositories.PrivateChatRepository;
 import vaultWeb.services.ChatService;
-import vaultWeb.services.PrivateChatService;
 import vaultWeb.services.NotificationService;
+import vaultWeb.services.PrivateChatService;
 
 @ExtendWith(MockitoExtension.class)
 class ChatControllerTest {

@@ -19,7 +19,15 @@ public class NotificationDto {
   private Instant readAt;
 
   public static NotificationDto from(Notification item) {
-    return new NotificationDto(item.getId(), item.getSource(), item.getType(), item.getTitle(),
-        item.getMessage(), item.getLinkUrl(), item.getReferenceId(), item.getCreatedAt(), item.getReadAt());
+    return new NotificationDto(
+        item.getId(),
+        item.getSource(),
+        item.getType(),
+        item.getTitle(),
+        item.getMessage(),
+        item.getLinkUrl(),
+        item.getReferenceId(),
+        item.getCreatedAt(),
+        item.getReadAt());
   }
 }

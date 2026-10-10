@@ -11,3 +11,5 @@ public class NotificationPreferenceDto {
   private String source;
   private boolean muted;
 }
+
+// Source preferences are scoped to the authenticated user.

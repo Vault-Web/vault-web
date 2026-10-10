@@ -9,7 +9,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -25,14 +24,12 @@ import vaultWeb.models.Group;
 import vaultWeb.models.GroupMember;
 import vaultWeb.models.Notification;
 import vaultWeb.models.NotificationPreference;
-import vaultWeb.models.SecurityEvent;
 import vaultWeb.models.User;
 import vaultWeb.repositories.ChatMessageRepository;
 import vaultWeb.repositories.GroupMemberRepository;
 import vaultWeb.repositories.NotificationPreferenceRepository;
 import vaultWeb.repositories.NotificationRepository;
 import vaultWeb.repositories.UserRepository;
-import vaultWeb.security.annotations.SecurityEventType;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceTest {
@@ -62,8 +59,7 @@ class NotificationServiceTest {
     when(userRepository.findByUsername("alice")).thenReturn(Optional.of(alice));
     when(notificationRepository.findByIdAndUser(10L, alice)).thenReturn(Optional.empty());
 
-    assertThrows(
-        ResponseStatusException.class, () -> service.markRead("alice", 10L, true));
+    assertThrows(ResponseStatusException.class, () -> service.markRead("alice", 10L, true));
     verify(notificationRepository, never()).save(any());
   }
 
@@ -125,17 +121,18 @@ class NotificationServiceTest {
         .thenReturn(List.of(senderMember, recipientMember));
     when(preferenceRepository.findByUserInAndSource(anyCollection(), eq("CHAT")))
         .thenReturn(List.of());
-    when(notificationRepository
-            .findByUserInAndSourceAndTypeAndReferenceIdAndReadAtIsNull(
-                anyCollection(), eq("CHAT"), eq("NEW_MESSAGE"), eq("77")))
+    when(notificationRepository.findByUserInAndSourceAndTypeAndReferenceIdAndReadAtIsNull(
+            anyCollection(), eq("CHAT"), eq("NEW_MESSAGE"), eq("77")))
         .thenReturn(List.of());
 
     service.enqueueChatMessage(900L);
 
-    ArgumentCaptor<Iterable<Notification>> captor = ArgumentCaptor.forClass(Iterable.class);
+    ArgumentCaptor<Iterable> captor = ArgumentCaptor.forClass(Iterable.class);
     verify(notificationRepository).saveAll(captor.capture());
     List<Notification> saved = new ArrayList<>();
-    captor.getValue().forEach(saved::add);
+    for (Object item : captor.getValue()) {
+      saved.add((Notification) item);
+    }
 
     assertEquals(1, saved.size());
     assertEquals(recipient, saved.get(0).getUser());
@@ -174,9 +171,8 @@ class NotificationServiceTest {
         .thenReturn(List.of(senderMember, recipientMember));
     when(preferenceRepository.findByUserInAndSource(anyCollection(), eq("CHAT")))
         .thenReturn(List.of());
-    when(notificationRepository
-            .findByUserInAndSourceAndTypeAndReferenceIdAndReadAtIsNull(
-                anyCollection(), eq("CHAT"), eq("NEW_MESSAGE"), eq("77")))
+    when(notificationRepository.findByUserInAndSourceAndTypeAndReferenceIdAndReadAtIsNull(
+            anyCollection(), eq("CHAT"), eq("NEW_MESSAGE"), eq("77")))
         .thenReturn(List.of(existing));
 
     service.enqueueChatMessage(901L);

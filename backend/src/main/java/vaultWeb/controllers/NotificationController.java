@@ -46,8 +46,8 @@ public class NotificationController {
 
   @PostMapping("/mark-all-read")
   public ResponseEntity<Map<String, Integer>> markAllRead(Principal principal) {
-    return ResponseEntity.ok(Map.of("updated",
-        notificationService.markAllRead(principal.getName())));
+    return ResponseEntity.ok(
+        Map.of("updated", notificationService.markAllRead(principal.getName())));
   }
 
   @GetMapping("/preferences")
