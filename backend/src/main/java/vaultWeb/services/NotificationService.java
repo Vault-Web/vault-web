@@ -213,12 +213,14 @@ public class NotificationService {
     String title;
     String text;
     String referenceId;
+    String linkUrl;
     List<User> members;
     if (message.getPrivateChat() != null) {
       PrivateChat chat = message.getPrivateChat();
       title = "New private message";
       text = "You received a new encrypted message.";
       referenceId = String.valueOf(chat.getId());
+      linkUrl = "/?privateChatId=" + chat.getId();
       members =
           java.util.stream.Stream.of(chat.getUser1(), chat.getUser2())
               .filter(java.util.Objects::nonNull)
@@ -228,6 +230,7 @@ public class NotificationService {
       String groupName = safeGroupName(message);
       text = "A new encrypted message was posted to " + groupName;
       referenceId = String.valueOf(message.getGroup().getId());
+      linkUrl = "/?groupId=" + message.getGroup().getId();
       members =
           groupMemberRepository.findAllByGroup(message.getGroup()).stream()
               .map(GroupMember::getUser)
@@ -275,7 +278,7 @@ public class NotificationService {
       item.setType("NEW_MESSAGE");
       item.setTitle(title);
       item.setMessage(text);
-      item.setLinkUrl("/");
+      item.setLinkUrl(linkUrl);
       item.setReferenceId(referenceId);
       item.setCreatedAt(Instant.now());
       newNotifications.add(item);
