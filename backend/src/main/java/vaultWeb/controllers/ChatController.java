@@ -98,7 +98,6 @@ public class ChatController {
     try {
       authorizePrivateMessage(messageDto, principal);
       savedMessage = chatService.saveMessage(messageDto);
-      notificationService.enqueueChatMessage(savedMessage.getId());
     } catch (EntityNotFoundException
         | AccessDeniedException
         | UnauthorizedException
@@ -108,6 +107,7 @@ public class ChatController {
       throw new PrivateMessageSendException(messageDto.getClientMessageId(), ex);
     }
 
+    notificationService.enqueueChatMessage(savedMessage.getId());
     ChatMessageDto responseDto = chatService.toDto(savedMessage);
 
     String user1 = savedMessage.getPrivateChat().getUser1().getUsername();
