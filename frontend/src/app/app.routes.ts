@@ -10,6 +10,7 @@ import { PasswordManagerComponent } from './pages/password-manager/password-mana
 import { NotFoundComponent } from './pages/not-found/not-found.component';
 import { ServerErrorComponent } from './pages/server-error/server-error.component';
 import { SecurityActivityComponent } from './pages/security-activity/security-activity.component';
+import { NotificationsComponent } from './pages/notifications/notifications.component';
 import { ShareComponent } from './pages/share/share.component';
 import { SharedLinksComponent } from './pages/cloud/shared-links/shared-links.component';
 
@@ -29,6 +30,11 @@ export const routes: Routes = [
   {
     path: 'security-activity',
     component: SecurityActivityComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'notifications',
+    component: NotificationsComponent,
     canActivate: [authGuard],
   },
   { path: 'password-manager', redirectTo: 'passwords', pathMatch: 'full' },

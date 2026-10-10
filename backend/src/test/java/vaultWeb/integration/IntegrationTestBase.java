@@ -11,6 +11,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import vaultWeb.repositories.RefreshTokenRepository;
 import vaultWeb.repositories.SecurityEventRepository;
+import vaultWeb.repositories.NotificationPreferenceRepository;
+import vaultWeb.repositories.NotificationRepository;
 import vaultWeb.repositories.UserRepository;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -22,6 +24,8 @@ abstract class IntegrationTestBase {
   @Autowired protected UserRepository userRepository;
   @Autowired protected RefreshTokenRepository refreshTokenRepository;
   @Autowired protected SecurityEventRepository securityEventRepository;
+  @Autowired protected NotificationRepository notificationRepository;
+  @Autowired protected NotificationPreferenceRepository notificationPreferenceRepository;
   @Autowired protected TestRestTemplate restTemplate;
   @LocalServerPort protected int port;
 
@@ -29,6 +33,8 @@ abstract class IntegrationTestBase {
   void setUp() {
     // Clear database before each test
     refreshTokenRepository.deleteAll();
+    notificationRepository.deleteAll();
+    notificationPreferenceRepository.deleteAll();
     securityEventRepository.deleteAll();
     userRepository.deleteAll();
   }

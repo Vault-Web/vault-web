@@ -28,6 +28,7 @@ import vaultWeb.models.enums.MessageStatus;
 import vaultWeb.repositories.GroupMemberRepository;
 import vaultWeb.repositories.PrivateChatRepository;
 import vaultWeb.services.ChatService;
+import vaultWeb.services.NotificationService;
 import vaultWeb.services.PrivateChatService;
 
 /**
@@ -46,6 +47,7 @@ public class ChatController {
   private final GroupMemberRepository groupMemberRepository;
   private final PrivateChatRepository privateChatRepository;
   private final PrivateChatService privateChatService;
+  private final NotificationService notificationService;
 
   /**
    * Handles incoming group chat messages from clients and broadcasts them to all subscribers of the
@@ -57,6 +59,7 @@ public class ChatController {
   public void sendMessage(@Valid @Payload ChatMessageDto messageDto, Principal principal) {
     authorizeGroupMessage(messageDto, principal);
     ChatMessage savedMessage = chatService.saveMessage(messageDto);
+    notificationService.publishChatMessage(savedMessage);
 
     ChatMessageDto responseDto = chatService.toDto(savedMessage);
 
@@ -95,6 +98,7 @@ public class ChatController {
     try {
       authorizePrivateMessage(messageDto, principal);
       savedMessage = chatService.saveMessage(messageDto);
+      notificationService.publishChatMessage(savedMessage);
     } catch (EntityNotFoundException
         | AccessDeniedException
         | UnauthorizedException

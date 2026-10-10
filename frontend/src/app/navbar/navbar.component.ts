@@ -1,9 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { interval, Subscription } from 'rxjs';
 import { RouterModule } from '@angular/router';
 import { ThemeService } from '../services/theme.service';
 import { AuthService } from '../services/auth.service';
 import { UserService } from '../services/user.service';
+import { NotificationService } from '../services/notification.service';
 import {
   EXTERNAL_DOMAIN_LINKS,
   ExternalDomainLink,
@@ -17,7 +19,7 @@ import {
   styleUrl: './navbar.component.scss',
 })
 // implements OnInit — this tells Angular to call ngOnInit() after the component is created
-export class NavbarComponent implements OnInit {
+export class NavbarComponent implements OnInit, OnDestroy {
   isMobileMenuOpen = false;
   isDomainDropdownOpen = false;
   readonly externalDomainLinks: ExternalDomainLink[] = EXTERNAL_DOMAIN_LINKS;
@@ -25,11 +27,15 @@ export class NavbarComponent implements OnInit {
   // Stores the full URL to the profile picture (e.g. "http://localhost:8080/uploads/...")
   // null means no picture is set — the template will show the fallback initial instead
   profilePictureUrl: string | null = null;
+  unreadNotificationCount = 0;
+  private unreadSubscription?: Subscription;
+  private pollingSubscription?: Subscription;
 
   constructor(
     public themeService: ThemeService,
     public authService: AuthService,
     private userService: UserService,
+    private notificationService: NotificationService,
   ) {}
 
   /**
@@ -37,6 +43,13 @@ export class NavbarComponent implements OnInit {
    */
   ngOnInit(): void {
     if (this.authService.isLoggedIn()) {
+      this.notificationService.refreshUnreadCount().subscribe();
+      this.unreadSubscription = this.notificationService.unreadCount$.subscribe((count) => {
+        this.unreadNotificationCount = count;
+      });
+      this.pollingSubscription = interval(30000).subscribe(() => {
+        if (this.authService.isLoggedIn()) this.notificationService.refreshUnreadCount().subscribe();
+      });
       // Subscribe to reactive profile picture updates
       this.userService.profilePicUrl$.subscribe((url) => {
         this.profilePictureUrl = url;
@@ -48,6 +61,11 @@ export class NavbarComponent implements OnInit {
         },
       });
     }
+  }
+
+  ngOnDestroy(): void {
+    this.unreadSubscription?.unsubscribe();
+    this.pollingSubscription?.unsubscribe();
   }
 
   /**

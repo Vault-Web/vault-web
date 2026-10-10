@@ -37,6 +37,7 @@ import vaultWeb.repositories.GroupMemberRepository;
 import vaultWeb.repositories.PrivateChatRepository;
 import vaultWeb.services.ChatService;
 import vaultWeb.services.PrivateChatService;
+import vaultWeb.services.NotificationService;
 
 @ExtendWith(MockitoExtension.class)
 class ChatControllerTest {
@@ -54,6 +55,8 @@ class ChatControllerTest {
 
   @Mock private PrivateChatService privateChatService;
 
+  @Mock private NotificationService notificationService;
+
   @InjectMocks private ChatController chatController;
 
   @Test
@@ -69,6 +72,7 @@ class ChatControllerTest {
     when(chatService.toDto(savedMessage)).thenReturn(response);
 
     chatController.sendMessage(request, principal);
+    verify(notificationService).publishChatMessage(savedMessage);
 
     ArgumentCaptor<ChatMessageDto> dtoCaptor = ArgumentCaptor.forClass(ChatMessageDto.class);
     verify(chatService).saveMessage(dtoCaptor.capture());
@@ -111,6 +115,7 @@ class ChatControllerTest {
     when(chatService.toDto(savedMessage)).thenReturn(response);
 
     chatController.sendPrivateMessage(request, principal);
+    verify(notificationService).publishChatMessage(savedMessage);
 
     ArgumentCaptor<ChatMessageDto> dtoCaptor = ArgumentCaptor.forClass(ChatMessageDto.class);
     verify(chatService).saveMessage(dtoCaptor.capture());

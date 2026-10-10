@@ -71,6 +71,12 @@
           routerLinkActive="is-active"
           >Security Activity</a
         >
+        <a routerLink="/notifications" class="navbar-link inbox-nav-link" routerLinkActive="is-active">
+          Notifications
+          <span *ngIf="unreadNotificationCount > 0" class="notification-badge" aria-label="Unread notifications">
+            {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}
+          </span>
+        </a>
 
         <!-- Theme Toggle Button -->
         <button
@@ -167,6 +173,12 @@
       routerLinkActive="is-active"
       >Security Activity</a
     >
+    <a routerLink="/notifications" (click)="closeMobileMenu()" class="mobile-link block py-2 inbox-mobile-link" routerLinkActive="is-active">
+      Notifications
+      <span *ngIf="unreadNotificationCount > 0" class="notification-badge" aria-label="Unread notifications">
+        {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}
+      </span>
+    </a>
 
     <div *ngIf="hasExternalLinks" class="mobile-external-links">
       <p class="mobile-external-title">External Links</p>

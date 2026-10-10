@@ -1,0 +1,69 @@
+<main class="inbox-shell">
+  <section class="inbox-heading">
+    <div>
+      <p class="eyebrow">ACTIVITY</p>
+      <h1>Notifications</h1>
+      <p class="subtitle">Security updates and encrypted chat activity in one place.</p>
+    </div>
+    <button type="button" class="primary-action" [disabled]="markingAll || items.length === 0"
+      (click)="markAllRead()">Mark all as read</button>
+  </section>
+
+  <section class="inbox-controls" aria-label="Notification filters">
+    <label>
+      Source
+      <select [(ngModel)]="source" (change)="load()" aria-label="Filter by source">
+        <option value="">All activity</option>
+        <option value="SECURITY">Security</option>
+        <option value="CHAT">Chat</option>
+      </select>
+    </label>
+    <label class="unread-toggle">
+      <input type="checkbox" [(ngModel)]="unreadOnly" (change)="load()" />
+      Unread only
+    </label>
+    <div class="preferences">
+      <span>Mute source:</span>
+      <button type="button" class="quiet-action" (click)="toggleMuted('SECURITY')">
+        Security {{ isMuted('SECURITY') ? 'muted' : 'on' }}
+      </button>
+      <button type="button" class="quiet-action" (click)="toggleMuted('CHAT')">
+        Chat {{ isMuted('CHAT') ? 'muted' : 'on' }}
+      </button>
+    </div>
+  </section>
+
+  <div *ngIf="loading" class="state-card" role="status">Loading notifications…</div>
+  <div *ngIf="!loading && error" class="state-card error-state">
+    <p>We couldn’t refresh the inbox.</p>
+    <button type="button" class="quiet-action" (click)="load()">Try again</button>
+  </div>
+  <div *ngIf="!loading && !error && items.length === 0" class="state-card">
+    <span class="empty-icon pi pi-inbox" aria-hidden="true"></span>
+    <h2>You’re all caught up</h2>
+    <p>New security activity and messages will show up here.</p>
+  </div>
+
+  <section *ngIf="!loading && items.length > 0" class="notification-list" aria-label="Your notifications">
+    <article *ngFor="let item of items; trackBy: trackById" class="notification-row"
+      [class.is-unread]="!item.readAt">
+      <span class="source-icon" [class.security-icon]="item.source === 'SECURITY'"
+        [class.chat-icon]="item.source === 'CHAT'"
+        [ngClass]="item.source === 'SECURITY' ? 'pi pi-shield' : 'pi pi-comments'"
+        aria-hidden="true"></span>
+      <div class="notification-copy">
+        <div class="meta-line">
+          <span class="source-label">{{ item.source === 'SECURITY' ? 'Security' : 'Chat' }}</span>
+          <span class="dot" *ngIf="!item.readAt" aria-label="Unread"></span>
+          <time [attr.datetime]="item.createdAt">{{ item.createdAt | date:'medium' }}</time>
+        </div>
+        <h2>{{ item.title }}</h2>
+        <p>{{ item.message }}</p>
+        <a *ngIf="item.linkUrl" [routerLink]="item.linkUrl" class="open-link">Open activity <span aria-hidden="true">↗</span></a>
+      </div>
+      <button type="button" class="quiet-action read-action" (click)="markRead(item, !item.readAt)">
+        {{ item.readAt ? 'Mark unread' : 'Mark read' }}
+      </button>
+    </article>
+  </section>
+</main>

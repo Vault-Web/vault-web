@@ -282,3 +282,25 @@
     box-shadow: 1px 5px 10px var(--color-navbar-shadow);
   }
 }
+
+.inbox-nav-link,
+.inbox-mobile-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.notification-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  padding: 0 0.28rem;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.68rem;
+  line-height: 1;
+  font-weight: 750;
+}

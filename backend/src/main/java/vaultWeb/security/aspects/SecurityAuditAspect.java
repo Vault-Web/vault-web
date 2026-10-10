@@ -30,6 +30,7 @@ import vaultWeb.repositories.UserRepository;
 import vaultWeb.security.JwtUtil;
 import vaultWeb.security.annotations.AuditSecurityEvent;
 import vaultWeb.security.annotations.SecurityEventType;
+import vaultWeb.services.NotificationService;
 
 /**
  * Aspect that logs security-relevant events for audit purposes.
@@ -47,6 +48,7 @@ public class SecurityAuditAspect {
   private final JwtUtil jwtUtil;
   private final UserRepository userRepository;
   private final SecurityEventRepository securityEventRepository;
+  private final NotificationService notificationService;
 
   /**
    * Logs successful security operations.
@@ -137,7 +139,8 @@ public class SecurityAuditAspect {
       event.setDeviceId(deviceId);
       event.setUserAgent(userAgent != null ? userAgent : "unknown");
       event.setLocation("Unknown");
-      securityEventRepository.save(event);
+      SecurityEvent savedEvent = securityEventRepository.save(event);
+      notificationService.publishSecurityEvent(savedEvent);
     } catch (Exception e) {
       log.error("Failed to save security event to database", e);
     }

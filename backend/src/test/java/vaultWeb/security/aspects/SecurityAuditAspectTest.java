@@ -28,6 +28,7 @@ import vaultWeb.repositories.UserRepository;
 import vaultWeb.security.JwtUtil;
 import vaultWeb.security.annotations.AuditSecurityEvent;
 import vaultWeb.security.annotations.SecurityEventType;
+import vaultWeb.services.NotificationService;
 
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
@@ -39,6 +40,7 @@ class SecurityAuditAspectTest {
   @Mock private HttpServletRequest request;
   @Mock private UserRepository userRepository;
   @Mock private SecurityEventRepository securityEventRepository;
+  @Mock private NotificationService notificationService;
 
   @InjectMocks private SecurityAuditAspect securityAuditAspect;
 
