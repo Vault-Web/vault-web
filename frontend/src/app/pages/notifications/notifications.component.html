@@ -41,14 +41,14 @@
         class="quiet-action"
         (click)="toggleMuted('SECURITY')"
       >
-        Security {{ isMuted('SECURITY') ? 'muted' : 'on' }}
+        Security {{ isMuted('SECURITY') ? "muted" : "on" }}
       </button>
       <button
         type="button"
         class="quiet-action"
         (click)="toggleMuted('CHAT')"
       >
-        Chat {{ isMuted('CHAT') ? 'muted' : 'on' }}
+        Chat {{ isMuted('CHAT') ? "muted" : "on" }}
       </button>
       <span class="critical-alert-note">
         Password-change and new-device security alerts always stay enabled.
@@ -90,7 +90,7 @@
       ></span>
       <div class="notification-copy">
         <div class="meta-line">
-          <span class="source-label">{{ item.source === 'SECURITY' ? 'Security' : 'Chat' }}</span>
+          <span class="source-label">{{ item.source === 'SECURITY' ? "Security" : "Chat" }}</span>
           <span class="dot" *ngIf="!item.readAt" aria-label="Unread"></span>
           <time [attr.datetime]="item.createdAt">
             {{ item.createdAt | date: "medium" }}
@@ -107,7 +107,7 @@
         class="quiet-action read-action"
         (click)="markRead(item, !item.readAt)"
       >
-        {{ item.readAt ? 'Mark unread' : 'Mark read' }}
+        {{ item.readAt ? "Mark unread" : "Mark read" }}
       </button>
     </article>
   </section>
