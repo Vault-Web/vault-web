@@ -198,9 +198,7 @@ public class NotificationService {
       return;
     }
     try {
-      chatMessageRepository
-          .findById(messageId)
-          .ifPresent(this::createChatNotifications);
+      chatMessageRepository.findById(messageId).ifPresent(this::createChatNotifications);
     } catch (Exception ex) {
       // Async inbox work must never affect delivery of the underlying encrypted chat message.
       log.warn("Failed to create chat notifications for message id {}", messageId, ex);
@@ -242,14 +240,10 @@ public class NotificationService {
     Long senderId = message.getSender().getId();
     Map<Long, User> uniqueRecipients =
         members.stream()
-            .filter(
-                user -> user != null && user.getId() != null && !senderId.equals(user.getId()))
+            .filter(user -> user != null && user.getId() != null && !senderId.equals(user.getId()))
             .collect(
                 Collectors.toMap(
-                    User::getId,
-                    user -> user,
-                    (first, ignored) -> first,
-                    LinkedHashMap::new));
+                    User::getId, user -> user, (first, ignored) -> first, LinkedHashMap::new));
     List<User> recipients = new ArrayList<>(uniqueRecipients.values());
     if (recipients.isEmpty()) {
       return;
@@ -313,8 +307,7 @@ public class NotificationService {
     }
     String normalized = source.trim().toUpperCase(Locale.ROOT);
     if (!SOURCES.contains(normalized)) {
-      throw new ResponseStatusException(
-          HttpStatus.BAD_REQUEST, "unsupported notification source");
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "unsupported notification source");
     }
     return normalized;
   }

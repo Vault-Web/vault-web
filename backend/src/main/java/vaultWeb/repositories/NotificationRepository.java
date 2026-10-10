@@ -31,7 +31,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
   long countByUserAndReadAtIsNull(User user);
 
   @Modifying
-  @Query(
-      "update Notification n set n.readAt = :readAt where n.user = :user and n.readAt is null")
+  @Query("update Notification n set n.readAt = :readAt where n.user = :user and n.readAt is null")
   int markAllRead(@Param("user") User user, @Param("readAt") Instant readAt);
 }

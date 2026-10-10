@@ -43,7 +43,11 @@
       >
         Security {{ isMuted('SECURITY') ? 'muted' : 'on' }}
       </button>
-      <button type="button" class="quiet-action" (click)="toggleMuted('CHAT')">
+      <button
+        type="button"
+        class="quiet-action"
+        (click)="toggleMuted('CHAT')"
+      >
         Chat {{ isMuted('CHAT') ? 'muted' : 'on' }}
       </button>
       <span class="critical-alert-note">
@@ -81,7 +85,9 @@
         class="source-icon"
         [class.security-icon]="item.source === 'SECURITY'"
         [class.chat-icon]="item.source === 'CHAT'"
-        [ngClass]="item.source === 'SECURITY' ? 'pi pi-shield' : 'pi pi-comments'"
+        [ngClass]="
+          item.source === 'SECURITY' ? 'pi pi-shield' : 'pi pi-comments'
+        "
         aria-hidden="true"
       ></span>
       <div class="notification-copy">
@@ -91,7 +97,7 @@
           }}</span>
           <span class="dot" *ngIf="!item.readAt" aria-label="Unread"></span>
           <time [attr.datetime]="item.createdAt">{{
-            item.createdAt | date: 'medium'
+            item.createdAt | date: "medium"
           }}</time>
         </div>
         <h2>{{ item.title }}</h2>

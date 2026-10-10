@@ -39,9 +39,7 @@ export class NotificationService {
   }
 
   list(source = '', unreadOnly = false): Observable<InboxNotification[]> {
-    let params = new HttpParams()
-      .set('unreadOnly', unreadOnly)
-      .set('limit', 100);
+    let params = new HttpParams().set("unreadOnly", unreadOnly).set("limit", 100);
     if (source) {
       params = params.set('source', source);
     }
