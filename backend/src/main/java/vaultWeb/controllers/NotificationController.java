@@ -73,5 +73,4 @@ public class NotificationController {
     String message = exception.getReason() == null ? "Request rejected" : exception.getReason();
     return ResponseEntity.status(exception.getStatusCode()).body(Map.of("message", message));
   }
-
 }

@@ -122,5 +122,4 @@ class NotificationControllerIntegrationTest extends IntegrationTestBase {
                 .content("{\"muted\":null}"))
         .andExpect(status().isBadRequest());
   }
-
 }
