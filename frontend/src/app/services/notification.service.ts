@@ -29,13 +29,11 @@ export class NotificationService {
   constructor(private readonly http: HttpClient) {}
 
   refreshUnreadCount(): Observable<number> {
-    return this.http
-      .get<{ count: number }>(`${this.apiUrl}/unread-count`)
-      .pipe(
-        map((response) => response.count),
-        tap((count) => this.unreadSubject.next(count)),
-        catchError(() => of(this.unreadSubject.value)),
-      );
+    return this.http.get<{ count: number }>(`${this.apiUrl}/unread-count`).pipe(
+      map((response) => response.count),
+      tap((count) => this.unreadSubject.next(count)),
+      catchError(() => of(this.unreadSubject.value)),
+    );
   }
 
   list(source = '', unreadOnly = false): Observable<InboxNotification[]> {
@@ -61,7 +59,9 @@ export class NotificationService {
   }
 
   preferences(): Observable<NotificationPreference[]> {
-    return this.http.get<NotificationPreference[]>(`${this.apiUrl}/preferences`);
+    return this.http.get<NotificationPreference[]>(
+      `${this.apiUrl}/preferences`,
+    );
   }
 
   setMuted(source: string, muted: boolean): Observable<NotificationPreference> {

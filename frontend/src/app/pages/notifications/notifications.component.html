@@ -41,14 +41,10 @@
         class="quiet-action"
         (click)="toggleMuted('SECURITY')"
       >
-        Security {{ isMuted('SECURITY') ? "muted" : "on" }}
+        Security {{ isMuted("SECURITY") ? "muted" : "on" }}
       </button>
-      <button
-        type="button"
-        class="quiet-action"
-        (click)="toggleMuted('CHAT')"
-      >
-        Chat {{ isMuted('CHAT') ? "muted" : "on" }}
+      <button type="button" class="quiet-action" (click)="toggleMuted('CHAT')">
+        Chat {{ isMuted("CHAT") ? "muted" : "on" }}
       </button>
       <span class="critical-alert-note">
         Password-change and new-device security alerts always stay enabled.
@@ -85,12 +81,16 @@
         class="source-icon"
         [class.security-icon]="item.source === 'SECURITY'"
         [class.chat-icon]="item.source === 'CHAT'"
-        [ngClass]="item.source === 'SECURITY' ? 'pi pi-shield' : 'pi pi-comments'"
+        [ngClass]="
+          item.source === 'SECURITY' ? 'pi pi-shield' : 'pi pi-comments'
+        "
         aria-hidden="true"
       ></span>
       <div class="notification-copy">
         <div class="meta-line">
-          <span class="source-label">{{ item.source === 'SECURITY' ? "Security" : "Chat" }}</span>
+          <span class="source-label">{{
+            item.source === "SECURITY" ? "Security" : "Chat"
+          }}</span>
           <span class="dot" *ngIf="!item.readAt" aria-label="Unread"></span>
           <time [attr.datetime]="item.createdAt">
             {{ item.createdAt | date: "medium" }}
