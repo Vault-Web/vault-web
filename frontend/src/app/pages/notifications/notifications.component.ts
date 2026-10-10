@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import {
   InboxNotification,
   NotificationPreference,
@@ -11,7 +11,7 @@ import {
 @Component({
   selector: 'app-notifications',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './notifications.component.html',
   styleUrl: './notifications.component.scss',
 })
@@ -49,7 +49,9 @@ export class NotificationsComponent implements OnInit {
 
   loadPreferences(): void {
     this.notifications.preferences().subscribe({
-      next: (items) => (this.preferences = items),
+      next: (items) => {
+        this.preferences = items;
+      },
     });
   }
 
@@ -60,7 +62,9 @@ export class NotificationsComponent implements OnInit {
           current.id === updated.id ? updated : current,
         );
       },
-      error: () => (this.error = true),
+      error: () => {
+        this.error = true;
+      },
     });
   }
 
@@ -69,7 +73,10 @@ export class NotificationsComponent implements OnInit {
     this.notifications.markAllRead().subscribe({
       next: () => {
         const now = new Date().toISOString();
-        this.items = this.items.map((item) => ({ ...item, readAt: item.readAt ?? now }));
+        this.items = this.items.map((item) => ({
+          ...item,
+          readAt: item.readAt ?? now,
+        }));
         this.markingAll = false;
       },
       error: () => {
@@ -92,7 +99,9 @@ export class NotificationsComponent implements OnInit {
           preference,
         ];
       },
-      error: () => (this.error = true),
+      error: () => {
+        this.error = true;
+      },
     });
   }
 

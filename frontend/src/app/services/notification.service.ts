@@ -1,5 +1,5 @@
-import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, catchError, map, of, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 
@@ -36,9 +36,13 @@ export class NotificationService {
     );
   }
 
-  list(source: string = '', unreadOnly = false): Observable<InboxNotification[]> {
-    let params = new HttpParams().set('unreadOnly', unreadOnly).set('limit', 100);
-    if (source) params = params.set('source', source);
+  list(source = '', unreadOnly = false): Observable<InboxNotification[]> {
+    let params = new HttpParams()
+      .set('unreadOnly', unreadOnly)
+      .set('limit', 100);
+    if (source) {
+      params = params.set('source', source);
+    }
     return this.http.get<InboxNotification[]>(this.apiUrl, { params });
   }
 

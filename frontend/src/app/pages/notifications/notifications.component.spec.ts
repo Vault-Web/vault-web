@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
-import { NotificationsComponent } from './notifications.component';
 import { NotificationService } from '../../services/notification.service';
+import { NotificationsComponent } from './notifications.component';
 
 describe('NotificationsComponent', () => {
   let fixture: ComponentFixture<NotificationsComponent>;
@@ -10,16 +10,23 @@ describe('NotificationsComponent', () => {
 
   beforeEach(async () => {
     service = jasmine.createSpyObj<NotificationService>('NotificationService', [
-      'list', 'preferences', 'refreshUnreadCount', 'markRead', 'markAllRead', 'setMuted',
+      'list',
+      'preferences',
+      'refreshUnreadCount',
+      'markRead',
+      'markAllRead',
+      'setMuted',
     ]);
     service.list.and.returnValue(of([]));
     service.preferences.and.returnValue(of([]));
     service.refreshUnreadCount.and.returnValue(of(0));
     service.markAllRead.and.returnValue(of({ updated: 0 }));
+
     await TestBed.configureTestingModule({
       imports: [NotificationsComponent],
       providers: [{ provide: NotificationService, useValue: service }],
     }).compileComponents();
+
     fixture = TestBed.createComponent(NotificationsComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();

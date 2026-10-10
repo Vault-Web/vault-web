@@ -72,7 +72,7 @@ class ChatControllerTest {
     when(chatService.toDto(savedMessage)).thenReturn(response);
 
     chatController.sendMessage(request, principal);
-    verify(notificationService).publishChatMessage(savedMessage);
+    verify(notificationService).enqueueChatMessage(savedMessage.getId());
 
     ArgumentCaptor<ChatMessageDto> dtoCaptor = ArgumentCaptor.forClass(ChatMessageDto.class);
     verify(chatService).saveMessage(dtoCaptor.capture());
@@ -115,7 +115,7 @@ class ChatControllerTest {
     when(chatService.toDto(savedMessage)).thenReturn(response);
 
     chatController.sendPrivateMessage(request, principal);
-    verify(notificationService).publishChatMessage(savedMessage);
+    verify(notificationService).enqueueChatMessage(savedMessage.getId());
 
     ArgumentCaptor<ChatMessageDto> dtoCaptor = ArgumentCaptor.forClass(ChatMessageDto.class);
     verify(chatService).saveMessage(dtoCaptor.capture());

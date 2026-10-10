@@ -48,7 +48,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
         this.unreadNotificationCount = count;
       });
       this.pollingSubscription = interval(30000).subscribe(() => {
-        if (this.authService.isLoggedIn()) this.notificationService.refreshUnreadCount().subscribe();
+        if (this.authService.isLoggedIn()) {
+          this.notificationService.refreshUnreadCount().subscribe();
+        }
       });
       // Subscribe to reactive profile picture updates
       this.userService.profilePicUrl$.subscribe((url) => {

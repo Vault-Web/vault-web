@@ -4,8 +4,10 @@ import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import vaultWeb.dtos.NotificationDto;
 import vaultWeb.dtos.NotificationPreferenceDto;
 import vaultWeb.services.NotificationService;
@@ -31,10 +33,15 @@ public class NotificationController {
   }
 
   @PatchMapping("/{id}/read")
-  public NotificationDto markRead(@PathVariable Long id, Principal principal,
-      @RequestBody Map<String, Boolean> body) {
-    return notificationService.markRead(principal.getName(), id,
-        body.getOrDefault("read", true));
+  public NotificationDto markRead(
+      @PathVariable Long id,
+      Principal principal,
+      @RequestBody(required = false) Map<String, Boolean> body) {
+    Boolean read = body == null ? null : body.get("read");
+    if (read == null) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "'read' must be a boolean");
+    }
+    return notificationService.markRead(principal.getName(), id, read);
   }
 
   @PostMapping("/mark-all-read")
@@ -49,9 +56,14 @@ public class NotificationController {
   }
 
   @PutMapping("/preferences/{source}")
-  public NotificationPreferenceDto setPreference(Principal principal, @PathVariable String source,
-      @RequestBody Map<String, Boolean> body) {
-    return notificationService.setMuted(principal.getName(), source,
-        body.getOrDefault("muted", false));
+  public NotificationPreferenceDto setPreference(
+      Principal principal,
+      @PathVariable String source,
+      @RequestBody(required = false) Map<String, Boolean> body) {
+    Boolean muted = body == null ? null : body.get("muted");
+    if (muted == null) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "'muted' must be a boolean");
+    }
+    return notificationService.setMuted(principal.getName(), source, muted);
   }
 }

@@ -82,4 +82,19 @@ class NotificationControllerIntegrationTest extends IntegrationTestBase {
     mockMvc.perform(get("/api/notifications/unread-count").header("Authorization", token(bob)))
         .andExpect(status().isOk()).andExpect(jsonPath("$.count").value(1));
   }
+
+  @Test
+  void nullReadValueReturnsBadRequest() throws Exception {
+    User alice = createUser("alice");
+    Notification item = createNotification(alice);
+
+    mockMvc
+        .perform(
+            patch("/api/notifications/" + item.getId() + "/read")
+                .header("Authorization", token(alice))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"read\":null}"))
+        .andExpect(status().isBadRequest());
+  }
+
 }

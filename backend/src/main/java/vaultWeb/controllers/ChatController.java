@@ -59,7 +59,7 @@ public class ChatController {
   public void sendMessage(@Valid @Payload ChatMessageDto messageDto, Principal principal) {
     authorizeGroupMessage(messageDto, principal);
     ChatMessage savedMessage = chatService.saveMessage(messageDto);
-    notificationService.publishChatMessage(savedMessage);
+    notificationService.enqueueChatMessage(savedMessage.getId());
 
     ChatMessageDto responseDto = chatService.toDto(savedMessage);
 

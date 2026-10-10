@@ -9,10 +9,10 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import vaultWeb.repositories.RefreshTokenRepository;
-import vaultWeb.repositories.SecurityEventRepository;
 import vaultWeb.repositories.NotificationPreferenceRepository;
 import vaultWeb.repositories.NotificationRepository;
+import vaultWeb.repositories.RefreshTokenRepository;
+import vaultWeb.repositories.SecurityEventRepository;
 import vaultWeb.repositories.UserRepository;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
