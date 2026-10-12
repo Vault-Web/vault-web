@@ -10,4 +10,4 @@ public enum SecurityEventType {
   NEW_DEVICE_DETECTED,
   VAULT_UNLOCKED,
   VAULT_LOCKED
-}
+  }
