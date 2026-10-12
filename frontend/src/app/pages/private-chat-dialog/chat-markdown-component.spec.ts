@@ -18,6 +18,7 @@ describe('PrivateChatDialogComponent Markdown formatting', () => {
       {} as any,
       {} as any,
       sanitizer,
+      'en-US',
     );
 
     const result = component.formatMessage('**bold**');
@@ -45,6 +46,7 @@ describe('PrivateChatDialogComponent Markdown formatting', () => {
       {} as any,
       {} as any,
       sanitizer,
+      'en-US',
     );
 
     const first = component.formatMessage('**bold**');
