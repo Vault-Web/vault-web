@@ -3,7 +3,9 @@ import {
   Component,
   ElementRef,
   EventEmitter,
+  Inject,
   Input,
+  LOCALE_ID,
   OnInit,
   Output,
   ViewChild,
@@ -33,6 +35,7 @@ import { CHAT_STICKERS, ChatSticker, findChatSticker } from './chat-reactions';
 import { EmojiPickerComponent } from './emoji-picker/emoji-picker.component';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { renderChatMarkdown } from './chat-markdown';
+import { dayLabel, isSameLocalDay } from './chat-day-separator';
 
 interface ChatMessageView {
   kind: 'text' | 'sticker';
@@ -148,6 +151,7 @@ export class PrivateChatDialogComponent
     private groupService: GroupService,
     private userService: UserService,
     private sanitizer: DomSanitizer,
+    @Inject(LOCALE_ID) private locale: string,
   ) {}
 
   ngOnInit(): void {
@@ -868,6 +872,24 @@ export class PrivateChatDialogComponent
 
     this.formattedMessages.set(content, formatted);
     return formatted;
+  }
+
+  /** Whether a day separator should be shown above the message at `index`. */
+  showDaySeparator(index: number): boolean {
+    const message = this.messages[index];
+
+    if (!message || Number.isNaN(Date.parse(message.timestamp))) {
+      return false;
+    }
+
+    return (
+      index === 0 ||
+      !isSameLocalDay(this.messages[index - 1].timestamp, message.timestamp)
+    );
+  }
+
+  daySeparatorLabel(timestamp: string): string {
+    return dayLabel(timestamp, new Date(), this.locale);
   }
 
   private parseClientTimestamp(timestamp: string | undefined): string | null {

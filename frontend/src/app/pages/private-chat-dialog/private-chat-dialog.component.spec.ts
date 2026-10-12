@@ -1047,3 +1047,153 @@ describe('PrivateChatDialogComponent emoji picker', () => {
     expect(insertSpy).toHaveBeenCalledWith('😀');
   }));
 });
+
+describe('PrivateChatDialogComponent day separators', () => {
+  let fixture: ComponentFixture<PrivateChatDialogComponent>;
+  let component: PrivateChatDialogComponent;
+
+  beforeEach(async () => {
+    const typingEvents = new Subject<TypingIndicatorDto>();
+    const wsService = jasmine.createSpyObj<WebSocketService>(
+      'WebSocketService',
+      [
+        'subscribeToPrivateMessages',
+        'subscribeToTypingIndicators',
+        'sendTypingIndicator',
+        'ensureConnected',
+        'sendPrivateMessage',
+        'sendGroupMessage',
+        'subscribeToGroupMessages',
+        'subscribeToDeletedPrivateMessages',
+        'subscribeToDeletedGroupMessages',
+        'sendDeleteMessage',
+        'subscribeToChatErrors',
+      ],
+    );
+    wsService.subscribeToPrivateMessages.and.returnValue(of<ChatMessageDto>());
+    wsService.subscribeToGroupMessages.and.returnValue(of<ChatMessageDto>());
+    wsService.subscribeToDeletedPrivateMessages.and.returnValue(
+      of<ChatMessageDeletedDto>(),
+    );
+    wsService.subscribeToDeletedGroupMessages.and.returnValue(
+      of<ChatMessageDeletedDto>(),
+    );
+    wsService.subscribeToTypingIndicators.and.returnValue(
+      typingEvents.asObservable(),
+    );
+    wsService.sendTypingIndicator.and.returnValue(true);
+    wsService.ensureConnected.and.resolveTo(true);
+    wsService.sendPrivateMessage.and.returnValue(true);
+    wsService.sendGroupMessage.and.returnValue(true);
+    wsService.sendDeleteMessage.and.returnValue(true);
+    wsService.subscribeToChatErrors.and.returnValue(of<ChatErrorDto>());
+
+    const chatService = jasmine.createSpyObj<PrivateChatService>(
+      'PrivateChatService',
+      ['getMessages', 'getDevices'],
+    );
+    chatService.getMessages.and.returnValue(of([]));
+    chatService.getDevices.and.returnValue(of<DeviceDto[]>([]));
+
+    const groupChatService = jasmine.createSpyObj<GroupChatService>(
+      'GroupChatService',
+      ['getMessages', 'getDevices'],
+    );
+    groupChatService.getMessages.and.returnValue(of([]));
+    groupChatService.getDevices.and.returnValue(of<DeviceDto[]>([]));
+
+    const e2eeService = jasmine.createSpyObj<E2eeService>('E2eeService', [
+      'ensureDeviceRegistered',
+      'encryptForDevices',
+      'decryptPayload',
+    ]);
+    e2eeService.ensureDeviceRegistered.and.resolveTo();
+
+    const toast = jasmine.createSpyObj<UiToastService>('UiToastService', [
+      'error',
+      'warn',
+    ]);
+
+    const groupService = jasmine.createSpyObj<GroupService>('GroupService', [
+      'getGroupDetails',
+    ]);
+    const userService = jasmine.createSpyObj<UserService>('UserService', [
+      'getProfilePictureUrl',
+    ]);
+
+    await TestBed.configureTestingModule({
+      imports: [PrivateChatDialogComponent],
+      providers: [
+        { provide: WebSocketService, useValue: wsService },
+        { provide: PrivateChatService, useValue: chatService },
+        { provide: GroupChatService, useValue: groupChatService },
+        { provide: E2eeService, useValue: e2eeService },
+        { provide: UiToastService, useValue: toast },
+        { provide: GroupService, useValue: groupService },
+        { provide: UserService, useValue: userService },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(PrivateChatDialogComponent);
+    component = fixture.componentInstance;
+    component.username = 'bob';
+    component.currentUsername = 'alice';
+    component.privateChatId = 10;
+    fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    fixture.destroy();
+  });
+
+  /** Text message at a local-time date, so tests pass in any timezone. */
+  function messageAt(
+    date: Date,
+    content: string,
+  ): (typeof component.messages)[number] {
+    return {
+      kind: 'text',
+      content,
+      senderUsername: 'bob',
+      privateChatId: 10,
+      timestamp: date.toISOString(),
+    };
+  }
+
+  function setMessages(messages: typeof component.messages): void {
+    component.messages = messages;
+    fixture.detectChanges();
+  }
+
+  it('renders one separator per day without changing the bubble count', () => {
+    setMessages([
+      messageAt(new Date(2026, 9, 11, 9, 0), 'first'),
+      messageAt(new Date(2026, 9, 11, 21, 30), 'second'),
+      messageAt(new Date(2026, 9, 12, 8, 15), 'third'),
+    ]);
+
+    const separators = fixture.debugElement.queryAll(
+      By.css('[role="separator"]'),
+    );
+
+    expect(separators.length).toBe(2);
+    expect(component.messageBubbles.length).toBe(component.messages.length);
+    expect(component.showDaySeparator(0)).toBeTrue();
+    expect(component.showDaySeparator(1)).toBeFalse();
+    expect(component.showDaySeparator(2)).toBeTrue();
+  });
+
+  // Not rendered: the existing time label's date pipe rejects invalid input.
+  it('shows no separator for an invalid timestamp and does not throw', () => {
+    component.messages = [
+      {
+        ...messageAt(new Date(2026, 9, 12, 8, 0), 'broken'),
+        timestamp: 'not-a-date',
+      },
+    ];
+
+    expect(() => component.showDaySeparator(0)).not.toThrow();
+    expect(component.showDaySeparator(0)).toBeFalse();
+    expect(() => component.daySeparatorLabel('not-a-date')).not.toThrow();
+  });
+});

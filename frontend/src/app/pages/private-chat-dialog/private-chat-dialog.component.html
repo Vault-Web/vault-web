@@ -87,116 +87,142 @@
       class="chat-message-list flex-1 overflow-y-auto p-4 space-y-2"
       #messageContainer
     >
-      <div
-        *ngFor="let msg of messages; let i = index"
-        class="flex items-end mb-3"
-        [ngClass]="{
-          'justify-end': msg.senderUsername === currentUsername,
-          'justify-start': msg.senderUsername !== currentUsername,
-        }"
-      >
+      <ng-container *ngFor="let msg of messages; let i = index">
+        <!-- Day separator: not part of the iterated list, so search indexes stay 1:1 -->
         <div
-          *ngIf="msg.senderUsername !== currentUsername"
-          class="chat-avatar w-8 h-8 rounded-full text-white flex items-center justify-center font-semibold text-xs select-none flex-shrink-0 mr-2"
-          [ngClass]="{ 'overflow-hidden': getAvatarPicUrl(msg.senderUsername) }"
+          *ngIf="showDaySeparator(i)"
+          class="day-separator flex justify-center my-3 select-none"
+          role="separator"
+          [attr.aria-label]="daySeparatorLabel(msg.timestamp)"
         >
-          <ng-container
-            *ngIf="
-              getAvatarPicUrl(msg.senderUsername) as picUrl;
-              else noPicOther
-            "
+          <span
+            class="px-3 py-0.5 rounded-full text-[10px] font-medium border border-[var(--color-border)] bg-[var(--chat-bubble-other-bg)] text-[var(--color-text-muted)]"
           >
-            <img
-              [src]="picUrl"
-              alt="Profile"
-              class="w-full h-full object-cover block"
-            />
-          </ng-container>
-          <ng-template #noPicOther>
-            {{ getAvatarFallback(msg.senderUsername) }}
-          </ng-template>
+            {{ daySeparatorLabel(msg.timestamp) }}
+          </span>
         </div>
 
         <div
-          #messageBubble
-          class="chat-bubble group max-w-[75%] px-4 py-2 rounded-xl text-sm break-words flex flex-col"
+          class="flex items-end mb-3"
           [ngClass]="{
-            'my-message rounded-br-none bg-[var(--primary-color)] text-[var(--primary-color-text)]':
-              msg.senderUsername === currentUsername,
-            'other-message rounded-bl-none bg-[var(--surface-c)] text-[var(--text-color)]':
-              msg.senderUsername !== currentUsername,
-            'search-match': isMessageMatch(i),
-            'search-active-match': isActiveSearchMatch(i),
+            'justify-end': msg.senderUsername === currentUsername,
+            'justify-start': msg.senderUsername !== currentUsername,
           }"
         >
-          <!-- Sender Username for Group Chat -->
           <div
-            *ngIf="groupId && msg.senderUsername !== currentUsername"
-            class="sender-badge text-xs font-semibold text-[var(--primary-color)] mb-1"
+            *ngIf="msg.senderUsername !== currentUsername"
+            class="chat-avatar w-8 h-8 rounded-full text-white flex items-center justify-center font-semibold text-xs select-none flex-shrink-0 mr-2"
+            [ngClass]="{
+              'overflow-hidden': getAvatarPicUrl(msg.senderUsername),
+            }"
           >
-            {{ msg.senderUsername }}
-          </div>
-
-          <ng-container *ngIf="msg.deleted; else activeMessageContent">
-            <div class="deleted-message-placeholder text-xs italic opacity-60">
-              Message deleted
-            </div>
-          </ng-container>
-          <ng-template #activeMessageContent>
-            <ng-container [ngSwitch]="msg.kind">
-              <img
-                *ngSwitchCase="'sticker'"
-                class="chat-sticker"
-                [src]="msg.stickerSrc"
-                [alt]="msg.stickerLabel || msg.content"
-                loading="lazy"
-              />
-              <div
-                *ngSwitchDefault
-                [innerHTML]="formatMessage(msg.content)"
-              ></div>
-            </ng-container>
-          </ng-template>
-
-          <div class="message-time-row flex items-baseline gap-2 self-end mt-1">
-            <button
-              *ngIf="msg.senderUsername === currentUsername && !msg.deleted"
-              type="button"
-              class="delete-message-inline text-[10px] opacity-0 pointer-coarse:opacity-70 group-hover:opacity-70 hover:!opacity-100 transition-opacity"
-              (click)="deleteMessage(msg)"
-              aria-label="Delete message"
-              title="Delete message"
+            <ng-container
+              *ngIf="
+                getAvatarPicUrl(msg.senderUsername) as picUrl;
+                else noPicOther
+              "
             >
-              Delete
-            </button>
-            <div class="message-time text-[10px] opacity-70">
-              {{ msg.timestamp | date: "shortTime" }}
+              <img
+                [src]="picUrl"
+                alt="Profile"
+                class="w-full h-full object-cover block"
+              />
+            </ng-container>
+            <ng-template #noPicOther>
+              {{ getAvatarFallback(msg.senderUsername) }}
+            </ng-template>
+          </div>
+
+          <div
+            #messageBubble
+            class="chat-bubble group max-w-[75%] px-4 py-2 rounded-xl text-sm break-words flex flex-col"
+            [ngClass]="{
+              'my-message rounded-br-none bg-[var(--primary-color)] text-[var(--primary-color-text)]':
+                msg.senderUsername === currentUsername,
+              'other-message rounded-bl-none bg-[var(--surface-c)] text-[var(--text-color)]':
+                msg.senderUsername !== currentUsername,
+              'search-match': isMessageMatch(i),
+              'search-active-match': isActiveSearchMatch(i),
+            }"
+          >
+            <!-- Sender Username for Group Chat -->
+            <div
+              *ngIf="groupId && msg.senderUsername !== currentUsername"
+              class="sender-badge text-xs font-semibold text-[var(--primary-color)] mb-1"
+            >
+              {{ msg.senderUsername }}
+            </div>
+
+            <ng-container *ngIf="msg.deleted; else activeMessageContent">
+              <div
+                class="deleted-message-placeholder text-xs italic opacity-60"
+              >
+                Message deleted
+              </div>
+            </ng-container>
+            <ng-template #activeMessageContent>
+              <ng-container [ngSwitch]="msg.kind">
+                <img
+                  *ngSwitchCase="'sticker'"
+                  class="chat-sticker"
+                  [src]="msg.stickerSrc"
+                  [alt]="msg.stickerLabel || msg.content"
+                  loading="lazy"
+                />
+                <div
+                  *ngSwitchDefault
+                  [innerHTML]="formatMessage(msg.content)"
+                ></div>
+              </ng-container>
+            </ng-template>
+
+            <div
+              class="message-time-row flex items-baseline gap-2 self-end mt-1"
+            >
+              <button
+                *ngIf="msg.senderUsername === currentUsername && !msg.deleted"
+                type="button"
+                class="delete-message-inline text-[10px] opacity-0 pointer-coarse:opacity-70 group-hover:opacity-70 hover:!opacity-100 transition-opacity"
+                (click)="deleteMessage(msg)"
+                aria-label="Delete message"
+                title="Delete message"
+              >
+                Delete
+              </button>
+              <div
+                class="message-time text-[10px] opacity-70"
+                [title]="msg.timestamp | date: 'medium'"
+              >
+                {{ msg.timestamp | date: "shortTime" }}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div
-          *ngIf="msg.senderUsername === currentUsername"
-          class="chat-avatar w-8 h-8 rounded-full text-white flex items-center justify-center font-semibold text-xs select-none flex-shrink-0 ml-2"
-          [ngClass]="{ 'overflow-hidden': getAvatarPicUrl(msg.senderUsername) }"
-        >
-          <ng-container
-            *ngIf="
-              getAvatarPicUrl(msg.senderUsername) as picUrl;
-              else noPicCurrent
-            "
+          <div
+            *ngIf="msg.senderUsername === currentUsername"
+            class="chat-avatar w-8 h-8 rounded-full text-white flex items-center justify-center font-semibold text-xs select-none flex-shrink-0 ml-2"
+            [ngClass]="{
+              'overflow-hidden': getAvatarPicUrl(msg.senderUsername),
+            }"
           >
-            <img
-              [src]="picUrl"
-              alt="Profile"
-              class="w-full h-full object-cover block"
-            />
-          </ng-container>
-          <ng-template #noPicCurrent>
-            {{ getAvatarFallback(msg.senderUsername) }}
-          </ng-template>
+            <ng-container
+              *ngIf="
+                getAvatarPicUrl(msg.senderUsername) as picUrl;
+                else noPicCurrent
+              "
+            >
+              <img
+                [src]="picUrl"
+                alt="Profile"
+                class="w-full h-full object-cover block"
+              />
+            </ng-container>
+            <ng-template #noPicCurrent>
+              {{ getAvatarFallback(msg.senderUsername) }}
+            </ng-template>
+          </div>
         </div>
-      </div>
+      </ng-container>
 
       <div
         *ngIf="
