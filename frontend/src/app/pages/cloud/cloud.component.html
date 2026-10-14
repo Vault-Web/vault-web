@@ -65,7 +65,7 @@
     </div>
   </section>
 
-  <section class="cloud-toolbar-wrap">
+  <section class="cloud-toolbar-wrap" #toolbarWrap tabindex="-1">
     <p-toolbar styleClass="cloud-toolbar">
       <ng-template pTemplate="start">
         <div class="cloud-toolbar-start">
@@ -96,6 +96,15 @@
             [appendTo]="'body'"
             [model]="sortMenuItems"
           ></p-menu>
+          <p-button
+            *ngIf="!sharedMode && selectedEntries.length"
+            [label]="'Move to… (' + selectedEntries.length + ')'"
+            icon="pi pi-folder-open"
+            [outlined]="true"
+            styleClass="p-button-sm cloud-accent-btn text-xxs sm:text-xs"
+            (click)="openMoveDialog(selectedEntries)"
+            [ariaLabel]="'Move ' + selectedEntries.length + ' selected items'"
+          ></p-button>
           <span class="cloud-search" *ngIf="!sharedMode">
             <i class="pi pi-search cloud-search-icon"></i>
             <input
@@ -177,12 +186,22 @@
       [first]="contentFirst"
       [totalRecords]="totalElements"
       (onLazyLoad)="onPageChange($event)"
+      [(selection)]="selectedEntries"
+      dataKey="path"
+      [rowSelectable]="isRowSelectable"
       styleClass="cloud-table text-xxs sm:text-xs"
       [tableStyle]="{ 'min-width': '100%' }"
     >
       <ng-template pTemplate="header">
         <tr>
-          <th>Name</th>
+          <th>
+            <p-tableHeaderCheckbox
+              *ngIf="!sharedMode"
+              class="mr-2"
+              ariaLabel="Select all items on this page"
+            ></p-tableHeaderCheckbox>
+            Name
+          </th>
           <th>Size</th>
           <th>Type</th>
           <th>Modified</th>
@@ -203,29 +222,37 @@
           tooltipStyleClass="search-path-tooltip"
         >
           <td>
-            <button
-              type="button"
-              class="cloud-entry-btn"
-              [draggable]="!sharedMode"
-              (dragstart)="
-                !sharedMode &&
-                  onDragStart($event, entry.path, entry.kind === 'folder')
-              "
-              (dragend)="onDragEnd()"
-              (click)="onEntryOpen(entry)"
-            >
-              <span
-                class="cloud-entry-icon"
-                [class.folder]="entry.kind === 'folder'"
+            <div class="flex items-center">
+              <p-tableCheckbox
+                *ngIf="!sharedMode && entry.path !== SHARED_ROOT_TOKEN"
+                class="mr-2"
+                [value]="entry"
+                [ariaLabel]="'Select ' + entry.name"
+              ></p-tableCheckbox>
+              <button
+                type="button"
+                class="cloud-entry-btn"
+                [draggable]="!sharedMode"
+                (dragstart)="
+                  !sharedMode &&
+                    onDragStart($event, entry.path, entry.kind === 'folder')
+                "
+                (dragend)="onDragEnd()"
+                (click)="onEntryOpen(entry)"
               >
-                <i
-                  class="pi"
-                  [class.pi-folder]="entry.kind === 'folder'"
-                  [class.pi-file]="entry.kind === 'file'"
-                ></i>
-              </span>
-              <span class="cloud-entry-name">{{ entry.name }}</span>
-            </button>
+                <span
+                  class="cloud-entry-icon"
+                  [class.folder]="entry.kind === 'folder'"
+                >
+                  <i
+                    class="pi"
+                    [class.pi-folder]="entry.kind === 'folder'"
+                    [class.pi-file]="entry.kind === 'file'"
+                  ></i>
+                </span>
+                <span class="cloud-entry-name">{{ entry.name }}</span>
+              </button>
+            </div>
 
             <!-- Who can access this own folder: recipient avatar stack. -->
             <span
@@ -318,6 +345,15 @@
                 ariaLabel="Share with a Vault Web member"
               ></p-button>
               <p-button
+                *ngIf="!sharedMode"
+                icon="pi pi-folder-open"
+                styleClass="p-button-rounded p-button-text p-button-sm cloud-icon-btn"
+                (click)="openMoveDialog([entry])"
+                pTooltip="Move to…"
+                tooltipPosition="top"
+                [ariaLabel]="'Move ' + entry.name + ' to…'"
+              ></p-button>
+              <p-button
                 *ngIf="canDownloadHere"
                 icon="pi pi-download"
                 styleClass="p-button-rounded p-button-text p-button-sm cloud-icon-btn"
@@ -402,6 +438,16 @@
       </ng-template>
     </p-table>
   </section>
+
+  <app-move-to-dialog
+    [(visible)]="showMoveDialog"
+    [items]="moveItems"
+    [canMoveTo]="canMoveTo"
+    [toRelative]="toRelativePath"
+    [busy]="moving"
+    [focusFallback]="toolbarWrap"
+    (moveConfirmed)="onMoveConfirmed($event)"
+  ></app-move-to-dialog>
 
   <p-dialog
     [(visible)]="showCreateFolderDialog"

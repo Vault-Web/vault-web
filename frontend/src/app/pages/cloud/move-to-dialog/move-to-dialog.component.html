@@ -1,0 +1,133 @@
+<p-dialog
+  [visible]="visible"
+  (visibleChange)="onVisibleChange($event)"
+  (onHide)="onHide()"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [header]="header"
+  styleClass="cloud-dialog"
+  [style]="{ width: '28rem', maxWidth: '95vw' }"
+>
+  <div class="flex flex-col gap-2 text-xxs sm:text-xs">
+    <nav aria-label="Folder path" class="flex flex-wrap items-center gap-1">
+      <ng-container *ngFor="let crumb of breadcrumbs; let last = last">
+        <button
+          type="button"
+          class="move-crumb px-1 py-0.5 rounded"
+          [ngClass]="last ? 'font-semibold' : 'underline'"
+          [disabled]="last || loading"
+          [attr.aria-current]="last ? 'location' : null"
+          (click)="openFolder(crumb.path)"
+        >
+          <i *ngIf="crumb.path === null" class="pi pi-home mr-1"></i
+          >{{ crumb.name }}
+        </button>
+        <span *ngIf="!last" aria-hidden="true" class="opacity-60">/</span>
+      </ng-container>
+    </nav>
+
+    <div>
+      <p-button
+        label="Up"
+        icon="pi pi-arrow-up"
+        styleClass="p-button-text p-button-sm text-xxs sm:text-xs"
+        [disabled]="!canGoUp"
+        (click)="goUp()"
+        ariaLabel="Go up one folder"
+      ></p-button>
+    </div>
+
+    <div
+      class="move-folder-list min-h-[8rem] max-h-[16rem] overflow-y-auto rounded border border-[var(--color-border)]"
+      aria-live="polite"
+    >
+      <div *ngIf="loading" class="flex items-center gap-2 p-3">
+        <i class="pi pi-spin pi-spinner"></i>
+        Loading folders...
+      </div>
+
+      <div
+        *ngIf="!loading && loadError"
+        class="move-error flex flex-col items-start gap-2 p-3"
+        role="alert"
+      >
+        <span>
+          <i class="pi pi-exclamation-triangle mr-1"></i>{{ loadError }}
+        </span>
+        <p-button
+          label="Retry"
+          icon="pi pi-refresh"
+          styleClass="p-button-sm p-button-outlined text-xxs sm:text-xs"
+          (click)="retry()"
+          ariaLabel="Retry loading folders"
+        ></p-button>
+      </div>
+
+      <ng-container *ngIf="!loading && !loadError && folder">
+        <p
+          *ngIf="!folder.folders?.length"
+          class="move-empty p-3 m-0 text-[var(--color-text-secondary)]"
+        >
+          No subfolders here.
+        </p>
+        <ul class="list-none m-0 p-0">
+          <li *ngFor="let sub of folder.folders">
+            <button
+              type="button"
+              class="move-folder flex w-full items-center gap-2 px-3 py-2 text-left"
+              [ngClass]="{ 'opacity-60 cursor-not-allowed': isBlocked(sub) }"
+              [disabled]="isBlocked(sub)"
+              [attr.aria-label]="
+                isBlocked(sub)
+                  ? sub.name + ': can\'t move a folder into itself'
+                  : 'Open ' + sub.name
+              "
+              (click)="openFolder(sub.path)"
+            >
+              <i class="pi pi-folder"></i>
+              <span class="flex-1 truncate">{{ sub.name }}</span>
+              <span
+                *ngIf="isBlocked(sub)"
+                class="text-[var(--color-text-secondary)]"
+              >
+                Can't move a folder into itself
+              </span>
+              <i
+                *ngIf="!isBlocked(sub) && sub.directChildrenCount > 0"
+                class="pi pi-angle-right"
+                aria-hidden="true"
+              ></i>
+            </button>
+          </li>
+        </ul>
+      </ng-container>
+    </div>
+
+    <p
+      *ngIf="moveHereReason"
+      class="move-reason m-0 text-[var(--color-text-secondary)]"
+    >
+      {{ moveHereReason }}
+    </p>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <p-button
+      label="Cancel"
+      styleClass="p-button-text p-button-sm text-xxs sm:text-xs"
+      (click)="cancel()"
+      ariaLabel="Cancel move"
+    ></p-button>
+    <p-button
+      label="Move here"
+      icon="pi pi-check"
+      styleClass="p-button-sm text-xxs sm:text-xs"
+      [disabled]="!canMoveHere"
+      [loading]="busy"
+      (click)="moveHere()"
+      ariaLabel="Move here"
+    ></p-button>
+  </ng-template>
+</p-dialog>

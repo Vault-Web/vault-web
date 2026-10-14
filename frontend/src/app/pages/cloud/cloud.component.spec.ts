@@ -1018,3 +1018,209 @@ describe('CloudComponent unsaved-edit guard', () => {
     });
   });
 });
+
+describe('CloudComponent Move to dialog', () => {
+  let component: CloudComponent;
+  let cloudMock: jasmine.SpyObj<CloudService>;
+  let toastMock: jasmine.SpyObj<UiToastService>;
+  let reloadSpy: jasmine.Spy;
+
+  /** A table row as the template passes it to openMoveDialog. */
+  function entry(kind: 'file' | 'folder', path: string): never {
+    return {
+      kind,
+      name: path.split('/').pop(),
+      path,
+      sizeLabel: '',
+      typeLabel: '',
+      lastModifiedAt: 0,
+    } as never;
+  }
+
+  beforeEach(() => {
+    cloudMock = jasmine.createSpyObj<CloudService>('CloudService', [
+      'renameOrMoveFile',
+      'renameOrMoveFolder',
+    ]);
+    cloudMock.renameOrMoveFile.and.returnValue(of({} as any));
+    cloudMock.renameOrMoveFolder.and.returnValue(of({} as any));
+
+    toastMock = jasmine.createSpyObj<UiToastService>('UiToastService', [
+      'success',
+      'info',
+      'warn',
+      'error',
+    ]);
+
+    component = new CloudComponent(
+      cloudMock,
+      {} as any,
+      toastMock as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+    component.rootPath = 'root';
+    component.currentFolder = { path: 'root/Docs', name: 'Docs' } as never;
+    reloadSpy = spyOn(component, 'reloadCurrentFolder');
+  });
+
+  it('canMoveTo refuses the current folder, a moved folder and its subtree', () => {
+    component.openMoveDialog([
+      entry('file', 'root/Docs/a.txt'),
+      entry('folder', 'root/Docs/Sub'),
+    ]);
+
+    expect(component.showMoveDialog).toBeTrue();
+    expect(component.canMoveTo('root/Docs')).toBeFalse();
+    expect(component.canMoveTo('root/Docs/Sub')).toBeFalse();
+    expect(component.canMoveTo('root/Docs/Sub/Deep')).toBeFalse();
+    expect(component.canMoveTo('root/Other')).toBeTrue();
+  });
+
+  it('never offers the "Shared with me" entry as a move item', () => {
+    component.openMoveDialog([entry('folder', component.SHARED_ROOT_TOKEN)]);
+
+    expect(component.moveItems).toEqual([]);
+    expect(component.showMoveDialog).toBeFalse();
+  });
+
+  it('moves a single file, reloads once, clears selection and confirms', async () => {
+    const file = entry('file', 'root/Docs/a.txt');
+    component.selectedEntries = [file];
+    component.openMoveDialog([file]);
+
+    await component.onMoveConfirmed({
+      targetPath: 'root/Other',
+      existingNames: [],
+    });
+
+    expect(cloudMock.renameOrMoveFile).toHaveBeenCalledOnceWith(
+      'Docs/a.txt',
+      'Other/a.txt',
+    );
+    expect(cloudMock.renameOrMoveFolder).not.toHaveBeenCalled();
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+    expect(component.selectedEntries).toEqual([]);
+    expect(component.showMoveDialog).toBeFalse();
+    expect(toastMock.success).toHaveBeenCalledWith(
+      'Item moved',
+      'Moved "a.txt" to Other.',
+    );
+  });
+
+  it('moves a folder with renameOrMoveFolder', async () => {
+    component.openMoveDialog([entry('folder', 'root/Docs/Sub')]);
+
+    await component.onMoveConfirmed({
+      targetPath: 'root',
+      existingNames: [],
+    });
+
+    expect(cloudMock.renameOrMoveFolder).toHaveBeenCalledOnceWith(
+      'Docs/Sub',
+      'Sub',
+    );
+    expect(toastMock.success).toHaveBeenCalledWith(
+      'Item moved',
+      'Moved "Sub" to My files.',
+    );
+  });
+
+  it('skips a name conflict, moves the rest and names the conflict', async () => {
+    component.openMoveDialog([
+      entry('file', 'root/Docs/a.txt'),
+      entry('file', 'root/Docs/b.txt'),
+      entry('folder', 'root/Docs/Sub'),
+    ]);
+
+    await component.onMoveConfirmed({
+      targetPath: 'root/Other',
+      existingNames: ['b.txt'],
+    });
+
+    expect(cloudMock.renameOrMoveFile).toHaveBeenCalledOnceWith(
+      'Docs/a.txt',
+      'Other/a.txt',
+    );
+    expect(cloudMock.renameOrMoveFolder).toHaveBeenCalledOnceWith(
+      'Docs/Sub',
+      'Other/Sub',
+    );
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+    expect(toastMock.warn).toHaveBeenCalledWith(
+      'Some items were not moved',
+      jasmine.stringContaining('"b.txt" already exists in Other.'),
+    );
+  });
+
+  it('keeps going after a failed move and reports the error', async () => {
+    cloudMock.renameOrMoveFile.and.returnValues(
+      throwError(() => ({ error: { message: 'Disk full' } })),
+      of({} as any),
+    );
+    component.openMoveDialog([
+      entry('file', 'root/Docs/a.txt'),
+      entry('file', 'root/Docs/b.txt'),
+    ]);
+
+    await component.onMoveConfirmed({
+      targetPath: 'root/Other',
+      existingNames: [],
+    });
+
+    expect(cloudMock.renameOrMoveFile).toHaveBeenCalledTimes(2);
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+    expect(toastMock.warn).toHaveBeenCalledWith(
+      'Some items were not moved',
+      jasmine.stringContaining('"a.txt": Disk full'),
+    );
+  });
+
+  it('does not reload when nothing was moved', async () => {
+    component.openMoveDialog([entry('file', 'root/Docs/a.txt')]);
+
+    await component.onMoveConfirmed({
+      targetPath: 'root/Other',
+      existingNames: ['a.txt'],
+    });
+
+    expect(cloudMock.renameOrMoveFile).not.toHaveBeenCalled();
+    expect(reloadSpy).not.toHaveBeenCalled();
+    expect(toastMock.error).toHaveBeenCalledWith(
+      'Move failed',
+      '"a.txt" already exists in Other.',
+    );
+  });
+
+  it('moves items one after another, not in parallel', async () => {
+    const firstMove = new Subject<any>();
+    cloudMock.renameOrMoveFile.and.returnValues(
+      firstMove.asObservable(),
+      of({} as any),
+    );
+    component.openMoveDialog([
+      entry('file', 'root/Docs/a.txt'),
+      entry('file', 'root/Docs/b.txt'),
+    ]);
+
+    const done = component.onMoveConfirmed({
+      targetPath: 'root/Other',
+      existingNames: [],
+    });
+    await Promise.resolve();
+
+    expect(cloudMock.renameOrMoveFile).toHaveBeenCalledTimes(1);
+
+    firstMove.next({});
+    firstMove.complete();
+    await done;
+
+    expect(cloudMock.renameOrMoveFile).toHaveBeenCalledTimes(2);
+    expect(cloudMock.renameOrMoveFile.calls.argsFor(1)).toEqual([
+      'Docs/b.txt',
+      'Other/b.txt',
+    ]);
+  });
+});
