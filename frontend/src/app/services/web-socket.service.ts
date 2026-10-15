@@ -319,6 +319,15 @@ export class WebSocketService {
           return;
         }
 
+        const previousUnsubscribe = unsubscribeFn;
+        unsubscribeFn = undefined;
+
+        try {
+          previousUnsubscribe?.();
+        } catch {
+          // The previous subscription may already be invalid after disconnect.
+        }
+
         unsubscribeFn = subscribeAction(observer);
       };
 
