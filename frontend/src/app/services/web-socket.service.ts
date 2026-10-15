@@ -41,7 +41,16 @@ export class WebSocketService {
         this.connected = true;
         this.connectCallbacks.forEach((cb) => cb());
         this.connectCallbacks = [];
-        this.privateSubscriptions.forEach((sub) => sub());
+        [...this.privateSubscriptions].forEach((resubscribe) => {
+          try {
+            resubscribe();
+          } catch (error) {
+            console.error(
+              'Failed to restore subscription after reconnect',
+              error,
+            );
+          }
+        });
       },
       onDisconnect: () => {
         this.connected = false;
@@ -155,39 +164,9 @@ export class WebSocketService {
   }
 
   subscribeToChatErrors(): Observable<ChatErrorDto> {
-    return new Observable((observer) => {
-      const subscribeAction = () => {
-        return this.subscribeToChatErrorsInternal(observer);
-      };
-
-      let unsubscribeFn: (() => void) | undefined;
-      let isUnsubscribed = false;
-      let queuedSubscribe: (() => void) | undefined;
-
-      if (!this.connected) {
-        queuedSubscribe = () => {
-          if (isUnsubscribed) {
-            return;
-          }
-          unsubscribeFn = subscribeAction();
-        };
-        this.connectCallbacks.push(queuedSubscribe);
-      } else {
-        unsubscribeFn = subscribeAction();
-      }
-
-      return () => {
-        isUnsubscribed = true;
-        if (!unsubscribeFn && queuedSubscribe) {
-          this.connectCallbacks = this.connectCallbacks.filter(
-            (cb) => cb !== queuedSubscribe,
-          );
-        }
-        if (unsubscribeFn) {
-          unsubscribeFn();
-        }
-      };
-    });
+    return this.createReconnectableSubscription<ChatErrorDto>((observer) =>
+      this.subscribeToChatErrorsInternal(observer),
+    );
   }
 
   private subscribeToChatErrorsInternal(observer: Observer<ChatErrorDto>) {
@@ -229,41 +208,9 @@ export class WebSocketService {
   }
 
   subscribeToDeletedPrivateMessages(): Observable<ChatMessageDeletedDto> {
-    return new Observable((observer) => {
-      const subscribeAction = () => {
-        return this.subscribeToDeletedPrivateInternal(observer);
-      };
-
-      let unsubscribeFn: (() => void) | undefined;
-      let isUnsubscribed = false;
-      let queuedSubscribe: (() => void) | undefined;
-
-      if (!this.connected) {
-        queuedSubscribe = () => {
-          if (isUnsubscribed) {
-            return;
-          }
-          unsubscribeFn = subscribeAction();
-        };
-        this.connectCallbacks.push(queuedSubscribe);
-      } else {
-        unsubscribeFn = subscribeAction();
-      }
-
-      return () => {
-        isUnsubscribed = true;
-
-        if (!unsubscribeFn && queuedSubscribe) {
-          this.connectCallbacks = this.connectCallbacks.filter(
-            (cb) => cb !== queuedSubscribe,
-          );
-        }
-
-        if (unsubscribeFn) {
-          unsubscribeFn();
-        }
-      };
-    });
+    return this.createReconnectableSubscription<ChatMessageDeletedDto>(
+      (observer) => this.subscribeToDeletedPrivateInternal(observer),
+    );
   }
 
   private subscribeToDeletedPrivateInternal(
@@ -281,39 +228,9 @@ export class WebSocketService {
   }
 
   subscribeToPrivateMessages(): Observable<ChatMessageDto> {
-    return new Observable((observer) => {
-      const subscribeAction = () => {
-        return this.subscribeInternal(observer);
-      };
-
-      let unsubscribeFn: (() => void) | undefined;
-      let isUnsubscribed = false;
-      let queuedSubscribe: (() => void) | undefined;
-
-      if (!this.connected) {
-        queuedSubscribe = () => {
-          if (isUnsubscribed) {
-            return;
-          }
-          unsubscribeFn = subscribeAction();
-        };
-        this.connectCallbacks.push(queuedSubscribe);
-      } else {
-        unsubscribeFn = subscribeAction();
-      }
-
-      return () => {
-        isUnsubscribed = true;
-        if (!unsubscribeFn && queuedSubscribe) {
-          this.connectCallbacks = this.connectCallbacks.filter(
-            (cb) => cb !== queuedSubscribe,
-          );
-        }
-        if (unsubscribeFn) {
-          unsubscribeFn();
-        }
-      };
-    });
+    return this.createReconnectableSubscription<ChatMessageDto>((observer) =>
+      this.subscribeInternal(observer),
+    );
   }
 
   private subscribeInternal(observer: Observer<ChatMessageDto>) {
@@ -329,39 +246,9 @@ export class WebSocketService {
   }
 
   subscribeToTypingIndicators(): Observable<TypingIndicatorDto> {
-    return new Observable((observer) => {
-      const subscribeAction = () => {
-        return this.subscribeToTypingInternal(observer);
-      };
-
-      let unsubscribeFn: (() => void) | undefined;
-      let isUnsubscribed = false;
-      let queuedSubscribe: (() => void) | undefined;
-
-      if (!this.connected) {
-        queuedSubscribe = () => {
-          if (isUnsubscribed) {
-            return;
-          }
-          unsubscribeFn = subscribeAction();
-        };
-        this.connectCallbacks.push(queuedSubscribe);
-      } else {
-        unsubscribeFn = subscribeAction();
-      }
-
-      return () => {
-        isUnsubscribed = true;
-        if (!unsubscribeFn && queuedSubscribe) {
-          this.connectCallbacks = this.connectCallbacks.filter(
-            (cb) => cb !== queuedSubscribe,
-          );
-        }
-        if (unsubscribeFn) {
-          unsubscribeFn();
-        }
-      };
-    });
+    return this.createReconnectableSubscription<TypingIndicatorDto>(
+      (observer) => this.subscribeToTypingInternal(observer),
+    );
   }
 
   private subscribeToTypingInternal(observer: Observer<TypingIndicatorDto>) {
@@ -377,79 +264,17 @@ export class WebSocketService {
   }
 
   subscribeToGroupMessages(groupId: number): Observable<ChatMessageDto> {
-    return new Observable((observer) => {
-      const subscribeAction = () => {
-        return this.subscribeToGroupInternal(groupId, observer);
-      };
-
-      let unsubscribeFn: (() => void) | undefined;
-      let isUnsubscribed = false;
-      let queuedSubscribe: (() => void) | undefined;
-
-      if (!this.connected) {
-        queuedSubscribe = () => {
-          if (isUnsubscribed) {
-            return;
-          }
-          unsubscribeFn = subscribeAction();
-        };
-        this.connectCallbacks.push(queuedSubscribe);
-      } else {
-        unsubscribeFn = subscribeAction();
-      }
-
-      return () => {
-        isUnsubscribed = true;
-        if (!unsubscribeFn && queuedSubscribe) {
-          this.connectCallbacks = this.connectCallbacks.filter(
-            (cb) => cb !== queuedSubscribe,
-          );
-        }
-        if (unsubscribeFn) {
-          unsubscribeFn();
-        }
-      };
-    });
+    return this.createReconnectableSubscription<ChatMessageDto>((observer) =>
+      this.subscribeToGroupInternal(groupId, observer),
+    );
   }
 
   subscribeToDeletedGroupMessages(
     groupId: number,
   ): Observable<ChatMessageDeletedDto> {
-    return new Observable((observer) => {
-      const subscribeAction = () => {
-        return this.subscribeToDeletedGroupInternal(groupId, observer);
-      };
-
-      let unsubscribeFn: (() => void) | undefined;
-      let isUnsubscribed = false;
-      let queuedSubscribe: (() => void) | undefined;
-
-      if (!this.connected) {
-        queuedSubscribe = () => {
-          if (isUnsubscribed) {
-            return;
-          }
-          unsubscribeFn = subscribeAction();
-        };
-        this.connectCallbacks.push(queuedSubscribe);
-      } else {
-        unsubscribeFn = subscribeAction();
-      }
-
-      return () => {
-        isUnsubscribed = true;
-
-        if (!unsubscribeFn && queuedSubscribe) {
-          this.connectCallbacks = this.connectCallbacks.filter(
-            (cb) => cb !== queuedSubscribe,
-          );
-        }
-
-        if (unsubscribeFn) {
-          unsubscribeFn();
-        }
-      };
-    });
+    return this.createReconnectableSubscription<ChatMessageDeletedDto>(
+      (observer) => this.subscribeToDeletedGroupInternal(groupId, observer),
+    );
   }
 
   private subscribeToDeletedGroupInternal(
@@ -480,5 +305,51 @@ export class WebSocketService {
     );
 
     return () => subscription?.unsubscribe();
+  }
+
+  private createReconnectableSubscription<T>(
+    subscribeAction: (observer: Observer<T>) => () => void,
+  ): Observable<T> {
+    return new Observable<T>((observer) => {
+      let unsubscribeFn: (() => void) | undefined;
+      let isUnsubscribed = false;
+
+      const sub = () => {
+        if (isUnsubscribed) {
+          return;
+        }
+
+        const previousUnsubscribe = unsubscribeFn;
+        unsubscribeFn = undefined;
+
+        try {
+          previousUnsubscribe?.();
+        } catch {
+          // The previous subscription may already be invalid after disconnect.
+        }
+
+        unsubscribeFn = subscribeAction(observer);
+      };
+
+      this.privateSubscriptions.push(sub);
+
+      if (this.connected) {
+        sub();
+      }
+
+      return () => {
+        isUnsubscribed = true;
+
+        this.privateSubscriptions = this.privateSubscriptions.filter(
+          (subscription) => subscription !== sub,
+        );
+
+        try {
+          unsubscribeFn?.();
+        } catch {
+          // Expected when the connection is already down; nothing to clean up.
+        }
+      };
+    });
   }
 }
