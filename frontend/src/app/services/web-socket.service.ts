@@ -45,7 +45,10 @@ export class WebSocketService {
           try {
             resubscribe();
           } catch (error) {
-            console.error('Failed to restore subscription after reconnect', error);
+            console.error(
+              'Failed to restore subscription after reconnect',
+              error,
+            );
           }
         });
       },
@@ -243,8 +246,8 @@ export class WebSocketService {
   }
 
   subscribeToTypingIndicators(): Observable<TypingIndicatorDto> {
-    return this.createReconnectableSubscription<TypingIndicatorDto>((observer) =>
-      this.subscribeToTypingInternal(observer),
+    return this.createReconnectableSubscription<TypingIndicatorDto>(
+      (observer) => this.subscribeToTypingInternal(observer),
     );
   }
 
@@ -270,8 +273,8 @@ export class WebSocketService {
     groupId: number,
   ): Observable<ChatMessageDeletedDto> {
     return this.createReconnectableSubscription<ChatMessageDeletedDto>(
-    (observer) => this.subscribeToDeletedGroupInternal(groupId, observer),
-  );
+      (observer) => this.subscribeToDeletedGroupInternal(groupId, observer),
+    );
   }
 
   private subscribeToDeletedGroupInternal(
