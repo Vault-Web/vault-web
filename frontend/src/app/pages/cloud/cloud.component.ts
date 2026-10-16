@@ -50,6 +50,7 @@ import {
 import { UserDto } from '../../models/dtos/UserDto';
 import { ResourceShareService } from '../../services/resource-share.service';
 import { UserService } from '../../services/user.service';
+import { formatFileSize } from '../../core/utils/file-size.util';
 
 interface Breadcrumb {
   name: string;
@@ -2023,11 +2024,7 @@ export class CloudComponent implements OnInit, OnDestroy {
   }
 
   formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return formatFileSize(bytes);
   }
 
   onDragStart(event: DragEvent, path: string, isFolder: boolean) {

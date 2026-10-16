@@ -13,6 +13,7 @@ import { finalize } from 'rxjs';
 import { FolderContentItemDto } from '../../models/dtos/FolderContentItemDto';
 import { PublicShareDto } from '../../models/dtos/SecureSendLinkDto';
 import { PublicShareService } from '../../services/public-share.service';
+import { formatFileSize } from '../../core/utils/file-size.util';
 
 /** How a previewed file is rendered; anything else is offered as a download. */
 type PreviewKind = 'image' | 'text' | 'pdf';
@@ -304,17 +305,7 @@ export class ShareComponent implements OnInit, OnDestroy {
   }
 
   formatSize(bytes: number): string {
-    if (!Number.isFinite(bytes) || bytes < 0) {
-      return '';
-    }
-    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    let value = bytes;
-    let unit = 0;
-    while (value >= 1024 && unit < units.length - 1) {
-      value /= 1024;
-      unit++;
-    }
-    return `${unit === 0 ? value : value.toFixed(1)} ${units[unit]}`;
+    return formatFileSize(bytes);
   }
 
   /** The same two icons the cloud table uses, so a row reads the same everywhere. */
