@@ -101,7 +101,7 @@ describe('MoveToDialogComponent', () => {
   it('loads the root on open and lists its subfolders as buttons', () => {
     open();
 
-    expect(cloudMock.getRootFolder).toHaveBeenCalledOnceWith(true);
+    expect(cloudMock.getRootFolder).toHaveBeenCalledOnceWith(false);
     const buttons = folderButtons();
     expect(buttons.length).toBe(2);
     expect(buttons[0].textContent).toContain('Docs');
@@ -114,7 +114,7 @@ describe('MoveToDialogComponent', () => {
     folderButtons()[0].click();
     fixture.detectChanges();
 
-    expect(cloudMock.getFolderByPath).toHaveBeenCalledOnceWith('Docs', true);
+    expect(cloudMock.getFolderByPath).toHaveBeenCalledOnceWith('Docs', false);
     expect(component.breadcrumbs.map((c) => c.name)).toEqual([
       'My files',
       'Docs',

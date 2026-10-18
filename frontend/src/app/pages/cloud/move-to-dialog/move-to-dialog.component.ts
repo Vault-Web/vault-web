@@ -130,8 +130,8 @@ export class MoveToDialogComponent implements OnChanges {
 
     const folder$ =
       path === null
-        ? this.cloudService.getRootFolder(true)
-        : this.cloudService.getFolderByPath(this.toRelative(path), true);
+        ? this.cloudService.getRootFolder(false)
+        : this.cloudService.getFolderByPath(this.toRelative(path), false);
 
     folder$.subscribe({
       next: (folder) => {
