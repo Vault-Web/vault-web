@@ -3,7 +3,8 @@
   (visibleChange)="onVisibleChange($event)"
   (onHide)="onHide()"
   [modal]="true"
-  [closable]="true"
+  [closable]="!busy"
+  [closeOnEscape]="!busy"
   [draggable]="false"
   [resizable]="false"
   [header]="header"
@@ -112,6 +113,7 @@
     <p-button
       label="Cancel"
       styleClass="p-button-text p-button-sm text-xxs sm:text-xs"
+      [disabled]="busy"
       (click)="cancel()"
       ariaLabel="Cancel move"
     ></p-button>

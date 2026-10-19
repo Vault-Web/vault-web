@@ -1223,4 +1223,60 @@ describe('CloudComponent Move to dialog', () => {
       'Other/b.txt',
     ]);
   });
+  it('drops selected items that sit inside a selected folder', async () => {
+    component.openMoveDialog([
+      entry('folder', 'root/Docs'),
+      entry('file', 'root/Docs/Docs.txt'),
+      entry('file', 'root/Docsy.txt'),
+    ]);
+
+    expect(component.moveItems.map((item) => item.path)).toEqual([
+      'root/Docs',
+      'root/Docsy.txt',
+    ]);
+
+    await component.onMoveConfirmed({
+      targetPath: 'root/Other',
+      existingNames: [],
+    });
+
+    expect(cloudMock.renameOrMoveFolder).toHaveBeenCalledOnceWith(
+      'Docs',
+      'Other/Docs',
+    );
+    expect(cloudMock.renameOrMoveFile).toHaveBeenCalledOnceWith(
+      'Docsy.txt',
+      'Other/Docsy.txt',
+    );
+    expect(toastMock.success).toHaveBeenCalledWith(
+      'Items moved',
+      'Moved 2 items to Other.',
+    );
+  });
+
+  it("keeps the running move's items when the dialog is reopened mid-move", async () => {
+    const firstMove = new Subject<any>();
+    cloudMock.renameOrMoveFile.and.returnValue(firstMove.asObservable());
+    component.openMoveDialog([entry('file', 'root/Docs/a.txt')]);
+
+    const done = component.onMoveConfirmed({
+      targetPath: 'root/Other',
+      existingNames: [],
+    });
+    await Promise.resolve();
+
+    component.openMoveDialog([entry('file', 'root/Docs/b.txt')]);
+    expect(component.moveItems.map((item) => item.path)).toEqual([
+      'root/Docs/a.txt',
+    ]);
+
+    firstMove.next({});
+    firstMove.complete();
+    await done;
+
+    expect(toastMock.success).toHaveBeenCalledWith(
+      'Item moved',
+      'Moved "a.txt" to Other.',
+    );
+  });
 });

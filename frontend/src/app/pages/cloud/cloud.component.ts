@@ -2254,8 +2254,23 @@ export class CloudComponent implements OnInit, OnDestroy {
   }
 
   openMoveDialog(entries: CloudEntry[]): void {
-    this.moveItems = entries
-      .filter((entry) => entry.path !== this.SHARED_ROOT_TOKEN)
+    // A running move still reads its items; don't swap them out underneath it.
+    if (this.moving) return;
+    const movable = entries.filter(
+      (entry) => entry.path !== this.SHARED_ROOT_TOKEN,
+    );
+    // Items inside a selected folder travel with it (e.g. `Docs` and
+    // `Docs/a.txt` picked together in search results), so drop them here.
+    const folderPaths = movable
+      .filter((entry) => entry.kind === 'folder')
+      .map((entry) => this.getRelativePath(entry.path));
+    this.moveItems = movable
+      .filter((entry) => {
+        const relative = this.getRelativePath(entry.path);
+        return !folderPaths.some(
+          (folder) => folder !== '/' && relative.startsWith(folder + '/'),
+        );
+      })
       .map((entry) => ({
         path: entry.path,
         name: entry.name,
@@ -2276,6 +2291,7 @@ export class CloudComponent implements OnInit, OnDestroy {
   }: MoveConfirmedEvent): Promise<void> {
     if (this.moving) return;
     this.moving = true;
+    const items = [...this.moveItems];
 
     const relativeTarget = this.getRelativePath(targetPath);
     const targetName =
@@ -2284,7 +2300,7 @@ export class CloudComponent implements OnInit, OnDestroy {
     const problems: string[] = [];
     let movedCount = 0;
 
-    for (const item of this.moveItems) {
+    for (const item of items) {
       const name = this.getNameFromPath(item.path);
       const isFolder = item.kind === 'folder';
 
@@ -2319,12 +2335,12 @@ export class CloudComponent implements OnInit, OnDestroy {
       this.reloadCurrentFolder();
     }
 
-    const total = this.moveItems.length;
+    const total = items.length;
     if (!problems.length) {
       this.toast.success(
         total === 1 ? 'Item moved' : 'Items moved',
         total === 1
-          ? `Moved "${this.getNameFromPath(this.moveItems[0].path)}" to ${targetName}.`
+          ? `Moved "${this.getNameFromPath(items[0].path)}" to ${targetName}.`
           : `Moved ${total} items to ${targetName}.`,
       );
     } else if (movedCount > 0) {

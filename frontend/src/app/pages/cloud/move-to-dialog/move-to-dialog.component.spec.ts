@@ -185,6 +185,23 @@ describe('MoveToDialogComponent', () => {
     expect(moves).not.toHaveBeenCalled();
   });
 
+  it("can't be closed while a move is running", () => {
+    const visibility = jasmine.createSpy('visibleChange');
+    component.visibleChange.subscribe(visibility);
+    open();
+    fixture.componentRef.setInput('busy', true);
+    fixture.detectChanges();
+
+    const cancel = document.querySelector<HTMLButtonElement>(
+      'button[aria-label="Cancel move"]',
+    );
+    expect(cancel?.disabled).toBeTrue();
+    component.cancel();
+    component.onVisibleChange(false);
+
+    expect(visibility).not.toHaveBeenCalled();
+  });
+
   it('shows an error state on load failure and retries', () => {
     cloudMock.getRootFolder.and.returnValues(
       throwError(() => new Error('offline')),

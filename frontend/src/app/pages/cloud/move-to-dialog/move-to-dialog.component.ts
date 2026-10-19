@@ -169,12 +169,14 @@ export class MoveToDialogComponent implements OnChanges {
     });
   }
 
+  /** Closing is locked while moving, so the parent's items can't be swapped mid-move. */
   cancel(): void {
+    if (this.busy) return;
     this.visibleChange.emit(false);
   }
 
   onVisibleChange(visible: boolean): void {
-    if (!visible) this.visibleChange.emit(false);
+    if (!visible && !this.busy) this.visibleChange.emit(false);
   }
 
   /** PrimeNG's dialog doesn't return focus on close, so do it here. */
