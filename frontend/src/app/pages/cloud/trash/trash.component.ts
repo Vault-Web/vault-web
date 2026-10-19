@@ -10,6 +10,7 @@ import { finalize } from 'rxjs';
 import { TrashEntryDto } from '../../../models/dtos/TrashEntryDto';
 import { CloudService } from '../../../services/cloud.service';
 import { UiToastService } from '../../../core/services/ui-toast.service';
+import { formatFileSize } from '../../../core/utils/file-size.util';
 
 @Component({
   selector: 'app-trash',
@@ -125,14 +126,7 @@ export class TrashComponent implements OnInit {
   }
 
   formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB'];
-    const i = Math.min(
-      Math.floor(Math.log(bytes) / Math.log(k)),
-      sizes.length - 1,
-    );
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return formatFileSize(bytes);
   }
 
   // The backend signals a restore collision with FileAlreadyExistsException;
