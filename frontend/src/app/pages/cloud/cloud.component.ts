@@ -50,6 +50,11 @@ import {
 import { UserDto } from '../../models/dtos/UserDto';
 import { ResourceShareService } from '../../services/resource-share.service';
 import { UserService } from '../../services/user.service';
+import {
+  MoveConfirmedEvent,
+  MoveItem,
+  MoveToDialogComponent,
+} from './move-to-dialog/move-to-dialog.component';
 import { formatFileSize } from '../../core/utils/file-size.util';
 
 interface Breadcrumb {
@@ -91,6 +96,7 @@ type CloudSort =
     InputTextModule,
     ConfirmDialogModule,
     TooltipModule,
+    MoveToDialogComponent,
   ],
   providers: [ConfirmationService],
   templateUrl: './cloud.component.html',
@@ -219,6 +225,27 @@ export class CloudComponent implements OnInit, OnDestroy {
   private draggedIsFolder = false;
   draggedOverPath: string | null = null;
   isExternalDrag = false;
+
+  // "Move to…": a keyboard- and touch-friendly alternative to drag and drop.
+  selectedEntries: CloudEntry[] = [];
+  showMoveDialog = false;
+  moveItems: MoveItem[] = [];
+  moving = false;
+
+  /** The "Shared with me" entry is a shortcut, not a movable item. */
+  readonly isRowSelectable = (row: { data: CloudEntry }): boolean =>
+    row.data.path !== this.SHARED_ROOT_TOKEN;
+
+  /** Passed to the picker; true only if every item may move to `targetPath`. */
+  readonly canMoveTo = (targetPath: string): boolean =>
+    this.moveItems.length > 0 &&
+    this.moveItems.every(
+      (item) =>
+        !this.isInvalidMove(item.path, targetPath, item.kind === 'folder'),
+    );
+
+  readonly toRelativePath = (path: string): string =>
+    this.getRelativePath(path);
 
   constructor(
     private cloudService: CloudService,
@@ -409,6 +436,7 @@ export class CloudComponent implements OnInit, OnDestroy {
       : (event.first ?? 0);
     const page = Math.floor(first / rows);
     if (page === this.contentPage && rows === this.pageSize) return;
+    this.selectedEntries = [];
     this.contentFirst = first;
     this.pageSize = rows;
     this.loading = true;
@@ -420,6 +448,7 @@ export class CloudComponent implements OnInit, OnDestroy {
 
   setSort(sort: CloudSort) {
     if (this.sort === sort) return;
+    this.selectedEntries = [];
     this.sort = sort;
     this.searchActive = false;
     this.searchQuery = '';
@@ -442,6 +471,7 @@ export class CloudComponent implements OnInit, OnDestroy {
       this.currentFolder?.path || this.rootPath,
     );
     const wasSearchActive = this.searchActive;
+    this.selectedEntries = [];
     this.searching = true;
     this.searchActive = true;
     const requestId = ++this.contentRequestId;
@@ -465,6 +495,7 @@ export class CloudComponent implements OnInit, OnDestroy {
 
   clearSearch() {
     if (!this.searchActive && this.searchQuery === '') return;
+    this.selectedEntries = [];
     this.searchQuery = '';
     this.searchActive = false;
     this.searching = false;
@@ -477,6 +508,7 @@ export class CloudComponent implements OnInit, OnDestroy {
   }
 
   loadRootFolder() {
+    this.selectedEntries = [];
     this.searchActive = false;
     this.searchQuery = '';
     this.searching = false;
@@ -584,6 +616,7 @@ export class CloudComponent implements OnInit, OnDestroy {
   }
 
   enterSharedRoot(): void {
+    this.selectedEntries = [];
     this.inSharedRoot = true;
     this.shareCtx = null;
     this.isAtRoot = false;
@@ -1058,6 +1091,7 @@ export class CloudComponent implements OnInit, OnDestroy {
   }
 
   navigateToFolder(folderPath?: string) {
+    this.selectedEntries = [];
     this.searchActive = false;
     this.searchQuery = '';
     this.searching = false;
@@ -2216,6 +2250,106 @@ export class CloudComponent implements OnInit, OnDestroy {
       this.navigateToFolder(this.currentFolder.path);
     } else {
       this.loadRootFolder();
+    }
+  }
+
+  openMoveDialog(entries: CloudEntry[]): void {
+    // A running move still reads its items; don't swap them out underneath it.
+    if (this.moving) return;
+    const movable = entries.filter(
+      (entry) => entry.path !== this.SHARED_ROOT_TOKEN,
+    );
+    // Items inside a selected folder travel with it (e.g. `Docs` and
+    // `Docs/a.txt` picked together in search results), so drop them here.
+    const folderPaths = movable
+      .filter((entry) => entry.kind === 'folder')
+      .map((entry) => this.getRelativePath(entry.path));
+    this.moveItems = movable
+      .filter((entry) => {
+        const relative = this.getRelativePath(entry.path);
+        return !folderPaths.some(
+          (folder) => folder !== '/' && relative.startsWith(folder + '/'),
+        );
+      })
+      .map((entry) => ({
+        path: entry.path,
+        name: entry.name,
+        kind: entry.kind,
+      }));
+    if (!this.moveItems.length) return;
+    this.showMoveDialog = true;
+  }
+
+  /**
+   * Moves the picked items one at a time with the same calls as drag and drop.
+   * Names already in the target are skipped up front; every other failure is
+   * collected so one error doesn't stop the remaining moves.
+   */
+  async onMoveConfirmed({
+    targetPath,
+    existingNames,
+  }: MoveConfirmedEvent): Promise<void> {
+    if (this.moving) return;
+    this.moving = true;
+    const items = [...this.moveItems];
+
+    const relativeTarget = this.getRelativePath(targetPath);
+    const targetName =
+      relativeTarget === '/' ? 'My files' : this.getNameFromPath(targetPath);
+    const takenNames = new Set(existingNames);
+    const problems: string[] = [];
+    let movedCount = 0;
+
+    for (const item of items) {
+      const name = this.getNameFromPath(item.path);
+      const isFolder = item.kind === 'folder';
+
+      if (this.isInvalidMove(item.path, targetPath, isFolder)) {
+        problems.push(`"${name}" can't be moved to ${targetName}.`);
+        continue;
+      }
+      if (takenNames.has(name)) {
+        problems.push(`"${name}" already exists in ${targetName}.`);
+        continue;
+      }
+      takenNames.add(name);
+
+      const relativeSource = this.getRelativePath(item.path);
+      const destination = this.joinRelativePath(relativeTarget, name);
+      try {
+        await firstValueFrom(
+          isFolder
+            ? this.cloudService.renameOrMoveFolder(relativeSource, destination)
+            : this.cloudService.renameOrMoveFile(relativeSource, destination),
+        );
+        movedCount++;
+      } catch (err: unknown) {
+        problems.push(`"${name}": ${this.getErrorMessage(err)}`);
+      }
+    }
+
+    this.moving = false;
+    this.showMoveDialog = false;
+    this.selectedEntries = [];
+    if (movedCount > 0) {
+      this.reloadCurrentFolder();
+    }
+
+    const total = items.length;
+    if (!problems.length) {
+      this.toast.success(
+        total === 1 ? 'Item moved' : 'Items moved',
+        total === 1
+          ? `Moved "${this.getNameFromPath(items[0].path)}" to ${targetName}.`
+          : `Moved ${total} items to ${targetName}.`,
+      );
+    } else if (movedCount > 0) {
+      this.toast.warn(
+        'Some items were not moved',
+        `Moved ${movedCount} of ${total} to ${targetName}. ${problems.join(' ')}`,
+      );
+    } else {
+      this.toast.error('Move failed', problems.join(' '));
     }
   }
 
