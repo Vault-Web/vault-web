@@ -9,7 +9,7 @@ The editor distinguishes creating a file from deliberately editing an existing f
 | Create or upload into a shared folder | POST /api/shares/{id}/upload | omitted  |
 | Edit an existing shared file          | PUT /api/shares/{id}/edit    | \*       |
 
-Shared edits use the original share-relative path and filename. An individually shared file uses an empty path. Normal uploads and new editor files must never opt into replacement.
+Shared edits use the original share-relative path and filename. An individually shared file uses an empty path and returns to the refreshed shared-items list after saving; it must not request folder content for a file share. Normal uploads and new editor files must never opt into replacement.
 
 ## Backend dependency and rollout
 

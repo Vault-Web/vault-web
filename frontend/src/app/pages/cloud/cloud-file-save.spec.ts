@@ -157,7 +157,7 @@ describe('Cloud editor save HTTP contract', () => {
     expect(reloadShare).toHaveBeenCalledOnceWith('nested');
   });
 
-  it('edits a single-file share using the empty share-relative path', async () => {
+  it('edits a single-file share and refreshes the shared list instead of folder content', async () => {
     shared('FILE');
     existing('');
     const save = component.saveFile();
@@ -167,6 +167,13 @@ describe('Cloud editor save HTTP contract', () => {
     req.flush(null);
     await save;
     saved('File updated');
+    expect(reloadShare).not.toHaveBeenCalled();
+    const list = request('/shares/shared-with-me', 'GET');
+    list.flush([]);
+    expect(component.inSharedRoot).toBeTrue();
+    expect(component.shareCtx).toBeNull();
+    expect(component.error).toBeUndefined();
+    expect(component.loading).toBeFalse();
   });
 
   for (const inShare of [false, true]) {

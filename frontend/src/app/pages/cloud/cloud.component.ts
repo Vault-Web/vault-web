@@ -1339,8 +1339,13 @@ export class CloudComponent implements OnInit, OnDestroy {
         await firstValueFrom(request$);
         this.originalFileContent = this.fileContent;
         this.originalFileName = savedName;
-        this.loadShareContent(ctx.sub);
         this.closeFileEditor();
+        if (ctx.share.resourceType === 'FILE') {
+          // A single-file share has no folder content endpoint to refresh.
+          this.enterSharedRoot();
+        } else {
+          this.loadShareContent(ctx.sub);
+        }
         this.toast.success(
           isEdit ? 'File updated' : 'File created',
           `"${savedName}" was saved.`,
