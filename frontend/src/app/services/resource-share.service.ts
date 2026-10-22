@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -86,13 +86,21 @@ export class ResourceShareService {
   }
 
   /** Overwrites a file inside a share. Requires the EDIT permission. */
-  editFile(id: string, path: string, file: File): Observable<void> {
+  editFile(
+    id: string,
+    path: string,
+    file: File,
+    ifMatch?: string,
+  ): Observable<void> {
     const form = new FormData();
     form.append('file', file);
+    const headers = ifMatch
+      ? new HttpHeaders({ 'If-Match': ifMatch })
+      : undefined;
     return this.http.put<void>(
       `${this.baseUrl}/${encodeURIComponent(id)}/edit`,
       form,
-      { params: new HttpParams().set('path', path) },
+      { params: new HttpParams().set('path', path), headers },
     );
   }
 

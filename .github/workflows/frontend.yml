@@ -36,6 +36,12 @@ jobs:
         working-directory: frontend
         run: npm run prettier:check
 
+      # The full legacy suite has unrelated baseline failures. Keep this
+      # regression contract enforced independently until those are repaired.
+      - name: Test cloud editor save HTTP contract
+        working-directory: frontend
+        run: npm test -- --watch=false --browsers=ChromeHeadless --include=src/app/pages/cloud/cloud-file-save.spec.ts
+
       - name: Build project
         working-directory: frontend
         run: npm run build

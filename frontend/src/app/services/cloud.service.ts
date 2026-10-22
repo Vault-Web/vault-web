@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { FolderDto } from '../models/dtos/FolderDto';
 import { FolderContentItemDto } from '../models/dtos/FolderContentItemDto';
@@ -120,14 +120,22 @@ export class CloudService {
     });
   }
 
-  uploadFile(folderPath: string, file: File): Observable<FolderDto> {
+  uploadFile(
+    folderPath: string,
+    file: File,
+    ifMatch?: string,
+  ): Observable<FolderDto> {
     const formData = new FormData();
     formData.append('file', file);
     const path = this.normalizePath(folderPath);
     const params = new HttpParams().set('folderPath', path);
+    const headers = ifMatch
+      ? new HttpHeaders({ 'If-Match': ifMatch })
+      : undefined;
 
     return this.http.post<FolderDto>(`${this.apiUrl}/files/upload`, formData, {
       params,
+      headers,
     });
   }
 

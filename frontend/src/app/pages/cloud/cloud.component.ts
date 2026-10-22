@@ -260,12 +260,15 @@ export class CloudComponent implements OnInit, OnDestroy {
   private getErrorMessage(err: unknown): string {
     const candidate = err as {
       message?: string;
-      error?: { message?: string };
+      error?: string | { message?: string };
     };
+    if (typeof candidate?.error === 'string' && candidate.error.trim()) {
+      return candidate.error;
+    }
+    const body =
+      typeof candidate?.error === 'object' ? candidate.error : undefined;
     return (
-      candidate?.error?.message ||
-      candidate?.message ||
-      'Request failed. Please try again.'
+      body?.message || candidate?.message || 'Request failed. Please try again.'
     );
   }
 
@@ -1312,25 +1315,39 @@ export class CloudComponent implements OnInit, OnDestroy {
     const nameToSave = this.newFileName.trim();
     if (!nameToSave) return;
 
+    // Captured up front: closeFileEditor() clears editingFile before the toast runs.
+    const isEdit = !!this.editingFile;
+
     // Inside a share: save through the share API (EDIT-gated). Saving an existing
-    // file keeps its name — the upload would otherwise leave the original behind
-    // and add a second file under the new name. The name field is disabled to
-    // match; this is the guard for it.
+    // file keeps its name — the name field is disabled to match. Existing files go
+    // through the edit endpoint (If-Match: *), because the upload endpoint now
+    // rejects a name that is already taken.
     if (this.shareCtx) {
       const ctx = this.shareCtx;
       const savedName = this.editingFile ? this.editingFile.name : nameToSave;
       try {
         const fileBlob = new Blob([this.fileContent], { type: 'text/plain' });
         const file = new File([fileBlob], savedName);
-        await firstValueFrom(
-          this.resourceShareService.upload(ctx.share.id, ctx.sub, file),
-        );
+        const request$ = this.editingFile
+          ? this.resourceShareService.editFile(
+              ctx.share.id,
+              this.editingFile.path,
+              file,
+              '*',
+            )
+          : this.resourceShareService.upload(ctx.share.id, ctx.sub, file);
+        await firstValueFrom(request$);
         this.originalFileContent = this.fileContent;
         this.originalFileName = savedName;
-        this.loadShareContent(ctx.sub);
         this.closeFileEditor();
+        if (ctx.share.resourceType === 'FILE') {
+          // A single-file share has no folder content endpoint to refresh.
+          this.enterSharedRoot();
+        } else {
+          this.loadShareContent(ctx.sub);
+        }
         this.toast.success(
-          this.editingFile ? 'File updated' : 'File created',
+          isEdit ? 'File updated' : 'File created',
           `"${savedName}" was saved.`,
         );
       } catch (err: unknown) {
@@ -1357,7 +1374,13 @@ export class CloudComponent implements OnInit, OnDestroy {
       const currentPath = this.getRelativePath(this.currentFolder?.path || '/');
       const fileBlob = new Blob([this.fileContent], { type: 'text/plain' });
       const file = new File([fileBlob], nameToSave);
-      await firstValueFrom(this.cloudService.uploadFile(currentPath, file));
+      await firstValueFrom(
+        this.cloudService.uploadFile(
+          currentPath,
+          file,
+          isEdit ? '*' : undefined,
+        ),
+      );
 
       this.newFileName = nameToSave;
       this.originalFileContent = this.fileContent;
@@ -1366,7 +1389,7 @@ export class CloudComponent implements OnInit, OnDestroy {
       this.navigateToFolder(this.currentFolder?.path);
       this.closeFileEditor();
       this.toast.success(
-        this.editingFile ? 'File updated' : 'File created',
+        isEdit ? 'File updated' : 'File created',
         `"${nameToSave}" was saved.`,
       );
     } catch (err: unknown) {
