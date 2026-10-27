@@ -4,11 +4,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.support.ExecutorChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
@@ -27,6 +29,7 @@ import vaultWeb.security.JwtUtil;
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
   private final JwtUtil jwtUtil;
+  private final GroupSubscriptionInterceptor groupSubscriptionInterceptor;
 
   /**
    * Configure message broker with a simple in-memory broker for topics and application destination
@@ -76,6 +79,19 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         .withSockJS();
   }
 
+  /** Check at handler execution time, so queued messages also use current membership. */
+  @Override
+  public void configureClientOutboundChannel(ChannelRegistration registration) {
+    registration.interceptors(
+        new ExecutorChannelInterceptor() {
+          @Override
+          public Message<?> beforeHandle(
+              Message<?> message, MessageChannel channel, MessageHandler handler) {
+            return groupSubscriptionInterceptor.authorizeDelivery(message);
+          }
+        });
+  }
+
   /**
    * Configure the inbound channel for STOMP messages from clients. This method adds a
    * ChannelInterceptor that intercepts incoming messages before they reach message-handling
@@ -94,18 +110,26 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             StompHeaderAccessor accessor =
                 MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
+            if (accessor == null) {
+              return message;
+            }
+
             if (StompCommand.CONNECT.equals(accessor.getCommand())) {
               String authHeader = accessor.getFirstNativeHeader("Authorization");
+
               if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
+
                 if (jwtUtil.validateToken(token)) {
                   Authentication auth = jwtUtil.getAuthentication(token);
                   accessor.setUser(auth);
                 }
               }
             }
+
             return message;
           }
-        });
+        },
+        groupSubscriptionInterceptor);
   }
 }
