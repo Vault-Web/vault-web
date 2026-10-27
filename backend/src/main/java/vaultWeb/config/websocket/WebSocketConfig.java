@@ -4,11 +4,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.support.ExecutorChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
@@ -75,6 +77,19 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             "http://vault.*:*",
             "https://vault.*:*")
         .withSockJS();
+  }
+
+  /** Check at handler execution time, so queued messages also use current membership. */
+  @Override
+  public void configureClientOutboundChannel(ChannelRegistration registration) {
+    registration.interceptors(
+        new ExecutorChannelInterceptor() {
+          @Override
+          public Message<?> beforeHandle(
+              Message<?> message, MessageChannel channel, MessageHandler handler) {
+            return groupSubscriptionInterceptor.authorizeDelivery(message);
+          }
+        });
   }
 
   /**

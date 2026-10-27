@@ -11,6 +11,30 @@ Spring Boot application responsible for:
 - REST APIs consumed by the frontend
 - persistence using PostgreSQL
 
+## Group WebSocket authorization
+
+STOMP group subscriptions require an authenticated principal and current group
+membership. Wildcard subscriptions are rejected because broker patterns could
+otherwise bypass the group boundary. A rejected subscription receives an error
+only in the requesting session; other tabs and valid subscriptions stay connected.
+
+Each outgoing group message (including deletion, typing and future subtopics)
+checks current membership for the recipient's authenticated session immediately
+before the outbound handler runs. This also covers messages waiting in the
+outbound executor after a member leaves or is removed. Broadcast sender headers
+are not used as the recipient identity. Missing session identity or a failed
+membership lookup drops the group message; private destinations are unaffected.
+Session identity tracking is cleared on STOMP or transport disconnect.
+Direct client `SEND` frames to group broker destinations are rejected, even for
+members, so they cannot bypass validation in the `/app/chat.*` handlers.
+Server-side publication and the existing frontend application routes are unchanged.
+
+The delivery check performs a database membership lookup per recipient/message;
+it deliberately does not cache a positive authorization across membership changes.
+Already delivered data cannot be revoked, and an individual socket write already
+in progress cannot be recalled. A blocked subscription can resume delivery after
+membership is granted again; leaving does not disconnect the socket.
+
 ## Requirements
 
 To develop or run the backend independently, you'll need:
