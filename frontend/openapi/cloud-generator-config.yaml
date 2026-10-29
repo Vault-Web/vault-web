@@ -11,3 +11,4 @@ stringEnums: true
 supportsES6: true
 useSingleRequestParameter: true
 withInterfaces: true
+hideGenerationTimestamp: true

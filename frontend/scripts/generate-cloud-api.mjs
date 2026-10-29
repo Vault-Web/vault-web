@@ -35,6 +35,10 @@ if (!existsSync(specPath)) {
   process.exit(1);
 }
 
+if (!existsSync(configPath)) {
+  throw new Error(`OpenAPI Generator config not found: ${configPath}`);
+}
+
 const temporaryRoot = checkOnly
   ? mkdtempSync(join(tmpdir(), 'vault-cloud-openapi-'))
   : null;
@@ -75,10 +79,8 @@ try {
     throw result.error;
   }
   if (result.status !== 0) {
-    process.exit(result.status ?? 1);
-  }
-
-  if (checkOnly) {
+    process.exitCode = result.status ?? 1;
+  } else if (checkOnly) {
     if (!existsSync(outputPath)) {
       console.error('Generated Cloud client is missing. Run npm run api:generate.');
       process.exitCode = 1;
