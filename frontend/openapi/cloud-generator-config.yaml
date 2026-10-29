@@ -2,6 +2,7 @@
 # The provider contract must be pinned separately; never use a live API URL.
 ngVersion: "19.2.0"
 tsVersion: "5.7.2"
+rxjsVersion: "7.8.1"
 zonejsVersion: "0.15.0"
 apiModulePrefix: "Cloud"
 configurationPrefix: "Cloud"

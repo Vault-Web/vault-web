@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import {
   existsSync,
+  fileURLToPath,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -10,7 +11,8 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 
-const frontendRoot = resolve(import.meta.dirname, '..');
+const scriptDirectory = dirname(fileURLToPath(import.meta.url));
+const frontendRoot = resolve(scriptDirectory, '..');
 const specPath = resolve(
   frontendRoot,
   process.env.CLOUD_OPENAPI_SPEC ??

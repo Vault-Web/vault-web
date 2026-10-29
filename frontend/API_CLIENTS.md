@@ -24,13 +24,17 @@ and pinned as part of the consumer update.
 ## Toolchain
 
 - Generator: OpenAPI Generator `typescript-angular`
-- Generator image: `openapitools/openapi-generator-cli:v7.26.0`
+- OpenAPI Generator CLI and generator release: `7.26.0`
+  (`openapitools/openapi-generator-cli:v7.26.0`)
 - Angular target: `19.2.0`
 - TypeScript target: `5.7.2`
+- RxJS target: `7.8.1`
 - Zone.js target: `0.15.0`
 
-The image tag and generator options are committed/pinned in this repository.
-Docker is required to run the generator locally and in CI.
+The Docker image release pins the CLI distribution and its bundled generator
+to the same version. The generator options are committed in
+`openapi/cloud-generator-config.yaml`. Docker is required to run generation
+locally and in CI.
 
 ## Commands
 
