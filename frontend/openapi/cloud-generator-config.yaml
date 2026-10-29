@@ -1,0 +1,13 @@
+# Keep these options aligned with frontend/package.json.
+# The provider contract must be pinned separately; never use a live API URL.
+ngVersion: "19.2.0"
+tsVersion: "5.7.2"
+zonejsVersion: "0.15.0"
+apiModulePrefix: "Cloud"
+configurationPrefix: "Cloud"
+modelFileSuffix: ".generated"
+modelPropertyNaming: "camelCase"
+stringEnums: true
+supportsES6: true
+useSingleRequestParameter: true
+withInterfaces: true
