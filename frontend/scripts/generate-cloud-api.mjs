@@ -1,7 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import {
   existsSync,
-  fileURLToPath,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -10,6 +9,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const frontendRoot = resolve(scriptDirectory, '..');
