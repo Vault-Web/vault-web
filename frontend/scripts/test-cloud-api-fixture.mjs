@@ -132,9 +132,7 @@ try {
     }
     const regeneratedText = combinedText(target);
     if (regeneratedText.includes("getWidget")) {
-      throw new Error(
-        "Regeneration retained the removed getWidget operation.",
-      );
+      throw new Error("Regeneration retained the removed getWidget operation.");
     }
     if (!regeneratedText.includes("listWidgets")) {
       throw new Error(
