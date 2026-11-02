@@ -1,6 +1,8 @@
 import { spawnSync } from "node:child_process";
 import {
   cpSync,
+  existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -63,6 +65,11 @@ const files = (directory) => {
   return found.sort();
 };
 
+const combinedText = (directory) =>
+  files(directory)
+    .map((file) => readFileSync(join(directory, file), "utf8"))
+    .join("\n");
+
 const sameTree = (left, right) => {
   const leftFiles = files(left);
   const rightFiles = files(right);
@@ -77,6 +84,14 @@ const sameTree = (left, right) => {
 try {
   try {
     run([]);
+    if (
+      !combinedText(target).includes("listWidgets") ||
+      !combinedText(target).includes("getWidget")
+    ) {
+      throw new Error(
+        "Initial fixture generation must contain both listWidgets and getWidget.",
+      );
+    }
     cpSync(target, snapshot, { recursive: true });
 
     run([]);
@@ -104,11 +119,27 @@ try {
     writeFileSync(changedPath, changedFixture);
     env.CLOUD_OPENAPI_SPEC = changedPath;
 
+    mkdirSync(join(target, "api"), { recursive: true });
+    writeFileSync(join(target, "obsolete-sentinel.ts"), "// obsolete\n");
+    writeFileSync(join(target, "api", "obsolete-nested.ts"), "// obsolete\n");
+
     run([]);
     if (
-      files(target).some((file) => file.toLowerCase().includes("getwidget"))
+      existsSync(join(target, "obsolete-sentinel.ts")) ||
+      existsSync(join(target, "api", "obsolete-nested.ts"))
     ) {
-      throw new Error("Regeneration retained the removed getWidget API file.");
+      throw new Error("Regeneration retained obsolete sentinel files.");
+    }
+    const regeneratedText = combinedText(target);
+    if (regeneratedText.includes("getWidget")) {
+      throw new Error(
+        "Regeneration retained the removed getWidget operation.",
+      );
+    }
+    if (!regeneratedText.includes("listWidgets")) {
+      throw new Error(
+        "Regeneration removed the retained listWidgets operation.",
+      );
     }
     run(["--check"]);
   } finally {
