@@ -80,3 +80,4 @@ build/
 
 # File Uploads
 backend/uploads/
+.cloud-openapi-*/

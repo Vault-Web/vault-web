@@ -1,0 +1,44 @@
+openapi: 3.0.3
+info:
+  title: Generator Fixture API
+  version: 1.0.0
+paths:
+  /widgets:
+    get:
+      operationId: listWidgets
+      responses:
+        "200":
+          description: Widget list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Widget"
+  /widgets/{id}:
+    get:
+      operationId: getWidget
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Widget
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Widget"
+components:
+  schemas:
+    Widget:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+        name:
+          type: string

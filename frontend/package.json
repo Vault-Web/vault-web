@@ -9,7 +9,10 @@
     "test": "ng test",
     "lint": "eslint 'src/**/*.{ts,html}'",
     "prettier:check": "prettier --check .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "api:generate": "node scripts/generate-cloud-api.mjs",
+    "api:check": "node scripts/generate-cloud-api.mjs --check",
+    "api:fixture:test": "node scripts/test-cloud-api-fixture.mjs"
   },
   "private": true,
   "dependencies": {
