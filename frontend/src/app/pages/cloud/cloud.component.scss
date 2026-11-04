@@ -511,15 +511,21 @@ $font-mono: ui-monospace, monospace;
   width: 100%;
   &.split-layout {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.25rem;
+    grid-template-columns:
+      minmax(10rem, var(--split-left, 1fr))
+      0.5rem
+      minmax(10rem, var(--split-right, 1fr));
+    gap: 0.5rem;
     align-items: stretch;
     .cloud-editor,
     .markdown-preview {
       height: 24rem;
     }
     @media (max-width: 768px) {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
+      .split-divider {
+        display: none;
+      }
       .markdown-preview,
       .cloud-editor {
         height: 16rem;
@@ -682,6 +688,22 @@ $font-mono: ui-monospace, monospace;
   padding-right: 0.75rem;
   max-height: 24rem;
   overflow-y: auto;
+  &.collapsed {
+    width: 2.25rem;
+    padding-right: 0.25rem;
+    overflow: hidden;
+    .outline-header {
+      justify-content: center;
+      margin-bottom: 0;
+    }
+    @media (max-width: 992px) {
+      width: 100%;
+      padding-bottom: 0.25rem;
+      .outline-header {
+        justify-content: flex-start;
+      }
+    }
+  }
   @media (max-width: 992px) {
     width: 100%;
     border-right: 0;
@@ -699,6 +721,42 @@ $font-mono: ui-monospace, monospace;
   letter-spacing: 0.05em;
   border-bottom: 1px solid var(--color-border);
   padding-bottom: 0.25rem;
+}
+.outline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  .outline-title {
+    flex: 1;
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+}
+.outline-toggle {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: 0.2rem 0.35rem;
+  border-radius: 0.3rem;
+  &:hover,
+  &:focus-visible {
+    color: var(--color-primary);
+    background: var(--color-surface-hover);
+  }
+}
+.split-divider {
+  cursor: col-resize;
+  touch-action: none;
+  border-radius: 0.25rem;
+  background: var(--color-border);
+  &:hover,
+  &:focus-visible {
+    background: var(--color-primary);
+    outline: none;
+  }
 }
 .outline-list {
   list-style: none;
@@ -751,6 +809,11 @@ $font-mono: ui-monospace, monospace;
     background: color-mix(in srgb, var(--color-primary) 10%, transparent);
     color: var(--color-primary);
     border-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  }
+  &.error {
+    background: color-mix(in srgb, #ef4444 10%, transparent);
+    color: #dc2626;
+    border-color: color-mix(in srgb, #ef4444 30%, transparent);
   }
   &.unsaved {
     background: color-mix(in srgb, #f59e0b 10%, transparent);

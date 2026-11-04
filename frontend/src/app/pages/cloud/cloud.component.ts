@@ -119,7 +119,13 @@ export class CloudComponent implements OnInit, OnDestroy {
   originalFileName = '';
   originalFileContent = '';
   outline: { text: string; level: number }[] = [];
-  saveStatus: 'saved' | 'saving' | 'unsaved' = 'saved';
+  saveStatus: 'saved' | 'saving' | 'unsaved' | 'error' = 'saved';
+  outlineCollapsed = false;
+  // Editor share of the split view, in percent.
+  splitPercent = 50;
+  readonly minSplitPercent = 25;
+  readonly maxSplitPercent = 75;
+  private draggingSplit = false;
   editorMode: 'edit' | 'preview' | 'split' = 'edit';
   previewHtml: SafeHtml = '';
 
@@ -1313,7 +1319,8 @@ export class CloudComponent implements OnInit, OnDestroy {
 
   async saveFile() {
     const nameToSave = this.newFileName.trim();
-    if (!nameToSave) return;
+    if (!nameToSave || this.saveStatus === 'saving') return;
+    this.saveStatus = 'saving';
 
     // Captured up front: closeFileEditor() clears editingFile before the toast runs.
     const isEdit = !!this.editingFile;
@@ -1351,6 +1358,7 @@ export class CloudComponent implements OnInit, OnDestroy {
           `"${savedName}" was saved.`,
         );
       } catch (err: unknown) {
+        this.saveStatus = 'error';
         this.toast.error('Save failed', this.getErrorMessage(err));
       }
       return;
@@ -1393,6 +1401,7 @@ export class CloudComponent implements OnInit, OnDestroy {
         `"${nameToSave}" was saved.`,
       );
     } catch (err: unknown) {
+      this.saveStatus = 'error';
       this.toast.error('Save failed', this.getErrorMessage(err));
     }
   }
@@ -1843,6 +1852,45 @@ export class CloudComponent implements OnInit, OnDestroy {
         }
       }
     }
+  }
+
+  toggleOutline(): void {
+    this.outlineCollapsed = !this.outlineCollapsed;
+  }
+
+  setSplitPercent(value: number): void {
+    this.splitPercent = Math.min(
+      this.maxSplitPercent,
+      Math.max(this.minSplitPercent, Math.round(value)),
+    );
+  }
+
+  onSplitPointerDown(event: PointerEvent): void {
+    this.draggingSplit = true;
+    (event.target as HTMLElement | null)?.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+  }
+
+  onSplitPointerMove(event: PointerEvent, container: HTMLElement): void {
+    if (!this.draggingSplit) return;
+    const rect = container.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    this.setSplitPercent(((event.clientX - rect.left) / rect.width) * 100);
+  }
+
+  onSplitPointerUp(): void {
+    this.draggingSplit = false;
+  }
+
+  onSplitKeydown(event: KeyboardEvent): void {
+    if (event.key === 'ArrowLeft') {
+      this.setSplitPercent(this.splitPercent - 5);
+    } else if (event.key === 'ArrowRight') {
+      this.setSplitPercent(this.splitPercent + 5);
+    } else {
+      return;
+    }
+    event.preventDefault();
   }
 
   onContentChange() {

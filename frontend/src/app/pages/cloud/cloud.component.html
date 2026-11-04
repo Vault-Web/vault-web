@@ -524,10 +524,11 @@
     [modal]="true"
     [closable]="true"
     [draggable]="false"
-    [resizable]="false"
+    [resizable]="true"
     [style]="{
       width: isMarkdownFile(newFileName) ? '78rem' : '44rem',
       maxWidth: '96vw',
+      minWidth: 'min(22rem, 96vw)',
     }"
     [header]="editingFile ? 'Edit File' : 'Create New File'"
     styleClass="cloud-dialog"
@@ -548,6 +549,7 @@
               'pi-check-circle': saveStatus === 'saved',
               'pi-spin pi-spinner': saveStatus === 'saving',
               'pi-pencil': saveStatus === 'unsaved',
+              'pi-exclamation-triangle': saveStatus === 'error',
             }"
           ></i>
           {{
@@ -555,7 +557,9 @@
               ? "Saved"
               : saveStatus === "saving"
                 ? "Saving..."
-                : "Unsaved changes"
+                : saveStatus === "error"
+                  ? "Save failed - changes kept"
+                  : "Unsaved changes"
           }}
         </span>
       </div>
@@ -605,14 +609,33 @@
         <!-- Outline Pane -->
         <aside
           class="markdown-outline-sidebar"
+          [class.collapsed]="outlineCollapsed"
           *ngIf="isMarkdownFile(newFileName)"
         >
-          <div
-            class="outline-title font-semibold mb-2 text-xxs sm:text-xs text-secondary uppercase tracking-wider"
-          >
-            Outline
+          <div class="outline-header">
+            <span
+              *ngIf="!outlineCollapsed"
+              class="outline-title font-semibold text-xxs sm:text-xs text-secondary uppercase tracking-wider"
+            >
+              Outline
+            </span>
+            <button
+              type="button"
+              class="outline-toggle"
+              (click)="toggleOutline()"
+              [attr.aria-expanded]="!outlineCollapsed"
+              [attr.aria-label]="
+                outlineCollapsed ? 'Show outline' : 'Hide outline'
+              "
+              [title]="outlineCollapsed ? 'Show outline' : 'Hide outline'"
+            >
+              <i
+                class="pi"
+                [ngClass]="outlineCollapsed ? 'pi-angle-right' : 'pi-angle-left'"
+              ></i>
+            </button>
           </div>
-          <ul class="outline-list text-xxs sm:text-xs">
+          <ul *ngIf="!outlineCollapsed" class="outline-list text-xxs sm:text-xs">
             <li
               *ngFor="let h of outline; let i = index"
               [class]="'outline-level-' + h.level"
@@ -624,7 +647,7 @@
             </li>
           </ul>
           <div
-            *ngIf="outline.length === 0"
+            *ngIf="!outlineCollapsed && outline.length === 0"
             class="outline-empty text-xxs sm:text-xs text-secondary italic px-2"
           >
             No headings
@@ -633,10 +656,13 @@
 
         <!-- Editor Container -->
         <div
+          #editorContainer
           class="cloud-editor-container"
           [class.split-layout]="
             isMarkdownFile(newFileName) && editorMode === 'split'
           "
+          [style.--split-left]="splitPercent + 'fr'"
+          [style.--split-right]="100 - splitPercent + 'fr'"
         >
           <!-- Edit Pane -->
           <div
@@ -659,6 +685,23 @@
               placeholder="Write markdown content here..."
             ></textarea>
           </div>
+
+          <div
+            *ngIf="isMarkdownFile(newFileName) && editorMode === 'split'"
+            class="split-divider"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize editor and preview"
+            tabindex="0"
+            [attr.aria-valuenow]="splitPercent"
+            [attr.aria-valuemin]="minSplitPercent"
+            [attr.aria-valuemax]="maxSplitPercent"
+            (pointerdown)="onSplitPointerDown($event)"
+            (pointermove)="onSplitPointerMove($event, editorContainer)"
+            (pointerup)="onSplitPointerUp()"
+            (pointercancel)="onSplitPointerUp()"
+            (keydown)="onSplitKeydown($event)"
+          ></div>
 
           <!-- Preview Pane -->
           <div
@@ -690,7 +733,8 @@
       ></p-button>
       <p-button
         label="Save"
-        icon="pi pi-save"
+        [icon]="saveStatus === 'saving' ? 'pi pi-spin pi-spinner' : 'pi pi-save'"
+        [disabled]="saveStatus === 'saving'"
         styleClass="p-button-sm text-xxs sm:text-xs"
         (click)="saveFile()"
       ></p-button>

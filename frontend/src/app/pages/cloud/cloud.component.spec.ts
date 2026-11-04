@@ -490,6 +490,92 @@ describe('CloudComponent Unsaved Changes Flow', () => {
       });
     });
 
+    it('toggles the outline collapsed state', () => {
+      expect(component.outlineCollapsed).toBeFalse();
+      component.toggleOutline();
+      expect(component.outlineCollapsed).toBeTrue();
+      component.toggleOutline();
+      expect(component.outlineCollapsed).toBeFalse();
+    });
+
+    it('clamps the split width to usable minimum sizes', () => {
+      component.setSplitPercent(5);
+      expect(component.splitPercent).toBe(component.minSplitPercent);
+      component.setSplitPercent(95);
+      expect(component.splitPercent).toBe(component.maxSplitPercent);
+      component.setSplitPercent(60);
+      expect(component.splitPercent).toBe(60);
+    });
+
+    it('adjusts the split with arrow keys', () => {
+      component.splitPercent = 50;
+      const right = new KeyboardEvent('keydown', { key: 'ArrowRight' });
+      component.onSplitKeydown(right);
+      expect(component.splitPercent).toBe(55);
+      const left = new KeyboardEvent('keydown', { key: 'ArrowLeft' });
+      component.onSplitKeydown(left);
+      component.onSplitKeydown(left);
+      expect(component.splitPercent).toBe(45);
+    });
+
+    it('keeps edits and shows an error state when saving fails', async () => {
+      component.showFileEditor = true;
+      component.editingFile = {
+        path: '/root/note.md',
+        name: 'note.md',
+        size: 0,
+        mimeType: '',
+      };
+      component.newFileName = 'note.md';
+      component.originalFileName = 'note.md';
+      component.originalFileContent = 'old';
+      component.fileContent = 'new';
+      component.currentFolder = { path: '/root', name: 'root' } as any;
+      cloudMock.uploadFile.and.returnValue(
+        throwError(() => new Error('boom')),
+      );
+
+      await component.saveFile();
+
+      expect(component.saveStatus).toBe('error');
+      expect(component.showFileEditor).toBeTrue();
+      expect(component.fileContent).toBe('new');
+      expect(component.originalFileContent).toBe('old');
+      expect(component.isEditorDirty).toBeTrue();
+    });
+
+    it('returns to unsaved after editing following a failed save', () => {
+      component.showFileEditor = true;
+      component.newFileName = 'note.md';
+      component.originalFileName = 'note.md';
+      component.originalFileContent = 'old';
+      component.fileContent = 'newer';
+      component.saveStatus = 'error';
+      component.onContentChange();
+      expect(component.saveStatus).toBe('unsaved');
+    });
+
+    it('shows saving while the save is in flight and ignores re-entry', async () => {
+      component.showFileEditor = true;
+      component.newFileName = 'note.md';
+      component.originalFileName = 'note.md';
+      component.originalFileContent = 'old';
+      component.fileContent = 'new';
+      component.currentFolder = { path: '/root', name: 'root' } as any;
+      const pending = new Subject<any>();
+      cloudMock.uploadFile.and.returnValue(pending);
+
+      const first = component.saveFile();
+      expect(component.saveStatus).toBe('saving');
+      await component.saveFile();
+      expect(cloudMock.uploadFile).toHaveBeenCalledTimes(1);
+
+      pending.next({});
+      pending.complete();
+      await first;
+      expect(component.saveStatus).toBe('saved');
+    });
+
     it('does not autosave or reload the folder while typing (#300 regression)', () => {
       component.showFileEditor = true;
       component.newFileName = 'note.md';
