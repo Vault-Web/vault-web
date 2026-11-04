@@ -1351,7 +1351,7 @@ export class CloudComponent implements OnInit, OnDestroy {
         this.originalFileName = savedName;
         if (
           this.fileContent === contentToSave &&
-          this.newFileName.trim() === savedName
+          (isEdit || this.newFileName.trim() === savedName)
         ) {
           this.closeFileEditor();
         } else {

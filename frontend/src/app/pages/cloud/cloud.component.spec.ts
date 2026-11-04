@@ -1092,15 +1092,13 @@ describe('CloudComponent unsaved-edit guard', () => {
       component.currentFolder = { path: '/root/sub', name: 'sub' } as never;
     });
 
-    it('downloads the folder as a zip archive and triggers browser download', () => {
+    it('downloads the folder as a zip archive and triggers browser download', fakeAsync(() => {
       const mockBlob = new Blob(['zip content'], { type: 'application/zip' });
       cloudMock.getFolderArchive.and.returnValue(of(mockBlob));
 
-      const mockAnchor = jasmine.createSpyObj<HTMLAnchorElement>(
-        'HTMLAnchorElement',
-        ['click'],
-      );
-      spyOn(document, 'createElement').and.returnValue(mockAnchor as any);
+      const mockAnchor = document.createElement('a');
+      spyOn(mockAnchor, 'click');
+      spyOn(document, 'createElement').and.returnValue(mockAnchor);
       spyOn(URL, 'createObjectURL').and.returnValue('blob:mock-url');
       spyOn(URL, 'revokeObjectURL');
 
@@ -1111,12 +1109,14 @@ describe('CloudComponent unsaved-edit guard', () => {
       expect(mockAnchor.href).toBe('blob:mock-url');
       expect(mockAnchor.download).toBe('sub.zip');
       expect(mockAnchor.click).toHaveBeenCalled();
+      expect(document.body.contains(mockAnchor)).toBeFalse();
+      tick(60_000);
       expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
       expect(toastMock.info).toHaveBeenCalledWith(
         'Download started',
         '"sub.zip" is downloading.',
       );
-    });
+    }));
 
     it('surfaces folder archive backend errors using toast notifications', (done) => {
       const mockErrorResponse = {
