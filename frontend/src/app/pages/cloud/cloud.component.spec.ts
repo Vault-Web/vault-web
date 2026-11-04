@@ -531,9 +531,7 @@ describe('CloudComponent Unsaved Changes Flow', () => {
       component.originalFileContent = 'old';
       component.fileContent = 'new';
       component.currentFolder = { path: '/root', name: 'root' } as any;
-      cloudMock.uploadFile.and.returnValue(
-        throwError(() => new Error('boom')),
-      );
+      cloudMock.uploadFile.and.returnValue(throwError(() => new Error('boom')));
 
       await component.saveFile();
 
@@ -574,6 +572,69 @@ describe('CloudComponent Unsaved Changes Flow', () => {
       pending.complete();
       await first;
       expect(component.saveStatus).toBe('saved');
+    });
+
+    it('keeps later edits unsaved while a previous version is uploading', async () => {
+      component.showFileEditor = true;
+      component.editingFile = {
+        path: '/root/note.md',
+        name: 'note.md',
+        size: 0,
+        mimeType: 'text/markdown',
+      };
+      component.newFileName = 'note.md';
+      component.originalFileName = 'note.md';
+      component.originalFileContent = 'old';
+      component.fileContent = 'first edit';
+      component.currentFolder = { path: '/root', name: 'root' } as any;
+      const pending = new Subject<any>();
+      cloudMock.uploadFile.and.returnValue(pending);
+
+      const firstSave = component.saveFile();
+      component.fileContent = 'second edit';
+      component.onContentChange();
+      await component.saveFile();
+
+      expect(component.saveStatus).toBe('saving');
+      expect(cloudMock.uploadFile).toHaveBeenCalledTimes(1);
+
+      pending.next({});
+      pending.complete();
+      await firstSave;
+
+      expect(component.showFileEditor).toBeTrue();
+      expect(component.fileContent).toBe('second edit');
+      expect(component.originalFileContent).toBe('first edit');
+      expect(component.saveStatus).toBe('unsaved');
+      expect(component.isEditorDirty).toBeTrue();
+    });
+
+    it('can retry an upload after a successful rename and failed upload', async () => {
+      component.showFileEditor = true;
+      component.editingFile = {
+        path: '/root/note.md',
+        name: 'note.md',
+        size: 0,
+        mimeType: 'text/markdown',
+      };
+      component.newFileName = 'renamed.md';
+      component.originalFileName = 'note.md';
+      component.originalFileContent = 'old';
+      component.fileContent = 'new';
+      component.currentFolder = { path: '/root', name: 'root' } as any;
+      cloudMock.renameOrMoveFile.and.returnValue(of({} as any));
+      cloudMock.uploadFile.and.returnValues(
+        throwError(() => new Error('upload failed')),
+        of({} as any),
+      );
+
+      await component.saveFile();
+      expect(component.saveStatus).toBe('error');
+      expect(component.editingFile?.path).toBe('/root/renamed.md');
+
+      await component.saveFile();
+      expect(cloudMock.renameOrMoveFile).toHaveBeenCalledTimes(1);
+      expect(component.showFileEditor).toBeFalse();
     });
 
     it('does not autosave or reload the folder while typing (#300 regression)', () => {

@@ -240,3 +240,85 @@ body {
 .cloud-avatar-more {
   background: var(--color-text-muted);
 }
+
+/* Markdown editor controls live globally to keep Cloud's component styles
+   inside the Angular style budget. The dialog class scopes them to this UI. */
+.cloud-dialog {
+  .markdown-outline-sidebar.collapsed {
+    width: 2.5rem;
+    padding-right: 0.25rem;
+    overflow: hidden;
+    .outline-header {
+      justify-content: center;
+      margin-bottom: 0;
+    }
+  }
+  .outline-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    .outline-title {
+      flex: 1;
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+  }
+  .outline-toggle {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 2rem;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 0;
+    border-radius: 0.35rem;
+    background: transparent;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    &:hover,
+    &:focus-visible {
+      color: var(--color-primary);
+      background: var(--color-surface-hover);
+    }
+  }
+  .split-divider {
+    position: relative;
+    cursor: col-resize;
+    touch-action: none;
+    &:before,
+    &:after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: var(--color-border);
+    }
+    &:before {
+      top: 0;
+      bottom: 0;
+      width: 2px;
+    }
+    &:after {
+      top: calc(50% - 1rem);
+      width: 4px;
+      height: 2rem;
+    }
+    &:hover:after,
+    &:focus-visible:after {
+      background: var(--color-primary);
+    }
+  }
+}
+
+@container (max-width: 62rem) {
+  .cloud-dialog .markdown-outline-sidebar.collapsed {
+    width: 100%;
+    padding-bottom: 0.25rem;
+    .outline-header {
+      justify-content: flex-start;
+    }
+  }
+}

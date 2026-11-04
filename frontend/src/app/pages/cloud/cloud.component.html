@@ -522,7 +522,8 @@
     [(visible)]="showFileEditor"
     (onHide)="onFileEditorHide()"
     [modal]="true"
-    [closable]="true"
+    [closable]="!isSavingFile"
+    [closeOnEscape]="!isSavingFile"
     [draggable]="false"
     [resizable]="true"
     [style]="{
@@ -533,7 +534,7 @@
     [header]="editingFile ? 'Edit File' : 'Create New File'"
     styleClass="cloud-dialog"
   >
-    <div class="cloud-dialog-body">
+    <div class="cloud-dialog-body markdown-editor-body">
       <div
         class="editor-header-bar flex justify-between align-items-center mb-1"
       >
@@ -631,11 +632,16 @@
             >
               <i
                 class="pi"
-                [ngClass]="outlineCollapsed ? 'pi-angle-right' : 'pi-angle-left'"
+                [ngClass]="
+                  outlineCollapsed ? 'pi-angle-right' : 'pi-angle-left'
+                "
               ></i>
             </button>
           </div>
-          <ul *ngIf="!outlineCollapsed" class="outline-list text-xxs sm:text-xs">
+          <ul
+            *ngIf="!outlineCollapsed"
+            class="outline-list text-xxs sm:text-xs"
+          >
             <li
               *ngFor="let h of outline; let i = index"
               [class]="'outline-level-' + h.level"
@@ -728,13 +734,14 @@
     <ng-template pTemplate="footer">
       <p-button
         label="Cancel"
+        [disabled]="isSavingFile"
         styleClass="p-button-text p-button-sm text-xxs sm:text-xs"
         (click)="requestCloseFileEditor()"
       ></p-button>
       <p-button
         label="Save"
-        [icon]="saveStatus === 'saving' ? 'pi pi-spin pi-spinner' : 'pi pi-save'"
-        [disabled]="saveStatus === 'saving'"
+        [icon]="isSavingFile ? 'pi pi-spin pi-spinner' : 'pi pi-save'"
+        [disabled]="isSavingFile"
         styleClass="p-button-sm text-xxs sm:text-xs"
         (click)="saveFile()"
       ></p-button>
