@@ -164,6 +164,16 @@ describe('CloudService Secure Send', () => {
     req.flush(null);
   });
 
+  it('should reactivate a secure send link via POST', () => {
+    service.reactivateSecureSendLink('link-1').subscribe();
+
+    const req = httpMock.expectOne((r) =>
+      r.url.endsWith('/secure-sends/link-1/reactivate'),
+    );
+    expect(req.request.method).toBe('POST');
+    req.flush(null);
+  });
+
   it('should request folders/download with path query param for folder archive', () => {
     service.getFolderArchive('test-folder').subscribe();
 

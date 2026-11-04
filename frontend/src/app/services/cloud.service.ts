@@ -333,6 +333,14 @@ export class CloudService {
     return this.http.delete<void>(`${this.apiUrl}/secure-sends/${encodedId}`);
   }
 
+  reactivateSecureSendLink(id: string): Observable<void> {
+    const encodedId = encodeURIComponent(id);
+    return this.http.post<void>(
+      `${this.apiUrl}/secure-sends/${encodedId}/reactivate`,
+      {},
+    );
+  }
+
   deleteSecureSendLink(id: string): Observable<void> {
     const encodedId = encodeURIComponent(id);
     return this.http.delete<void>(

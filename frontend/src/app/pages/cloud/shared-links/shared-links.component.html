@@ -179,6 +179,23 @@
           <td>
             <div class="shared-actions">
               <p-button
+                *ngIf="link.isRevoked"
+                label="Reactivate"
+                icon="pi pi-replay"
+                styleClass="p-button-text p-button-sm"
+                [disabled]="isProcessing(link.id) || !canReactivate(link)"
+                [loading]="isProcessing(link.id)"
+                (click)="confirmReactivateLink(link)"
+                [pTooltip]="
+                  canReactivate(link)
+                    ? 'Make the original link work again'
+                    : 'Expired links cannot be reactivated'
+                "
+                tooltipPosition="top"
+                ariaLabel="Reactivate share link"
+              ></p-button>
+              <p-button
+                *ngIf="!link.isRevoked"
                 label="Revoke"
                 icon="pi pi-ban"
                 severity="danger"
