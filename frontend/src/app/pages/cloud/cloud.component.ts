@@ -121,6 +121,8 @@ export class CloudComponent implements OnInit, OnDestroy {
   outline: { text: string; level: number }[] = [];
   saveStatus: 'saved' | 'saving' | 'unsaved' | 'error' = 'saved';
   isSavingFile = false;
+  confirmDiscardFileEditor = false;
+  private pendingEditorLeave?: (allow: boolean) => void;
   outlineCollapsed = false;
   // Editor share of the split view, in percent.
   splitPercent = 50;
@@ -1943,6 +1945,9 @@ export class CloudComponent implements OnInit, OnDestroy {
 
   closeFileEditor() {
     this.showFileEditor = false;
+    this.confirmDiscardFileEditor = false;
+    this.pendingEditorLeave?.(true);
+    this.pendingEditorLeave = undefined;
     this.editingFile = null;
     this.newFileName = '';
     this.fileContent = '';
@@ -1957,23 +1962,10 @@ export class CloudComponent implements OnInit, OnDestroy {
   canDeactivate(): Promise<boolean> | boolean {
     if (this.isSavingFile) return false;
     if (this.isEditorDirty) {
+      this.confirmDiscardFileEditor = true;
       return new Promise<boolean>((resolve) => {
-        this.confirmationService.confirm({
-          header: 'Unsaved changes',
-          message: 'Exit without saving? Your changes will be lost.',
-          icon: 'pi pi-exclamation-triangle',
-          acceptLabel: 'Discard',
-          rejectLabel: 'Keep editing',
-          acceptButtonStyleClass: 'p-button-danger p-button-sm',
-          rejectButtonStyleClass: 'p-button-text p-button-sm',
-          accept: () => {
-            this.closeFileEditor();
-            resolve(true);
-          },
-          reject: () => {
-            resolve(false);
-          },
-        });
+        this.pendingEditorLeave?.(false);
+        this.pendingEditorLeave = resolve;
       });
     }
     return true;
@@ -2002,16 +1994,18 @@ export class CloudComponent implements OnInit, OnDestroy {
       this.closeFileEditor();
       return;
     }
-    this.confirmationService.confirm({
-      header: 'Unsaved changes',
-      message: 'Exit without saving? Your changes will be lost.',
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Discard',
-      rejectLabel: 'Keep editing',
-      acceptButtonStyleClass: 'p-button-danger p-button-sm',
-      rejectButtonStyleClass: 'p-button-text p-button-sm',
-      accept: () => this.closeFileEditor(),
-    });
+    this.confirmDiscardFileEditor = true;
+  }
+
+  keepEditingFile(): void {
+    this.confirmDiscardFileEditor = false;
+    this.pendingEditorLeave?.(false);
+    this.pendingEditorLeave = undefined;
+  }
+
+  discardFileEditorChanges(): void {
+    if (this.isSavingFile) return;
+    this.closeFileEditor();
   }
 
   /**

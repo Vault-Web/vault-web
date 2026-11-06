@@ -313,6 +313,18 @@ body {
   }
 }
 
+.file-editor-dialog .p-dialog-footer {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.file-editor-discard-warning {
+  flex: 1 1 100%;
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  text-align: right;
+}
+
 @container (max-width: 62rem) {
   .cloud-dialog .markdown-outline-sidebar.collapsed {
     width: 100%;

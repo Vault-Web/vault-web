@@ -325,7 +325,7 @@ describe('CloudComponent Unsaved Changes Flow', () => {
     expect(component.isEditorDirty).toBeTrue();
   });
 
-  it('should prompt user on requestCloseFileEditor when dirty', () => {
+  it('should show the inline discard choice on requestCloseFileEditor when dirty', () => {
     component.showFileEditor = true;
     component.originalFileContent = 'hello';
     component.fileContent = 'hello world';
@@ -334,7 +334,8 @@ describe('CloudComponent Unsaved Changes Flow', () => {
 
     component.requestCloseFileEditor();
 
-    expect(confirmMock.confirm).toHaveBeenCalled();
+    expect(component.confirmDiscardFileEditor).toBeTrue();
+    expect(confirmMock.confirm).not.toHaveBeenCalled();
   });
 
   it('should not prompt user on requestCloseFileEditor when not dirty', () => {
@@ -379,14 +380,11 @@ describe('CloudComponent Unsaved Changes Flow', () => {
     component.originalFileName = 'a.txt';
     component.newFileName = 'a.txt';
 
-    confirmMock.confirm.and.callFake((config) => {
-      if (config.reject) config.reject();
-      return confirmMock;
-    });
-
-    const result = await component.canDeactivate();
-    expect(result).toBeFalse();
-    expect(confirmMock.confirm).toHaveBeenCalled();
+    const result = component.canDeactivate() as Promise<boolean>;
+    expect(component.confirmDiscardFileEditor).toBeTrue();
+    component.keepEditingFile();
+    expect(await result).toBeFalse();
+    expect(confirmMock.confirm).not.toHaveBeenCalled();
   });
 
   it('should return true in canDeactivate and close editor when accepted', async () => {
@@ -396,14 +394,11 @@ describe('CloudComponent Unsaved Changes Flow', () => {
     component.originalFileName = 'a.txt';
     component.newFileName = 'a.txt';
 
-    confirmMock.confirm.and.callFake((config) => {
-      if (config.accept) config.accept();
-      return confirmMock;
-    });
-
-    const result = await component.canDeactivate();
-    expect(result).toBeTrue();
-    expect(confirmMock.confirm).toHaveBeenCalled();
+    const result = component.canDeactivate() as Promise<boolean>;
+    expect(component.confirmDiscardFileEditor).toBeTrue();
+    component.discardFileEditorChanges();
+    expect(await result).toBeTrue();
+    expect(confirmMock.confirm).not.toHaveBeenCalled();
     expect(component.showFileEditor).toBeFalse();
   });
 
@@ -987,13 +982,6 @@ describe('CloudComponent unsaved-edit guard', () => {
     component.originalFileContent = content;
   }
 
-  function acceptLastConfirm(): void {
-    const config = confirmMock.confirm.calls.mostRecent().args[0] as {
-      accept: () => void;
-    };
-    config.accept();
-  }
-
   it('closes without asking when the editor has no unsaved edits', () => {
     openEditor('hello');
     component.requestCloseFileEditor();
@@ -1001,17 +989,31 @@ describe('CloudComponent unsaved-edit guard', () => {
     expect(component.showFileEditor).toBeFalse();
   });
 
-  it('asks before discarding, and only closes once Discard is confirmed', () => {
+  it('keeps the editor open until Discard changes is chosen', () => {
     openEditor('hello');
     component.fileContent = 'hello world'; // dirty
 
     component.requestCloseFileEditor();
-    expect(confirmMock.confirm).toHaveBeenCalledTimes(1);
+    expect(component.confirmDiscardFileEditor).toBeTrue();
+    expect(confirmMock.confirm).not.toHaveBeenCalled();
     expect(component.showFileEditor).toBeTrue(); // stays open until confirmed
 
-    acceptLastConfirm();
+    component.discardFileEditorChanges();
     expect(component.showFileEditor).toBeFalse();
+    expect(component.confirmDiscardFileEditor).toBeFalse();
     expect(component.fileContent).toBe(''); // editor state fully reset
+  });
+
+  it('keeps unsaved edits when Keep editing is chosen', () => {
+    openEditor('hello');
+    component.fileContent = 'hello world';
+
+    component.requestCloseFileEditor();
+    component.keepEditingFile();
+
+    expect(component.confirmDiscardFileEditor).toBeFalse();
+    expect(component.showFileEditor).toBeTrue();
+    expect(component.fileContent).toBe('hello world');
   });
 
   it('asks before discarding when only the file name changed', () => {
@@ -1020,7 +1022,7 @@ describe('CloudComponent unsaved-edit guard', () => {
 
     component.requestCloseFileEditor();
 
-    expect(confirmMock.confirm).toHaveBeenCalledTimes(1);
+    expect(component.confirmDiscardFileEditor).toBeTrue();
     expect(component.showFileEditor).toBeTrue();
   });
 
@@ -1032,7 +1034,7 @@ describe('CloudComponent unsaved-edit guard', () => {
     component.onFileEditorHide();
 
     expect(component.showFileEditor).toBeTrue(); // reopened
-    expect(confirmMock.confirm).toHaveBeenCalledTimes(1);
+    expect(component.confirmDiscardFileEditor).toBeTrue();
   });
 
   it('lets a clean dialog dismiss close with no prompt', () => {

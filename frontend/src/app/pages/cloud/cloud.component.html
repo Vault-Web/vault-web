@@ -532,7 +532,7 @@
       minWidth: 'min(22rem, 96vw)',
     }"
     [header]="editingFile ? 'Edit File' : 'Create New File'"
-    styleClass="cloud-dialog"
+    styleClass="cloud-dialog file-editor-dialog"
   >
     <div class="cloud-dialog-body markdown-editor-body">
       <div
@@ -732,18 +732,38 @@
       </div>
     </div>
     <ng-template pTemplate="footer">
+      <span
+        *ngIf="confirmDiscardFileEditor"
+        class="file-editor-discard-warning"
+        role="alert"
+      >
+        Unsaved changes will be lost.
+      </span>
       <p-button
-        label="Cancel"
+        [label]="confirmDiscardFileEditor ? 'Keep editing' : 'Cancel'"
         [disabled]="isSavingFile"
         styleClass="p-button-text p-button-sm text-xxs sm:text-xs"
-        (click)="requestCloseFileEditor()"
+        (click)="
+          confirmDiscardFileEditor
+            ? keepEditingFile()
+            : requestCloseFileEditor()
+        "
       ></p-button>
       <p-button
-        label="Save"
-        [icon]="isSavingFile ? 'pi pi-spin pi-spinner' : 'pi pi-save'"
+        [label]="confirmDiscardFileEditor ? 'Discard changes' : 'Save'"
+        [icon]="
+          confirmDiscardFileEditor
+            ? 'pi pi-trash'
+            : isSavingFile
+              ? 'pi pi-spin pi-spinner'
+              : 'pi pi-save'
+        "
         [disabled]="isSavingFile"
+        [severity]="confirmDiscardFileEditor ? 'danger' : undefined"
         styleClass="p-button-sm text-xxs sm:text-xs"
-        (click)="saveFile()"
+        (click)="
+          confirmDiscardFileEditor ? discardFileEditorChanges() : saveFile()
+        "
       ></p-button>
     </ng-template>
   </p-dialog>
