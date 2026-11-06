@@ -1,5 +1,10 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpContext,
+  HttpHeaders,
+  HttpParams,
+} from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { FolderDto } from '../models/dtos/FolderDto';
 import { FolderContentItemDto } from '../models/dtos/FolderContentItemDto';
@@ -13,6 +18,7 @@ import {
   CreateSecureSendRequestDto,
 } from '../models/dtos/SecureSendLinkDto';
 import { environment } from '../../environments/environment';
+import { SKIP_GLOBAL_ERROR_PAGE } from '../core/interceptors/token.interceptor';
 
 interface RawSecureSendResponse {
   id?: string;
@@ -322,7 +328,9 @@ export class CloudService {
       .pipe(
         map((resList) =>
           Array.isArray(resList)
-            ? resList.map((item) => this.mapSecureSendLink(item))
+            ? resList.map((item) =>
+                this.mapSecureSendLink(item, '', undefined, false),
+              )
             : [],
         ),
       );
@@ -331,6 +339,15 @@ export class CloudService {
   revokeSecureSendLink(id: string): Observable<void> {
     const encodedId = encodeURIComponent(id);
     return this.http.delete<void>(`${this.apiUrl}/secure-sends/${encodedId}`);
+  }
+
+  reactivateSecureSendLink(id: string): Observable<void> {
+    const encodedId = encodeURIComponent(id);
+    return this.http.post<void>(
+      `${this.apiUrl}/secure-sends/${encodedId}/reactivate`,
+      {},
+      { context: new HttpContext().set(SKIP_GLOBAL_ERROR_PAGE, true) },
+    );
   }
 
   deleteSecureSendLink(id: string): Observable<void> {
@@ -344,6 +361,7 @@ export class CloudService {
     res: RawSecureSendResponse,
     defaultPath = '',
     password?: string,
+    includeUrl = true,
   ): SecureSendLinkDto {
     const rawPath = res?.filePath || res?.path || defaultPath;
     const fileName =
@@ -351,11 +369,12 @@ export class CloudService {
       res?.name ||
       (rawPath ? rawPath.substring(rawPath.lastIndexOf('/') + 1) : 'File');
     const id = res?.id || res?.linkId || res?.token || '';
-    const token = res?.token || res?.shareToken || id;
+    const token = includeUrl ? res?.token || res?.shareToken || id : undefined;
 
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    const shareUrl =
-      res?.url || res?.shareUrl || (token ? `${origin}/share/${token}` : '');
+    const shareUrl = includeUrl
+      ? res?.url || res?.shareUrl || (token ? `${origin}/share/${token}` : '')
+      : undefined;
 
     return {
       id,

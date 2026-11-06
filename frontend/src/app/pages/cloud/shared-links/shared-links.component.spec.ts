@@ -13,6 +13,7 @@ describe('SharedLinksComponent', () => {
   let cloudMock: jasmine.SpyObj<{
     listSecureSendLinks: () => unknown;
     revokeSecureSendLink: (id: string) => unknown;
+    reactivateSecureSendLink: (id: string) => unknown;
   }>;
   let shareMock: jasmine.SpyObj<{
     listOwned: () => unknown;
@@ -56,6 +57,7 @@ describe('SharedLinksComponent', () => {
     cloudMock = jasmine.createSpyObj('CloudService', [
       'listSecureSendLinks',
       'revokeSecureSendLink',
+      'reactivateSecureSendLink',
     ]);
     shareMock = jasmine.createSpyObj('ResourceShareService', [
       'listOwned',
@@ -115,6 +117,79 @@ describe('SharedLinksComponent', () => {
       'Link revoked',
       'The share link for "a.txt" no longer works.',
     );
+  });
+
+  it('reactivates a revoked link only after confirmation', () => {
+    const revoked = {
+      ...link,
+      isRevoked: true,
+      revokedAt: '2026-07-21T00:00:00Z',
+    };
+    cloudMock.reactivateSecureSendLink.and.returnValue(of(void 0));
+
+    component.confirmReactivateLink(revoked);
+    expect(cloudMock.reactivateSecureSendLink).not.toHaveBeenCalled();
+
+    acceptNextConfirmation();
+    component.confirmReactivateLink(revoked);
+
+    expect(cloudMock.reactivateSecureSendLink).toHaveBeenCalledWith('link1');
+    expect(revoked.isRevoked).toBeFalse();
+    expect(component.linkStatus(revoked)).toBe('active');
+    expect(component.isProcessing('link1')).toBeFalse();
+    expect(toastMock.success).toHaveBeenCalled();
+  });
+
+  it('allows a reactivated never-expiring link to be revoked again', () => {
+    const revoked: SecureSendLinkDto = {
+      ...link,
+      expiresAt: null,
+      isRevoked: true,
+    };
+    cloudMock.reactivateSecureSendLink.and.returnValue(of(void 0));
+    cloudMock.revokeSecureSendLink.and.returnValue(of(void 0));
+    acceptNextConfirmation();
+
+    component.confirmReactivateLink(revoked);
+    expect(component.linkStatus(revoked)).toBe('never-expires');
+    expect(component.canRevoke(revoked)).toBeTrue();
+
+    component.confirmRevokeLink(revoked);
+    expect(cloudMock.revokeSecureSendLink).toHaveBeenCalledWith('link1');
+    expect(revoked.isRevoked).toBeTrue();
+  });
+
+  it('keeps a link revoked and shows an error when reactivation fails', () => {
+    const revoked = { ...link, isRevoked: true };
+    cloudMock.reactivateSecureSendLink.and.returnValue(
+      throwError(() => ({ status: 500 })),
+    );
+    acceptNextConfirmation();
+
+    component.confirmReactivateLink(revoked);
+
+    expect(revoked.isRevoked).toBeTrue();
+    expect(component.isProcessing('link1')).toBeFalse();
+    expect(toastMock.error).toHaveBeenCalledWith(
+      'Reactivation failed',
+      'The share link could not be reactivated.',
+    );
+  });
+
+  it('does not offer reactivation for expired or non-revoked links', () => {
+    const expired = {
+      ...link,
+      isRevoked: true,
+      expiresAt: '2020-01-01T00:00:00Z',
+    };
+    acceptNextConfirmation();
+
+    component.confirmReactivateLink(expired);
+    component.confirmReactivateLink({ ...link });
+
+    expect(component.canReactivate(expired)).toBeFalse();
+    expect(confirmMock.confirm).not.toHaveBeenCalled();
+    expect(cloudMock.reactivateSecureSendLink).not.toHaveBeenCalled();
   });
 
   it('drops a revoked member share from the list', () => {

@@ -146,10 +146,15 @@ export class SharedLinksComponent implements OnInit {
     return this.isExpired(link) ? 'expired' : 'active';
   }
 
+  canRevoke(link: SecureSendLinkDto): boolean {
+    return !link.isRevoked && !this.isExpired(link);
+  }
+
   confirmRevokeLink(link: SecureSendLinkDto): void {
+    if (this.isProcessing(link.id) || !this.canRevoke(link)) return;
     this.confirmationService.confirm({
       header: 'Revoke share link',
-      message: `Anyone holding the link to "${link.fileName}" will lose access immediately. This cannot be undone.`,
+      message: `Anyone holding the link to "${link.fileName}" will lose access immediately. You can reactivate it later unless it expires or is deleted.`,
       icon: 'pi pi-exclamation-triangle',
       acceptLabel: 'Revoke',
       rejectLabel: 'Cancel',
@@ -160,6 +165,7 @@ export class SharedLinksComponent implements OnInit {
   }
 
   private revokeLink(link: SecureSendLinkDto): void {
+    if (this.isProcessing(link.id) || !this.canRevoke(link)) return;
     this.processingIds.add(link.id);
     this.cloudService
       .revokeSecureSendLink(link.id)
@@ -177,6 +183,49 @@ export class SharedLinksComponent implements OnInit {
           this.toast.error(
             'Revocation failed',
             'The share link could not be revoked.',
+          ),
+      });
+  }
+
+  canReactivate(link: SecureSendLinkDto): boolean {
+    return Boolean(link.isRevoked) && !this.isExpired(link);
+  }
+
+  confirmReactivateLink(link: SecureSendLinkDto): void {
+    if (this.isProcessing(link.id) || !this.canReactivate(link)) {
+      return;
+    }
+    this.confirmationService.confirm({
+      header: 'Reactivate share link',
+      message: `Anyone who still has the old link to "${link.fileName}" will regain access immediately.`,
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Reactivate',
+      rejectLabel: 'Cancel',
+      acceptButtonStyleClass: 'p-button-sm',
+      rejectButtonStyleClass: 'p-button-text p-button-sm',
+      accept: () => this.reactivateLink(link),
+    });
+  }
+
+  private reactivateLink(link: SecureSendLinkDto): void {
+    if (this.isProcessing(link.id) || !this.canReactivate(link)) return;
+    this.processingIds.add(link.id);
+    this.cloudService
+      .reactivateSecureSendLink(link.id)
+      .pipe(finalize(() => this.processingIds.delete(link.id)))
+      .subscribe({
+        next: () => {
+          link.isRevoked = false;
+          link.revokedAt = null;
+          this.toast.success(
+            'Link reactivated',
+            `The share link for "${link.fileName}" works again.`,
+          );
+        },
+        error: () =>
+          this.toast.error(
+            'Reactivation failed',
+            'The share link could not be reactivated.',
           ),
       });
   }

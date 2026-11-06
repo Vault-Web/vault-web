@@ -1,5 +1,6 @@
 import {
   HttpErrorResponse,
+  HttpContextToken,
   HttpHandlerFn,
   HttpInterceptorFn,
   HttpRequest,
@@ -12,6 +13,9 @@ import { NetworkStatusService } from '../services/network-status.service';
 import { environment } from '../../../environments/environment';
 
 const PUBLIC_API_PREFIXES = [`${environment.cloudServiceApiUrl}/public/`];
+export const SKIP_GLOBAL_ERROR_PAGE = new HttpContextToken<boolean>(
+  () => false,
+);
 
 let refreshTokenSubject = new ReplaySubject<string>(1);
 let isRefreshing = false;
@@ -47,7 +51,11 @@ export const tokenInterceptor: HttpInterceptorFn = (req, next) => {
         if (error.status === 401) {
           return handleUnauthorized(req, next, authService, error);
         }
-        if (isServerError(error) && !isExcludedFromErrorPage(req.url)) {
+        if (
+          isServerError(error) &&
+          !req.context.get(SKIP_GLOBAL_ERROR_PAGE) &&
+          !isExcludedFromErrorPage(req.url)
+        ) {
           void router.navigate(['/error']);
         }
         return throwError(() => error);
@@ -77,7 +85,11 @@ export const tokenInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       if (error.status !== 401) {
-        if (isServerError(error) && !isExcludedFromErrorPage(req.url)) {
+        if (
+          isServerError(error) &&
+          !req.context.get(SKIP_GLOBAL_ERROR_PAGE) &&
+          !isExcludedFromErrorPage(req.url)
+        ) {
           void router.navigate(['/error']);
         }
         return throwError(() => error);
