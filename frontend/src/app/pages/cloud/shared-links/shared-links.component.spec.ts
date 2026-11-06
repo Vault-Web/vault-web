@@ -140,6 +140,25 @@ describe('SharedLinksComponent', () => {
     expect(toastMock.success).toHaveBeenCalled();
   });
 
+  it('allows a reactivated never-expiring link to be revoked again', () => {
+    const revoked: SecureSendLinkDto = {
+      ...link,
+      expiresAt: null,
+      isRevoked: true,
+    };
+    cloudMock.reactivateSecureSendLink.and.returnValue(of(void 0));
+    cloudMock.revokeSecureSendLink.and.returnValue(of(void 0));
+    acceptNextConfirmation();
+
+    component.confirmReactivateLink(revoked);
+    expect(component.linkStatus(revoked)).toBe('never-expires');
+    expect(component.canRevoke(revoked)).toBeTrue();
+
+    component.confirmRevokeLink(revoked);
+    expect(cloudMock.revokeSecureSendLink).toHaveBeenCalledWith('link1');
+    expect(revoked.isRevoked).toBeTrue();
+  });
+
   it('keeps a link revoked and shows an error when reactivation fails', () => {
     const revoked = { ...link, isRevoked: true };
     cloudMock.reactivateSecureSendLink.and.returnValue(

@@ -4,6 +4,7 @@ import {
   HttpTestingController,
 } from '@angular/common/http/testing';
 import { CloudService } from './cloud.service';
+import { SKIP_GLOBAL_ERROR_PAGE } from '../core/interceptors/token.interceptor';
 
 describe('CloudService Checksum', () => {
   let service: CloudService;
@@ -125,6 +126,8 @@ describe('CloudService Secure Send', () => {
       expect(links.length).toBe(1);
       expect(links[0].hasPassword).toBeTrue();
       expect(links[0].isRevoked).toBeFalse();
+      expect(links[0].shareUrl).toBeUndefined();
+      expect(links[0].token).toBeUndefined();
     });
 
     const req = httpMock.expectOne((r) => r.url.endsWith('/secure-sends'));
@@ -171,6 +174,7 @@ describe('CloudService Secure Send', () => {
       r.url.endsWith('/secure-sends/link-1/reactivate'),
     );
     expect(req.request.method).toBe('POST');
+    expect(req.request.context.get(SKIP_GLOBAL_ERROR_PAGE)).toBeTrue();
     req.flush(null);
   });
 

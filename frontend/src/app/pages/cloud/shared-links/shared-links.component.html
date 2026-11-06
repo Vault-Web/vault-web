@@ -200,9 +200,7 @@
                 icon="pi pi-ban"
                 severity="danger"
                 styleClass="p-button-text p-button-sm"
-                [disabled]="
-                  isProcessing(link.id) || linkStatus(link) !== 'active'
-                "
+                [disabled]="isProcessing(link.id) || !canRevoke(link)"
                 [loading]="isProcessing(link.id)"
                 (click)="confirmRevokeLink(link)"
                 pTooltip="Stop this link from working"

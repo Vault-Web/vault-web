@@ -146,7 +146,12 @@ export class SharedLinksComponent implements OnInit {
     return this.isExpired(link) ? 'expired' : 'active';
   }
 
+  canRevoke(link: SecureSendLinkDto): boolean {
+    return !link.isRevoked && !this.isExpired(link);
+  }
+
   confirmRevokeLink(link: SecureSendLinkDto): void {
+    if (this.isProcessing(link.id) || !this.canRevoke(link)) return;
     this.confirmationService.confirm({
       header: 'Revoke share link',
       message: `Anyone holding the link to "${link.fileName}" will lose access immediately. You can reactivate it later unless it expires or is deleted.`,
@@ -160,6 +165,7 @@ export class SharedLinksComponent implements OnInit {
   }
 
   private revokeLink(link: SecureSendLinkDto): void {
+    if (this.isProcessing(link.id) || !this.canRevoke(link)) return;
     this.processingIds.add(link.id);
     this.cloudService
       .revokeSecureSendLink(link.id)
@@ -186,7 +192,7 @@ export class SharedLinksComponent implements OnInit {
   }
 
   confirmReactivateLink(link: SecureSendLinkDto): void {
-    if (!this.canReactivate(link)) {
+    if (this.isProcessing(link.id) || !this.canReactivate(link)) {
       return;
     }
     this.confirmationService.confirm({
@@ -202,6 +208,7 @@ export class SharedLinksComponent implements OnInit {
   }
 
   private reactivateLink(link: SecureSendLinkDto): void {
+    if (this.isProcessing(link.id) || !this.canReactivate(link)) return;
     this.processingIds.add(link.id);
     this.cloudService
       .reactivateSecureSendLink(link.id)
