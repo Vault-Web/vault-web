@@ -119,7 +119,16 @@ export class CloudComponent implements OnInit, OnDestroy {
   originalFileName = '';
   originalFileContent = '';
   outline: { text: string; level: number }[] = [];
-  saveStatus: 'saved' | 'saving' | 'unsaved' = 'saved';
+  saveStatus: 'saved' | 'saving' | 'unsaved' | 'error' = 'saved';
+  isSavingFile = false;
+  confirmDiscardFileEditor = false;
+  private pendingEditorLeave?: (allow: boolean) => void;
+  outlineCollapsed = false;
+  // Editor share of the split view, in percent.
+  splitPercent = 50;
+  readonly minSplitPercent = 25;
+  readonly maxSplitPercent = 75;
+  private draggingSplit = false;
   editorMode: 'edit' | 'preview' | 'split' = 'edit';
   previewHtml: SafeHtml = '';
 
@@ -1313,7 +1322,10 @@ export class CloudComponent implements OnInit, OnDestroy {
 
   async saveFile() {
     const nameToSave = this.newFileName.trim();
-    if (!nameToSave) return;
+    if (!nameToSave || this.isSavingFile) return;
+    this.isSavingFile = true;
+    this.saveStatus = 'saving';
+    const contentToSave = this.fileContent;
 
     // Captured up front: closeFileEditor() clears editingFile before the toast runs.
     const isEdit = !!this.editingFile;
@@ -1326,7 +1338,7 @@ export class CloudComponent implements OnInit, OnDestroy {
       const ctx = this.shareCtx;
       const savedName = this.editingFile ? this.editingFile.name : nameToSave;
       try {
-        const fileBlob = new Blob([this.fileContent], { type: 'text/plain' });
+        const fileBlob = new Blob([contentToSave], { type: 'text/plain' });
         const file = new File([fileBlob], savedName);
         const request$ = this.editingFile
           ? this.resourceShareService.editFile(
@@ -1337,9 +1349,20 @@ export class CloudComponent implements OnInit, OnDestroy {
             )
           : this.resourceShareService.upload(ctx.share.id, ctx.sub, file);
         await firstValueFrom(request$);
-        this.originalFileContent = this.fileContent;
+        this.originalFileContent = contentToSave;
         this.originalFileName = savedName;
-        this.closeFileEditor();
+        if (
+          this.fileContent === contentToSave &&
+          (isEdit || this.newFileName.trim() === savedName)
+        ) {
+          this.closeFileEditor();
+        } else {
+          this.editingFile ??= this.toFileRef(
+            this.joinRelativePath(ctx.sub, savedName),
+            savedName,
+          );
+          this.saveStatus = 'unsaved';
+        }
         if (ctx.share.resourceType === 'FILE') {
           // A single-file share has no folder content endpoint to refresh.
           this.enterSharedRoot();
@@ -1351,7 +1374,10 @@ export class CloudComponent implements OnInit, OnDestroy {
           `"${savedName}" was saved.`,
         );
       } catch (err: unknown) {
+        this.saveStatus = 'error';
         this.toast.error('Save failed', this.getErrorMessage(err));
+      } finally {
+        this.isSavingFile = false;
       }
       return;
     }
@@ -1369,10 +1395,17 @@ export class CloudComponent implements OnInit, OnDestroy {
         await firstValueFrom(
           this.cloudService.renameOrMoveFile(relativeSource, relativeTarget),
         );
+        const lastSlash = this.editingFile.path.lastIndexOf('/');
+        this.editingFile = {
+          ...this.editingFile,
+          path: this.editingFile.path.slice(0, lastSlash + 1) + nameToSave,
+          name: nameToSave,
+        };
+        this.originalFileName = nameToSave;
       }
 
       const currentPath = this.getRelativePath(this.currentFolder?.path || '/');
-      const fileBlob = new Blob([this.fileContent], { type: 'text/plain' });
+      const fileBlob = new Blob([contentToSave], { type: 'text/plain' });
       const file = new File([fileBlob], nameToSave);
       await firstValueFrom(
         this.cloudService.uploadFile(
@@ -1382,18 +1415,34 @@ export class CloudComponent implements OnInit, OnDestroy {
         ),
       );
 
-      this.newFileName = nameToSave;
-      this.originalFileContent = this.fileContent;
+      this.originalFileContent = contentToSave;
       this.originalFileName = nameToSave;
 
       this.navigateToFolder(this.currentFolder?.path);
-      this.closeFileEditor();
+      if (
+        this.fileContent === contentToSave &&
+        this.newFileName.trim() === nameToSave
+      ) {
+        this.closeFileEditor();
+      } else {
+        this.editingFile ??= this.toFileRef(
+          this.joinRelativePath(
+            this.currentFolder?.path || this.rootPath,
+            nameToSave,
+          ),
+          nameToSave,
+        );
+        this.saveStatus = 'unsaved';
+      }
       this.toast.success(
         isEdit ? 'File updated' : 'File created',
         `"${nameToSave}" was saved.`,
       );
     } catch (err: unknown) {
+      this.saveStatus = 'error';
       this.toast.error('Save failed', this.getErrorMessage(err));
+    } finally {
+      this.isSavingFile = false;
     }
   }
 
@@ -1845,8 +1894,49 @@ export class CloudComponent implements OnInit, OnDestroy {
     }
   }
 
+  toggleOutline(): void {
+    this.outlineCollapsed = !this.outlineCollapsed;
+  }
+
+  setSplitPercent(value: number): void {
+    this.splitPercent = Math.min(
+      this.maxSplitPercent,
+      Math.max(this.minSplitPercent, Math.round(value)),
+    );
+  }
+
+  onSplitPointerDown(event: PointerEvent): void {
+    this.draggingSplit = true;
+    (event.target as HTMLElement | null)?.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+  }
+
+  onSplitPointerMove(event: PointerEvent, container: HTMLElement): void {
+    if (!this.draggingSplit) return;
+    const rect = container.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    this.setSplitPercent(((event.clientX - rect.left) / rect.width) * 100);
+  }
+
+  onSplitPointerUp(): void {
+    this.draggingSplit = false;
+  }
+
+  onSplitKeydown(event: KeyboardEvent): void {
+    if (event.key === 'ArrowLeft') {
+      this.setSplitPercent(this.splitPercent - 5);
+    } else if (event.key === 'ArrowRight') {
+      this.setSplitPercent(this.splitPercent + 5);
+    } else {
+      return;
+    }
+    event.preventDefault();
+  }
+
   onContentChange() {
-    this.saveStatus = this.isEditorDirty ? 'unsaved' : 'saved';
+    if (!this.isSavingFile) {
+      this.saveStatus = this.isEditorDirty ? 'unsaved' : 'saved';
+    }
     if (this.isMarkdownFile(this.newFileName)) {
       this.updateOutline();
       this.updatePreview();
@@ -1855,6 +1945,9 @@ export class CloudComponent implements OnInit, OnDestroy {
 
   closeFileEditor() {
     this.showFileEditor = false;
+    this.confirmDiscardFileEditor = false;
+    this.pendingEditorLeave?.(true);
+    this.pendingEditorLeave = undefined;
     this.editingFile = null;
     this.newFileName = '';
     this.fileContent = '';
@@ -1867,24 +1960,12 @@ export class CloudComponent implements OnInit, OnDestroy {
   }
 
   canDeactivate(): Promise<boolean> | boolean {
+    if (this.isSavingFile) return false;
     if (this.isEditorDirty) {
+      this.confirmDiscardFileEditor = true;
       return new Promise<boolean>((resolve) => {
-        this.confirmationService.confirm({
-          header: 'Unsaved changes',
-          message: 'Exit without saving? Your changes will be lost.',
-          icon: 'pi pi-exclamation-triangle',
-          acceptLabel: 'Discard',
-          rejectLabel: 'Keep editing',
-          acceptButtonStyleClass: 'p-button-danger p-button-sm',
-          rejectButtonStyleClass: 'p-button-text p-button-sm',
-          accept: () => {
-            this.closeFileEditor();
-            resolve(true);
-          },
-          reject: () => {
-            resolve(false);
-          },
-        });
+        this.pendingEditorLeave?.(false);
+        this.pendingEditorLeave = resolve;
       });
     }
     return true;
@@ -1908,20 +1989,23 @@ export class CloudComponent implements OnInit, OnDestroy {
    * changes.
    */
   requestCloseFileEditor(): void {
+    if (this.isSavingFile) return;
     if (!this.hasUnsavedEditorChanges()) {
       this.closeFileEditor();
       return;
     }
-    this.confirmationService.confirm({
-      header: 'Unsaved changes',
-      message: 'Exit without saving? Your changes will be lost.',
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Discard',
-      rejectLabel: 'Keep editing',
-      acceptButtonStyleClass: 'p-button-danger p-button-sm',
-      rejectButtonStyleClass: 'p-button-text p-button-sm',
-      accept: () => this.closeFileEditor(),
-    });
+    this.confirmDiscardFileEditor = true;
+  }
+
+  keepEditingFile(): void {
+    this.confirmDiscardFileEditor = false;
+    this.pendingEditorLeave?.(false);
+    this.pendingEditorLeave = undefined;
+  }
+
+  discardFileEditorChanges(): void {
+    if (this.isSavingFile) return;
+    this.closeFileEditor();
   }
 
   /**
@@ -1930,6 +2014,10 @@ export class CloudComponent implements OnInit, OnDestroy {
    * route through the same guard so a dismiss can't bypass the prompt.
    */
   onFileEditorHide(): void {
+    if (this.isSavingFile) {
+      this.showFileEditor = true;
+      return;
+    }
     if (!this.hasUnsavedEditorChanges()) {
       this.closeFileEditor();
       return;
@@ -1941,7 +2029,7 @@ export class CloudComponent implements OnInit, OnDestroy {
   /** Native guard for a full-page leave (reload, tab close, external navigation). */
   @HostListener('window:beforeunload', ['$event'])
   warnBeforeUnload(event: BeforeUnloadEvent): void {
-    if (this.isEditorDirty) {
+    if (this.isEditorDirty || this.isSavingFile) {
       event.preventDefault();
       event.returnValue = '';
     }

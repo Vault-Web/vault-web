@@ -38,9 +38,9 @@ jobs:
 
       # The full legacy suite has unrelated baseline failures. Keep this
       # regression contract enforced independently until those are repaired.
-      - name: Test cloud editor save HTTP contract
+      - name: Test cloud editor save and component behavior
         working-directory: frontend
-        run: npm test -- --watch=false --browsers=ChromeHeadless --include=src/app/pages/cloud/cloud-file-save.spec.ts
+        run: npm test -- --watch=false --browsers=ChromeHeadless --include=src/app/pages/cloud/cloud-file-save.spec.ts --include=src/app/pages/cloud/cloud.component.spec.ts
 
       - name: Test pinned Cloud OpenAPI generator fixture
         working-directory: frontend

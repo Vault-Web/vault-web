@@ -325,7 +325,7 @@ describe('CloudComponent Unsaved Changes Flow', () => {
     expect(component.isEditorDirty).toBeTrue();
   });
 
-  it('should prompt user on requestCloseFileEditor when dirty', () => {
+  it('should show the inline discard choice on requestCloseFileEditor when dirty', () => {
     component.showFileEditor = true;
     component.originalFileContent = 'hello';
     component.fileContent = 'hello world';
@@ -334,7 +334,8 @@ describe('CloudComponent Unsaved Changes Flow', () => {
 
     component.requestCloseFileEditor();
 
-    expect(confirmMock.confirm).toHaveBeenCalled();
+    expect(component.confirmDiscardFileEditor).toBeTrue();
+    expect(confirmMock.confirm).not.toHaveBeenCalled();
   });
 
   it('should not prompt user on requestCloseFileEditor when not dirty', () => {
@@ -379,14 +380,11 @@ describe('CloudComponent Unsaved Changes Flow', () => {
     component.originalFileName = 'a.txt';
     component.newFileName = 'a.txt';
 
-    confirmMock.confirm.and.callFake((config) => {
-      if (config.reject) config.reject();
-      return confirmMock;
-    });
-
-    const result = await component.canDeactivate();
-    expect(result).toBeFalse();
-    expect(confirmMock.confirm).toHaveBeenCalled();
+    const result = component.canDeactivate() as Promise<boolean>;
+    expect(component.confirmDiscardFileEditor).toBeTrue();
+    component.keepEditingFile();
+    expect(await result).toBeFalse();
+    expect(confirmMock.confirm).not.toHaveBeenCalled();
   });
 
   it('should return true in canDeactivate and close editor when accepted', async () => {
@@ -396,14 +394,11 @@ describe('CloudComponent Unsaved Changes Flow', () => {
     component.originalFileName = 'a.txt';
     component.newFileName = 'a.txt';
 
-    confirmMock.confirm.and.callFake((config) => {
-      if (config.accept) config.accept();
-      return confirmMock;
-    });
-
-    const result = await component.canDeactivate();
-    expect(result).toBeTrue();
-    expect(confirmMock.confirm).toHaveBeenCalled();
+    const result = component.canDeactivate() as Promise<boolean>;
+    expect(component.confirmDiscardFileEditor).toBeTrue();
+    component.discardFileEditorChanges();
+    expect(await result).toBeTrue();
+    expect(confirmMock.confirm).not.toHaveBeenCalled();
     expect(component.showFileEditor).toBeFalse();
   });
 
@@ -488,6 +483,153 @@ describe('CloudComponent Unsaved Changes Flow', () => {
         size: 0,
         mimeType: '',
       });
+    });
+
+    it('toggles the outline collapsed state', () => {
+      expect(component.outlineCollapsed).toBeFalse();
+      component.toggleOutline();
+      expect(component.outlineCollapsed).toBeTrue();
+      component.toggleOutline();
+      expect(component.outlineCollapsed).toBeFalse();
+    });
+
+    it('clamps the split width to usable minimum sizes', () => {
+      component.setSplitPercent(5);
+      expect(component.splitPercent).toBe(component.minSplitPercent);
+      component.setSplitPercent(95);
+      expect(component.splitPercent).toBe(component.maxSplitPercent);
+      component.setSplitPercent(60);
+      expect(component.splitPercent).toBe(60);
+    });
+
+    it('adjusts the split with arrow keys', () => {
+      component.splitPercent = 50;
+      const right = new KeyboardEvent('keydown', { key: 'ArrowRight' });
+      component.onSplitKeydown(right);
+      expect(component.splitPercent).toBe(55);
+      const left = new KeyboardEvent('keydown', { key: 'ArrowLeft' });
+      component.onSplitKeydown(left);
+      component.onSplitKeydown(left);
+      expect(component.splitPercent).toBe(45);
+    });
+
+    it('keeps edits and shows an error state when saving fails', async () => {
+      component.showFileEditor = true;
+      component.editingFile = {
+        path: '/root/note.md',
+        name: 'note.md',
+        size: 0,
+        mimeType: '',
+      };
+      component.newFileName = 'note.md';
+      component.originalFileName = 'note.md';
+      component.originalFileContent = 'old';
+      component.fileContent = 'new';
+      component.currentFolder = { path: '/root', name: 'root' } as any;
+      cloudMock.uploadFile.and.returnValue(throwError(() => new Error('boom')));
+
+      await component.saveFile();
+
+      expect(component.saveStatus).toBe('error');
+      expect(component.showFileEditor).toBeTrue();
+      expect(component.fileContent).toBe('new');
+      expect(component.originalFileContent).toBe('old');
+      expect(component.isEditorDirty).toBeTrue();
+    });
+
+    it('returns to unsaved after editing following a failed save', () => {
+      component.showFileEditor = true;
+      component.newFileName = 'note.md';
+      component.originalFileName = 'note.md';
+      component.originalFileContent = 'old';
+      component.fileContent = 'newer';
+      component.saveStatus = 'error';
+      component.onContentChange();
+      expect(component.saveStatus).toBe('unsaved');
+    });
+
+    it('shows saving while the save is in flight and ignores re-entry', async () => {
+      component.showFileEditor = true;
+      component.newFileName = 'note.md';
+      component.originalFileName = 'note.md';
+      component.originalFileContent = 'old';
+      component.fileContent = 'new';
+      component.currentFolder = { path: '/root', name: 'root' } as any;
+      const pending = new Subject<any>();
+      cloudMock.uploadFile.and.returnValue(pending);
+
+      const first = component.saveFile();
+      expect(component.saveStatus).toBe('saving');
+      await component.saveFile();
+      expect(cloudMock.uploadFile).toHaveBeenCalledTimes(1);
+
+      pending.next({});
+      pending.complete();
+      await first;
+      expect(component.saveStatus).toBe('saved');
+    });
+
+    it('keeps later edits unsaved while a previous version is uploading', async () => {
+      component.showFileEditor = true;
+      component.editingFile = {
+        path: '/root/note.md',
+        name: 'note.md',
+        size: 0,
+        mimeType: 'text/markdown',
+      };
+      component.newFileName = 'note.md';
+      component.originalFileName = 'note.md';
+      component.originalFileContent = 'old';
+      component.fileContent = 'first edit';
+      component.currentFolder = { path: '/root', name: 'root' } as any;
+      const pending = new Subject<any>();
+      cloudMock.uploadFile.and.returnValue(pending);
+
+      const firstSave = component.saveFile();
+      component.fileContent = 'second edit';
+      component.onContentChange();
+      await component.saveFile();
+
+      expect(component.saveStatus).toBe('saving');
+      expect(cloudMock.uploadFile).toHaveBeenCalledTimes(1);
+
+      pending.next({});
+      pending.complete();
+      await firstSave;
+
+      expect(component.showFileEditor).toBeTrue();
+      expect(component.fileContent).toBe('second edit');
+      expect(component.originalFileContent).toBe('first edit');
+      expect(component.saveStatus).toBe('unsaved');
+      expect(component.isEditorDirty).toBeTrue();
+    });
+
+    it('can retry an upload after a successful rename and failed upload', async () => {
+      component.showFileEditor = true;
+      component.editingFile = {
+        path: '/root/note.md',
+        name: 'note.md',
+        size: 0,
+        mimeType: 'text/markdown',
+      };
+      component.newFileName = 'renamed.md';
+      component.originalFileName = 'note.md';
+      component.originalFileContent = 'old';
+      component.fileContent = 'new';
+      component.currentFolder = { path: '/root', name: 'root' } as any;
+      cloudMock.renameOrMoveFile.and.returnValue(of({} as any));
+      cloudMock.uploadFile.and.returnValues(
+        throwError(() => new Error('upload failed')),
+        of({} as any),
+      );
+
+      await component.saveFile();
+      expect(component.saveStatus).toBe('error');
+      expect(component.editingFile?.path).toBe('/root/renamed.md');
+
+      await component.saveFile();
+      expect(cloudMock.renameOrMoveFile).toHaveBeenCalledTimes(1);
+      expect(component.showFileEditor).toBeFalse();
     });
 
     it('does not autosave or reload the folder while typing (#300 regression)', () => {
@@ -840,13 +982,6 @@ describe('CloudComponent unsaved-edit guard', () => {
     component.originalFileContent = content;
   }
 
-  function acceptLastConfirm(): void {
-    const config = confirmMock.confirm.calls.mostRecent().args[0] as {
-      accept: () => void;
-    };
-    config.accept();
-  }
-
   it('closes without asking when the editor has no unsaved edits', () => {
     openEditor('hello');
     component.requestCloseFileEditor();
@@ -854,17 +989,31 @@ describe('CloudComponent unsaved-edit guard', () => {
     expect(component.showFileEditor).toBeFalse();
   });
 
-  it('asks before discarding, and only closes once Discard is confirmed', () => {
+  it('keeps the editor open until Discard changes is chosen', () => {
     openEditor('hello');
     component.fileContent = 'hello world'; // dirty
 
     component.requestCloseFileEditor();
-    expect(confirmMock.confirm).toHaveBeenCalledTimes(1);
+    expect(component.confirmDiscardFileEditor).toBeTrue();
+    expect(confirmMock.confirm).not.toHaveBeenCalled();
     expect(component.showFileEditor).toBeTrue(); // stays open until confirmed
 
-    acceptLastConfirm();
+    component.discardFileEditorChanges();
     expect(component.showFileEditor).toBeFalse();
+    expect(component.confirmDiscardFileEditor).toBeFalse();
     expect(component.fileContent).toBe(''); // editor state fully reset
+  });
+
+  it('keeps unsaved edits when Keep editing is chosen', () => {
+    openEditor('hello');
+    component.fileContent = 'hello world';
+
+    component.requestCloseFileEditor();
+    component.keepEditingFile();
+
+    expect(component.confirmDiscardFileEditor).toBeFalse();
+    expect(component.showFileEditor).toBeTrue();
+    expect(component.fileContent).toBe('hello world');
   });
 
   it('asks before discarding when only the file name changed', () => {
@@ -873,7 +1022,7 @@ describe('CloudComponent unsaved-edit guard', () => {
 
     component.requestCloseFileEditor();
 
-    expect(confirmMock.confirm).toHaveBeenCalledTimes(1);
+    expect(component.confirmDiscardFileEditor).toBeTrue();
     expect(component.showFileEditor).toBeTrue();
   });
 
@@ -885,7 +1034,7 @@ describe('CloudComponent unsaved-edit guard', () => {
     component.onFileEditorHide();
 
     expect(component.showFileEditor).toBeTrue(); // reopened
-    expect(confirmMock.confirm).toHaveBeenCalledTimes(1);
+    expect(component.confirmDiscardFileEditor).toBeTrue();
   });
 
   it('lets a clean dialog dismiss close with no prompt', () => {
@@ -945,15 +1094,13 @@ describe('CloudComponent unsaved-edit guard', () => {
       component.currentFolder = { path: '/root/sub', name: 'sub' } as never;
     });
 
-    it('downloads the folder as a zip archive and triggers browser download', () => {
+    it('downloads the folder as a zip archive and triggers browser download', fakeAsync(() => {
       const mockBlob = new Blob(['zip content'], { type: 'application/zip' });
       cloudMock.getFolderArchive.and.returnValue(of(mockBlob));
 
-      const mockAnchor = jasmine.createSpyObj<HTMLAnchorElement>(
-        'HTMLAnchorElement',
-        ['click'],
-      );
-      spyOn(document, 'createElement').and.returnValue(mockAnchor as any);
+      const mockAnchor = document.createElement('a');
+      spyOn(mockAnchor, 'click');
+      spyOn(document, 'createElement').and.returnValue(mockAnchor);
       spyOn(URL, 'createObjectURL').and.returnValue('blob:mock-url');
       spyOn(URL, 'revokeObjectURL');
 
@@ -964,12 +1111,14 @@ describe('CloudComponent unsaved-edit guard', () => {
       expect(mockAnchor.href).toBe('blob:mock-url');
       expect(mockAnchor.download).toBe('sub.zip');
       expect(mockAnchor.click).toHaveBeenCalled();
+      expect(document.body.contains(mockAnchor)).toBeFalse();
+      tick(60_000);
       expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
       expect(toastMock.info).toHaveBeenCalledWith(
         'Download started',
         '"sub.zip" is downloading.',
       );
-    });
+    }));
 
     it('surfaces folder archive backend errors using toast notifications', (done) => {
       const mockErrorResponse = {
