@@ -322,3 +322,18 @@ body {
     }
   }
 }
+
+:root.dark-theme .cloud-dialog .save-status-badge {
+  &.saved {
+    color: #6ee7b7;
+  }
+  &.saving {
+    color: var(--color-primary);
+  }
+  &.error {
+    color: #fca5a5;
+  }
+  &.unsaved {
+    color: #fbbf24;
+  }
+}
