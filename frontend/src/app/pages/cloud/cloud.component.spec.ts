@@ -1136,7 +1136,7 @@ describe('CloudComponent unsaved-edit guard', () => {
           expect(message).toBe('Rate limit exceeded');
           done();
         } catch (error) {
-          done.fail(error);
+          done.fail(error instanceof Error ? error : String(error));
         }
       });
 
@@ -1157,7 +1157,7 @@ describe('CloudComponent unsaved-edit guard', () => {
           expect(message).toBe('Request failed. Please try again.');
           done();
         } catch (error) {
-          done.fail(error);
+          done.fail(error instanceof Error ? error : String(error));
         }
       });
 
