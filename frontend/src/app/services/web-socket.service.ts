@@ -26,10 +26,7 @@ export class WebSocketService {
 
   private initClient() {
     this.client = new Client({
-      webSocketFactory: () => {
-        const token = this.auth.getToken() ?? '';
-        return new SockJS(`${this.hostUrl}/ws-chat?token=${token}`);
-      },
+      webSocketFactory: () => new SockJS(`${this.hostUrl}/ws-chat`),
       reconnectDelay: 5000,
       beforeConnect: () => {
         const token = this.auth.getToken() ?? '';
