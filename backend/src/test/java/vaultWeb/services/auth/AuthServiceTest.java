@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.util.Optional;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -14,6 +15,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import vaultWeb.models.User;
 import vaultWeb.repositories.RefreshTokenRepository;
 import vaultWeb.repositories.UserRepository;
@@ -33,6 +35,12 @@ class AuthServiceTest {
   @Mock private RefreshTokenService refreshTokenService;
 
   @InjectMocks private AuthService authService;
+
+  @AfterEach
+  void clearSecurityContext() {
+    // login stores the mocked Authentication in thread-local state shared with later tests.
+    SecurityContextHolder.clearContext();
+  }
 
   private User createUser(String username, String password) {
     User user = new User();
