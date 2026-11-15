@@ -14,6 +14,153 @@ import { CloudComponent } from './cloud.component';
 import { CloudService } from '../../services/cloud.service';
 import { ScanJobDto } from '../../models/dtos/ScanJobDto';
 import { SecureSendLinkDto } from '../../models/dtos/SecureSendLinkDto';
+import { FolderDto } from '../../models/dtos/FolderDto';
+import { PageResponseDto } from '../../models/dtos/PageResponseDto';
+import { FolderContentItemDto } from '../../models/dtos/FolderContentItemDto';
+
+describe('CloudComponent folder pagination', () => {
+  let component: CloudComponent;
+  let cloud: jasmine.SpyObj<CloudService>;
+  const folder = (path: string): FolderDto => ({
+    path,
+    name: path.split('/').pop() || 'root',
+    files: [],
+    folders: [],
+    lastModifiedAt: 0,
+  });
+  const page = (
+    pageNumber: number,
+    totalElements = 125,
+  ): PageResponseDto<FolderContentItemDto> => ({
+    pageNumber,
+    totalElements,
+    totalPages: Math.ceil(totalElements / 50),
+    content: totalElements
+      ? [
+          {
+            name: 'note.txt',
+            path: 'docs/note.txt',
+            directory: false,
+            size: 1,
+            mimeType: 'text/plain',
+            lastModifiedAt: 0,
+          },
+        ]
+      : [],
+  });
+
+  beforeEach(() => {
+    cloud = jasmine.createSpyObj<CloudService>('cloud', [
+      'getFolderContent',
+      'getFolderByPath',
+      'getRootFolder',
+      'deleteFile',
+    ]);
+    cloud.getFolderByPath.and.callFake((path) => of(folder('/root/' + path)));
+    cloud.getFolderContent.and.callFake((_, index) => of(page(index ?? 0)));
+    cloud.deleteFile.and.returnValue(of(folder('/root/docs')));
+    component = new CloudComponent(
+      cloud,
+      {} as ConfirmationService,
+      jasmine.createSpyObj<UiToastService>('toast', ['error', 'success']),
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    component.rootPath = '/root';
+    component.currentFolder = folder('/root/docs');
+    component.loading = false;
+  });
+
+  it('requests bounded sorted pages and preserves the page on refresh', () => {
+    component.onPageChange({ first: 50, rows: 50 });
+    expect(cloud.getFolderContent).toHaveBeenCalledWith(
+      'docs',
+      1,
+      50,
+      'name,asc',
+      false,
+    );
+    expect(component.totalItemsInView).toBe(125);
+    expect(component.contentFirst).toBe(50);
+    component.reloadCurrentFolder();
+    expect(cloud.getFolderContent.calls.mostRecent().args[1]).toBe(1);
+    component.setSort('name,desc');
+    expect(cloud.getFolderContent).toHaveBeenCalledWith(
+      'docs',
+      0,
+      50,
+      'name,desc',
+      false,
+    );
+    expect(component.contentFirst).toBe(0);
+  });
+
+  it('recovers the last available page after the folder shrinks', () => {
+    cloud.getFolderContent.and.callFake((_, index) => of(page(index ?? 0, 51)));
+    component.onPageChange({ first: 100, rows: 50 });
+    expect(
+      cloud.getFolderContent.calls.allArgs().map((args) => args[1]),
+    ).toEqual([2, 1]);
+    expect(component.contentFirst).toBe(50);
+    expect(component.entries.length).toBe(1);
+  });
+
+  it('refreshes the same page after deleting a file', () => {
+    component.onPageChange({ first: 50, rows: 50 });
+    component.deleteFile('/root/docs/note.txt');
+    expect(cloud.deleteFile).toHaveBeenCalledWith('docs/note.txt');
+    expect(cloud.getFolderContent.calls.mostRecent().args[1]).toBe(1);
+    component.navigateToFolder('/root/other');
+    expect(cloud.getFolderContent.calls.mostRecent().args[1]).toBe(0);
+    expect(component.contentFirst).toBe(0);
+  });
+
+  it('ignores stale root metadata after navigating to another folder', () => {
+    const root = new Subject<FolderDto>();
+    cloud.getRootFolder.and.returnValue(root);
+    component.loadRootFolder();
+    component.navigateToFolder('/root/new');
+    root.next(folder('/obsolete-root'));
+    expect(component.rootPath).toBe('/root');
+    expect(component.currentFolder?.path).toBe('/root/new');
+    expect(cloud.getFolderContent).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns to page zero for a now-empty folder', () => {
+    cloud.getFolderContent.and.callFake((_, index) => of(page(index ?? 0, 0)));
+    component.onPageChange({ first: 50, rows: 50 });
+    expect(component.contentFirst).toBe(0);
+    expect(component.totalElements).toBe(0);
+    expect(component.entries).toEqual([]);
+    expect(component.loading).toBeFalse();
+  });
+
+  it('ignores stale navigation metadata and errors', () => {
+    const old = new Subject<FolderDto>();
+    cloud.getFolderByPath.and.returnValues(old, of(folder('/root/new')));
+    component.navigateToFolder('/root/old');
+    component.navigateToFolder('/root/new');
+    old.next(folder('/root/old'));
+    old.error(new Error('late error'));
+    expect(component.currentFolder?.path).toBe('/root/new');
+    expect(component.error).toBeUndefined();
+    expect(cloud.getFolderContent).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears a previous load error after retrying', () => {
+    cloud.getFolderContent.and.returnValues(
+      throwError(() => new Error('offline')),
+      of(page(1)),
+    );
+    component.onPageChange({ first: 50, rows: 50 });
+    expect(component.error).toBeDefined();
+    component.onPageChange({ first: 50, rows: 50 });
+    expect(component.error).toBeUndefined();
+    expect(component.contentFirst).toBe(50);
+  });
+});
 
 /**
  * Exercises the folder virus-scan state machine end to end with a mocked

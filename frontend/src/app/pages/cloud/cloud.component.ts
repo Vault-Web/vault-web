@@ -403,6 +403,7 @@ export class CloudComponent implements OnInit, OnDestroy {
   }
 
   private loadFolderContent(relativePath: string, page: number) {
+    this.error = undefined;
     // The "Shared with me" entry point only belongs at the top of the user's
     // own root, not inside sub-folders or search results.
     this.isAtRoot = relativePath === '/' || relativePath === '';
@@ -414,6 +415,11 @@ export class CloudComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (contentPage) => {
           if (requestId !== this.contentRequestId) return;
+          const lastPage = Math.max(0, contentPage.totalPages - 1);
+          if (page > lastPage) {
+            this.loadFolderContent(relativePath, lastPage);
+            return;
+          }
           this.entries = this.buildEntries(contentPage.content);
           // Surface "Shared with me" as the first entry of the own root, so it
           // sits among the user's normal folders and opens in this same view.
@@ -426,6 +432,7 @@ export class CloudComponent implements OnInit, OnDestroy {
           }
           this.totalElements = contentPage.totalElements;
           this.contentPage = contentPage.pageNumber;
+          this.contentFirst = this.contentPage * this.pageSize;
           this.loading = false;
           this.loadDirectorySizes(this.entries, requestId);
         },
@@ -442,6 +449,7 @@ export class CloudComponent implements OnInit, OnDestroy {
   }
 
   onPageChange(event: TableLazyLoadEvent) {
+    if (this.loading || this.searchActive || this.sharedMode) return;
     const rows = event.rows ?? this.pageSize;
     const first = Array.isArray(event.first)
       ? (event.first[0] ?? 0)
@@ -529,15 +537,17 @@ export class CloudComponent implements OnInit, OnDestroy {
     this.contentFirst = 0;
     // Invalidate any in-flight search/content request so a stale, fast
     // response can't overwrite the root reload that's about to start.
-    this.contentRequestId++;
+    const requestId = ++this.contentRequestId;
     this.cloudService.getRootFolder(false).subscribe({
       next: (folder) => {
+        if (requestId !== this.contentRequestId) return;
         this.currentFolder = folder;
         this.rootPath = folder.path;
         this.updateBreadcrumbs(folder.path);
         this.loadFolderContent('/', 0);
       },
       error: () => {
+        if (requestId !== this.contentRequestId) return;
         this.error = 'Error loading root folder';
         this.toast.error(
           'Could not load folder',
@@ -1103,23 +1113,30 @@ export class CloudComponent implements OnInit, OnDestroy {
   }
 
   navigateToFolder(folderPath?: string) {
+    const targetPath = folderPath || this.rootPath;
+    const page =
+      !this.searchActive && targetPath === this.currentFolder?.path
+        ? this.contentPage
+        : 0;
     this.selectedEntries = [];
     this.searchActive = false;
     this.searchQuery = '';
     this.searching = false;
     this.loading = true;
-    this.contentFirst = 0;
+    this.contentFirst = page * this.pageSize;
     // Invalidate any in-flight search/content request so a stale response
     // can't overwrite the entries while navigation is in progress.
-    this.contentRequestId++;
-    const relativePath = this.getRelativePath(folderPath || this.rootPath);
+    const requestId = ++this.contentRequestId;
+    const relativePath = this.getRelativePath(targetPath);
     this.cloudService.getFolderByPath(relativePath, false).subscribe({
       next: (folder) => {
+        if (requestId !== this.contentRequestId) return;
         this.currentFolder = folder;
         this.updateBreadcrumbs(folder.path);
-        this.loadFolderContent(relativePath, 0);
+        this.loadFolderContent(relativePath, page);
       },
       error: () => {
+        if (requestId !== this.contentRequestId) return;
         this.error = 'Error navigating to folder';
         this.toast.error('Navigation failed', 'Could not open this folder.');
         this.loading = false;
