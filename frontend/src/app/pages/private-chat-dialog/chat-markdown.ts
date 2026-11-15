@@ -34,10 +34,10 @@ export function renderChatMarkdown(content: string): string {
     breaks: true,
     async: false,
   }) as string;
-  const withSafeLinkAttributes = rendered.replace(
-    /<a\b(?![^>]*\btarget=)([^>]*)>/gi,
-    '<a target="_blank" rel="noopener noreferrer"$1>',
-  );
-  const cleanHtml = DOMPurify.sanitize(withSafeLinkAttributes);
-  return `<div class="chat-markdown">${cleanHtml}</div>`;
+  const cleanHtml = DOMPurify.sanitize(rendered, { RETURN_DOM: true });
+  cleanHtml.querySelectorAll('a').forEach((link) => {
+    link.setAttribute('target', '_blank');
+    link.setAttribute('rel', 'noopener noreferrer');
+  });
+  return `<div class="chat-markdown">${cleanHtml.innerHTML}</div>`;
 }
