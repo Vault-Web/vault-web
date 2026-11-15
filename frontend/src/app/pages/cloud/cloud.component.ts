@@ -1508,6 +1508,11 @@ export class CloudComponent implements OnInit, OnDestroy {
     input.value = '';
   }
   onExternalDragOver(event: DragEvent) {
+    if (this.loading) {
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'none';
+      return;
+    }
     if (this.draggedPath) return;
 
     const isFileDrag =
@@ -1534,6 +1539,7 @@ export class CloudComponent implements OnInit, OnDestroy {
   onExternalDrop(event: DragEvent) {
     event.preventDefault();
     this.isExternalDrag = false;
+    if (this.loading) return;
 
     if (this.draggedPath) {
       return;
@@ -2252,6 +2258,7 @@ export class CloudComponent implements OnInit, OnDestroy {
   async onDrop(event: DragEvent, targetFolderPath?: string | null) {
     event.preventDefault();
     this.draggedOverPath = null;
+    if (this.loading) return;
     if (!this.draggedPath) return;
 
     const targetPath = targetFolderPath || this.currentFolder?.path;
@@ -2324,6 +2331,7 @@ export class CloudComponent implements OnInit, OnDestroy {
   async onBreadcrumbDrop(event: DragEvent, targetPath?: string) {
     event.preventDefault();
     this.draggedOverPath = null;
+    if (this.loading) return;
     if (!this.draggedPath || !targetPath) return;
 
     if (

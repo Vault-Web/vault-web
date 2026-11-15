@@ -160,6 +160,21 @@ describe('CloudComponent folder pagination', () => {
     expect(component.error).toBeUndefined();
     expect(component.contentFirst).toBe(50);
   });
+
+  it('rejects external drops while destination metadata is pending', () => {
+    const destination = new Subject<FolderDto>();
+    cloud.getFolderByPath.and.returnValue(destination);
+    const upload = spyOn(component, 'uploadFile');
+    const transfer = new DataTransfer();
+    transfer.items.add(new File(['hello'], 'upload.txt'));
+    const drop = new DragEvent('drop', { dataTransfer: transfer });
+    component.navigateToFolder('/root/new');
+    component.onExternalDrop(drop);
+    expect(upload).not.toHaveBeenCalled();
+    destination.next(folder('/root/new'));
+    component.onExternalDrop(drop);
+    expect(upload).toHaveBeenCalledOnceWith('new', transfer.files[0]);
+  });
 });
 
 /**
