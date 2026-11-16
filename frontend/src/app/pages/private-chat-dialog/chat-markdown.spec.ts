@@ -22,4 +22,21 @@ describe('renderChatMarkdown', () => {
     expect(html).not.toContain('onerror');
     expect(html).not.toContain('javascript:');
   });
+
+  it('opens sanitized links in a new tab with no opener or referrer', () => {
+    const container = document.createElement('div');
+    container.innerHTML = renderChatMarkdown(
+      '[safe](https://example.com)\n\n<a href="https://example.org" target="named" rel="opener" onclick="alert(1)">raw</a>',
+    );
+
+    const links = container.querySelectorAll('a');
+    expect(links.length).toBe(2);
+    expect(links[0].getAttribute('href')).toBe('https://example.com');
+    expect(links[1].getAttribute('href')).toBe('https://example.org');
+    links.forEach((link) => {
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+      expect(link.hasAttribute('onclick')).toBeFalse();
+    });
+  });
 });

@@ -7,6 +7,8 @@ import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -19,11 +21,14 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import vaultWeb.exceptions.notfound.UserNotFoundException;
 import vaultWeb.models.RefreshToken;
+import vaultWeb.models.SecurityEvent;
 import vaultWeb.models.User;
 import vaultWeb.repositories.RefreshTokenRepository;
+import vaultWeb.repositories.SecurityEventRepository;
 import vaultWeb.repositories.UserRepository;
 import vaultWeb.security.JwtUtil;
 import vaultWeb.security.TokenHashUtil;
+import vaultWeb.security.annotations.SecurityEventType;
 
 /**
  * Service class responsible for handling authentication and user session-related operations.
@@ -52,11 +57,14 @@ import vaultWeb.security.TokenHashUtil;
 @RequiredArgsConstructor
 public class AuthService {
 
+  private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+
   private final AuthenticationManager authenticationManager;
   private final JwtUtil jwtUtil;
   private final UserRepository userRepository;
   private final RefreshTokenRepository refreshTokenRepository;
   private final RefreshTokenService refreshTokenService;
+  private final SecurityEventRepository securityEventRepository;
 
   /**
    * Authenticates a user using their username and password and returns a JWT token upon successful
@@ -179,14 +187,33 @@ public class AuthService {
     }
 
     String tokenId = claims.getId();
+    if (tokenId == null || tokenId.isBlank()) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+    RefreshToken storedToken = refreshTokenRepository.findByTokenId(tokenId).orElse(null);
 
-    RefreshToken storedToken =
-        refreshTokenRepository.findByTokenIdAndRevokedFalse(tokenId).orElse(null);
+    if (storedToken == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
     String incomingHash = TokenHashUtil.sha256(rawRefreshToken);
-    if (storedToken == null
-        || !TokenHashUtil.constantTimeEquals(incomingHash, storedToken.getTokenHash())
+    if (!TokenHashUtil.constantTimeEquals(incomingHash, storedToken.getTokenHash())
         || storedToken.getExpiresAt().isBefore(Instant.now())) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
 
+    if (storedToken.isRevoked()) {
+      User suspectUser = storedToken.getUser();
+      log.warn("Revoked refresh token reused for user {}", suspectUser.getId());
+      SecurityEvent event = new SecurityEvent();
+      event.setUser(suspectUser);
+      event.setUsername(suspectUser.getUsername());
+      event.setEventType(SecurityEventType.TOKEN_REPLAY_DETECTED);
+      event.setStatus("FAILURE");
+      event.setTimestamp(Instant.now());
+      securityEventRepository.save(event);
+      // Concurrent tabs can legitimately submit the same token during rotation.
+      // Reject the replay without revoking unrelated active sessions.
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
