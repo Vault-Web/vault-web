@@ -86,6 +86,11 @@ public class GlobalExceptionHandler {
     return error(HttpStatus.CONFLICT, "MEMBERSHIP_CONFLICT", "Membership conflict");
   }
 
+  @ExceptionHandler(ProjectConflictException.class)
+  public ResponseEntity<ApiErrorResponse> handleProjectConflict(ProjectConflictException ex) {
+    return error(HttpStatus.CONFLICT, "PROJECT_CONFLICT", ex.getMessage());
+  }
+
   /** Handles NotMemberException and returns 403 Forbidden. */
   @ExceptionHandler(NotMemberException.class)
   public ResponseEntity<ApiErrorResponse> handleNotMember(NotMemberException ex) {

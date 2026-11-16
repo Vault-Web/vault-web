@@ -1,0 +1,72 @@
+:host {
+  display: block;
+}
+.projects-page {
+  max-width: 80rem;
+  margin: auto;
+  padding: 6rem 1rem 2rem;
+}
+.project-layout {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) minmax(0, 3fr);
+  gap: 2rem;
+}
+section,
+aside {
+  min-width: 0;
+}
+form {
+  display: grid;
+  gap: 0.6rem;
+  max-width: 38rem;
+  margin: 1rem 0;
+}
+input,
+textarea,
+select,
+button {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 0.4rem;
+  padding: 0.6rem;
+}
+textarea {
+  min-height: 6rem;
+}
+button {
+  cursor: pointer;
+  margin: 0.25rem;
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid #0ea5e9;
+  outline-offset: 3px;
+}
+li {
+  margin: 0.75rem 0;
+  overflow-wrap: anywhere;
+}
+h3 {
+  margin-top: 1.75rem;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+}
+[role="alert"] {
+  border-left: 4px solid #ef4444;
+  padding: 1rem;
+}
+@media (max-width: 700px) {
+  .project-layout {
+    grid-template-columns: 1fr;
+  }
+}

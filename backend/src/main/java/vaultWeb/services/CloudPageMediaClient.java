@@ -104,6 +104,25 @@ public class CloudPageMediaClient {
     return httpClient.send(request.build(), HttpResponse.BodyHandlers.ofInputStream());
   }
 
+  /** Project references use the caller's actual credentials, never an owner's token. */
+  public HttpResponse<InputStream> fetchProjectReference(String endpoint, String authorization)
+      throws IOException, InterruptedException {
+    if (!endpoint.startsWith("/api/folders/path?")
+        && !endpoint.startsWith("/api/files/view?")
+        && !endpoint.equals("/api/shares/shared-with-me")
+        && !endpoint.matches("/api/shares/[a-zA-Z0-9-]+/(view|content)")) {
+      throw new IllegalArgumentException("Unsupported project reference endpoint");
+    }
+    return httpClient.send(
+        HttpRequest.newBuilder(URI.create(cloudPageBaseUrl + endpoint))
+            .timeout(Duration.ofSeconds(10))
+            .GET()
+            .header("Authorization", authorization)
+            .header("Range", "bytes=0-0")
+            .build(),
+        HttpResponse.BodyHandlers.ofInputStream());
+  }
+
   /**
    * Mints a cloud-page access token for the given user.
    *
