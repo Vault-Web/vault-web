@@ -61,6 +61,22 @@ class ProjectIntegrationTest {
               return new ProjectDto.Resource(
                   r.getId(), true, owner.getUsername(), r.getPath(), r.isFolder(), null);
             });
+    when(resolver.resolveAll(anyList(), any(), any()))
+        .thenAnswer(
+            inv -> {
+              java.util.List<vaultWeb.models.ProjectResourceLink> links = inv.getArgument(0);
+              return links.stream()
+                  .map(
+                      r ->
+                          new ProjectDto.Resource(
+                              r.getId(),
+                              true,
+                              owner.getUsername(),
+                              r.getPath(),
+                              r.isFolder(),
+                              null))
+                  .toList();
+            });
   }
 
   private User user(String name) {
@@ -73,6 +89,25 @@ class ProjectIntegrationTest {
   @AfterEach
   void clear() {
     current.remove();
+  }
+
+  @Test
+  void cloudResolutionDoesNotHoldDatabaseTransaction() {
+    service.link(id, new ProjectDto.Link("/note.md", false), "Bearer synthetic");
+    when(resolver.resolveAll(anyList(), any(), any()))
+        .thenAnswer(
+            inv -> {
+              assertFalse(
+                  org.springframework.transaction.support.TransactionSynchronizationManager
+                      .isActualTransactionActive());
+              var links = (java.util.List<vaultWeb.models.ProjectResourceLink>) inv.getArgument(0);
+              assertEquals(owner.getUsername(), links.get(0).getOwner().getUsername());
+              return java.util.List.of(
+                  new ProjectDto.Resource(
+                      links.get(0).getId(), true, owner.getUsername(), "/note.md", false, null));
+            });
+    assertEquals(1, service.overview(id, "Bearer synthetic").resources().size());
+    verify(resolver).resolveAll(anyList(), any(), any());
   }
 
   @Test

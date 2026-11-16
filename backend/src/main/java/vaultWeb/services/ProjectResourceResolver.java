@@ -16,49 +16,73 @@ public class ProjectResourceResolver {
   private final CloudPageMediaClient cloud;
   private final ObjectMapper mapper;
 
+  public java.util.List<ProjectDto.Resource> resolveAll(
+      java.util.List<ProjectResourceLink> links, User caller, String authorization) {
+    var context = new ResolutionContext();
+    return links.stream().map(link -> resolve(link, caller, authorization, context)).toList();
+  }
+
+  private static class ResolutionContext {
+    private boolean loaded;
+    private com.fasterxml.jackson.databind.JsonNode shares;
+    private final long deadline = System.nanoTime() + java.time.Duration.ofSeconds(10).toNanos();
+  }
+
   public ProjectDto.Resource resolve(ProjectResourceLink link, User caller, String authorization) {
+    return resolve(link, caller, authorization, new ResolutionContext());
+  }
+
+  private ProjectDto.Resource resolve(
+      ProjectResourceLink link, User caller, String authorization, ResolutionContext context) {
     var unavailable = new ProjectDto.Resource(link.getId(), false, null, null, null, null);
     if (authorization == null || !authorization.startsWith("Bearer ")) return unavailable;
     try {
       if (link.getOwner().getId().equals(caller.getId())) {
         String endpoint = link.isFolder() ? "/api/folders/path?path=" : "/api/files/view?path=";
         if (accessible(
-            endpoint + URLEncoder.encode(link.getPath(), StandardCharsets.UTF_8), authorization)) {
+            endpoint + URLEncoder.encode(link.getPath(), StandardCharsets.UTF_8),
+            authorization,
+            context)) {
           return new ProjectDto.Resource(
               link.getId(), true, caller.getUsername(), link.getPath(), link.isFolder(), null);
         }
       } else {
-        var response = cloud.fetchProjectReference("/api/shares/shared-with-me", authorization);
-        try (var body = response.body()) {
-          if (response.statusCode() != 200) return unavailable;
-          byte[] json = body.readNBytes(1_048_577);
-          if (json.length > 1_048_576) return unavailable;
-          var shares = mapper.readTree(json);
-          if (!shares.isArray()) return unavailable;
-          for (var share : shares) {
-            String id = share.path("id").asText();
-            if (!id.matches("[a-zA-Z0-9-]+")
-                || share.path("revoked").asBoolean(true)
-                || !share.path("ownerUsername").asText().equals(link.getOwner().getUsername())
-                || !share.path("recipientUsername").asText().equals(caller.getUsername())
-                || !canonical(share.path("relativePath").asText()).equals(link.getPath())
-                || !share.path("resourceType").asText().equals(link.isFolder() ? "FOLDER" : "FILE"))
-              continue;
-            boolean view = false;
-            for (var permission : share.path("permissions"))
-              view |= permission.asText().equals("VIEW");
-            if (view
-                && accessible(
-                    "/api/shares/" + id + (link.isFolder() ? "/content" : "/view"),
-                    authorization)) {
-              return new ProjectDto.Resource(
-                  link.getId(),
-                  true,
-                  link.getOwner().getUsername(),
-                  link.getPath(),
-                  link.isFolder(),
-                  id);
+        if (!context.loaded) {
+          context.loaded = true;
+          var response = fetch("/api/shares/shared-with-me", authorization, context);
+          try (var body = response.body()) {
+            if (response.statusCode() == 200) {
+              byte[] json = body.readNBytes(1_048_577);
+              if (json.length <= 1_048_576) context.shares = mapper.readTree(json);
             }
+          }
+        }
+        var shares = context.shares;
+        if (shares == null || !shares.isArray()) return unavailable;
+        for (var share : shares) {
+          String id = share.path("id").asText();
+          if (!id.matches("[a-zA-Z0-9-]+")
+              || share.path("revoked").asBoolean(true)
+              || !share.path("ownerUsername").asText().equals(link.getOwner().getUsername())
+              || !share.path("recipientUsername").asText().equals(caller.getUsername())
+              || !canonical(share.path("relativePath").asText()).equals(link.getPath())
+              || !share.path("resourceType").asText().equals(link.isFolder() ? "FOLDER" : "FILE"))
+            continue;
+          boolean view = false;
+          for (var permission : share.path("permissions"))
+            view |= permission.asText().equals("VIEW");
+          if (view
+              && accessible(
+                  "/api/shares/" + id + (link.isFolder() ? "/content" : "/view"),
+                  authorization,
+                  context)) {
+            return new ProjectDto.Resource(
+                link.getId(),
+                true,
+                link.getOwner().getUsername(),
+                link.getPath(),
+                link.isFolder(),
+                id);
           }
         }
       }
@@ -70,8 +94,17 @@ public class ProjectResourceResolver {
     return unavailable;
   }
 
-  private boolean accessible(String endpoint, String authorization) throws Exception {
-    var response = cloud.fetchProjectReference(endpoint, authorization);
+  private java.net.http.HttpResponse<java.io.InputStream> fetch(
+      String endpoint, String authorization, ResolutionContext context) throws Exception {
+    long remaining = context.deadline - System.nanoTime();
+    if (remaining <= 0) throw new java.net.http.HttpTimeoutException("Reference budget exhausted");
+    return cloud.fetchProjectReference(
+        endpoint, authorization, java.time.Duration.ofNanos(remaining));
+  }
+
+  private boolean accessible(String endpoint, String authorization, ResolutionContext context)
+      throws Exception {
+    var response = fetch(endpoint, authorization, context);
     try (var body = response.body()) {
       // Cloud validates ownership/share permissions before reporting an empty file's range.
       boolean fileView = endpoint.startsWith("/api/files/view?") || endpoint.endsWith("/view");

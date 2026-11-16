@@ -27,6 +27,14 @@ Cloud resolution errors, absence, revocation and downtime fail closed. File acti
 save bytes with an inert download type; folders show the accessible page count.
 Use the existing Cloud page for full editing/navigation.
 
+Overview copies authorized project metadata in a short read transaction before
+making Cloud calls. Received shares are fetched at most once per overview, while
+each matching resource is still independently checked for current access. Cloud
+resolution has a shared ten-second request budget, including response bodies, and
+each response is capped at 1 MiB. Remaining or oversized references fail closed
+as unavailable; a later overview retries them. No credentials or share results
+are cached across requests. Existing media streaming retains its separate policy.
+
 An optional discussion references an existing group. The setter must belong to
 it; overview returns its ID only to existing group members and the existing chat
 API independently checks membership. Project deletion never deletes that group.

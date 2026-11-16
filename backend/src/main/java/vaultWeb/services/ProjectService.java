@@ -25,6 +25,7 @@ public class ProjectService {
   private final GroupMemberRepository groupMembers;
   private final AuthService auth;
   private final ProjectResourceResolver resolver;
+  private final org.springframework.transaction.PlatformTransactionManager transactionManager;
 
   public List<ProjectDto> list() {
     User caller = caller();
@@ -59,8 +60,29 @@ public class ProjectService {
     return project.getId();
   }
 
-  @Transactional(readOnly = true)
+  @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
   public ProjectDto overview(Long id, String authorization) {
+    var transaction =
+        new org.springframework.transaction.support.TransactionTemplate(transactionManager);
+    transaction.setReadOnly(true);
+    var snapshot = transaction.execute(status -> snapshot(id));
+    var dto = snapshot.dto();
+    return new ProjectDto(
+        dto.id(),
+        dto.name(),
+        dto.description(),
+        dto.archived(),
+        dto.createdAt(),
+        dto.role(),
+        dto.discussionGroupId(),
+        dto.members(),
+        resolver.resolveAll(snapshot.links(), snapshot.caller(), authorization),
+        dto.activity());
+  }
+
+  private record OverviewSnapshot(ProjectDto dto, User caller, List<ProjectResourceLink> links) {}
+
+  private OverviewSnapshot snapshot(Long id) {
     User caller = caller();
     Project project =
         projects.findById(id).orElseThrow(() -> new AccessDeniedException("Project unavailable"));
@@ -69,26 +91,43 @@ public class ProjectService {
     if (discussion != null
         && groupMembers.findByGroupIdAndUserId(discussion, caller.getId()).isEmpty())
       discussion = null;
-    return new ProjectDto(
-        project.getId(),
-        project.getName(),
-        project.getDescription(),
-        project.isArchived(),
-        project.getCreatedAt(),
-        role,
-        discussion,
-        members.findByProjectIdOrderByIdAsc(id).stream()
-            .map(
-                m ->
-                    new ProjectDto.Member(
-                        m.getUser().getId(), m.getUser().getUsername(), m.getRole()))
-            .toList(),
+    // Copy only the fields needed for Cloud checks while lazy associations are available.
+    List<ProjectResourceLink> links =
         resources.findByProjectIdOrderByIdAsc(id).stream()
-            .map(r -> resolver.resolve(r, caller, authorization))
-            .toList(),
-        activity.findTop50ByProjectIdOrderByIdDesc(id).stream()
-            .map(a -> new ProjectDto.Activity(a.getEvent(), a.getActor(), a.getCreatedAt()))
-            .toList());
+            .map(
+                r -> {
+                  var copy = new ProjectResourceLink();
+                  var owner = new User();
+                  owner.setId(r.getOwner().getId());
+                  owner.setUsername(r.getOwner().getUsername());
+                  copy.setId(r.getId());
+                  copy.setOwner(owner);
+                  copy.setPath(r.getPath());
+                  copy.setFolder(r.isFolder());
+                  return copy;
+                })
+            .toList();
+    return new OverviewSnapshot(
+        new ProjectDto(
+            project.getId(),
+            project.getName(),
+            project.getDescription(),
+            project.isArchived(),
+            project.getCreatedAt(),
+            role,
+            discussion,
+            members.findByProjectIdOrderByIdAsc(id).stream()
+                .map(
+                    m ->
+                        new ProjectDto.Member(
+                            m.getUser().getId(), m.getUser().getUsername(), m.getRole()))
+                .toList(),
+            List.of(),
+            activity.findTop50ByProjectIdOrderByIdDesc(id).stream()
+                .map(a -> new ProjectDto.Activity(a.getEvent(), a.getActor(), a.getCreatedAt()))
+                .toList()),
+        caller,
+        links);
   }
 
   public void update(Long id, ProjectDto.Update input) {

@@ -107,6 +107,12 @@ public class CloudPageMediaClient {
   /** Project references use the caller's actual credentials, never an owner's token. */
   public HttpResponse<InputStream> fetchProjectReference(String endpoint, String authorization)
       throws IOException, InterruptedException {
+    return fetchProjectReference(endpoint, authorization, Duration.ofSeconds(10));
+  }
+
+  public HttpResponse<InputStream> fetchProjectReference(
+      String endpoint, String authorization, Duration timeout)
+      throws IOException, InterruptedException {
     if (!endpoint.startsWith("/api/folders/path?")
         && !endpoint.startsWith("/api/files/view?")
         && !endpoint.equals("/api/shares/shared-with-me")
@@ -115,12 +121,51 @@ public class CloudPageMediaClient {
     }
     return httpClient.send(
         HttpRequest.newBuilder(URI.create(cloudPageBaseUrl + endpoint))
-            .timeout(Duration.ofSeconds(10))
+            .timeout(timeout)
             .GET()
             .header("Authorization", authorization)
             .header("Range", "bytes=0-0")
             .build(),
-        HttpResponse.BodyHandlers.ofInputStream());
+        info ->
+            HttpResponse.BodySubscribers.mapping(
+                new BoundedBodySubscriber(), bytes -> new java.io.ByteArrayInputStream(bytes)));
+  }
+
+  /** Finish the bounded body before returning so the request timeout covers slow bodies too. */
+  private static class BoundedBodySubscriber implements HttpResponse.BodySubscriber<byte[]> {
+    private final HttpResponse.BodySubscriber<byte[]> delegate =
+        HttpResponse.BodySubscribers.ofByteArray();
+    private java.util.concurrent.Flow.Subscription subscription;
+    private int bytes;
+
+    public java.util.concurrent.CompletionStage<byte[]> getBody() {
+      return delegate.getBody();
+    }
+
+    public void onSubscribe(java.util.concurrent.Flow.Subscription value) {
+      subscription = value;
+      delegate.onSubscribe(value);
+    }
+
+    public void onNext(java.util.List<java.nio.ByteBuffer> buffers) {
+      for (var buffer : buffers) {
+        if (buffer.remaining() > 1_048_576 - bytes) {
+          subscription.cancel();
+          delegate.onError(new IOException("Project reference response too large"));
+          return;
+        }
+        bytes += buffer.remaining();
+      }
+      delegate.onNext(buffers);
+    }
+
+    public void onError(Throwable error) {
+      delegate.onError(error);
+    }
+
+    public void onComplete() {
+      delegate.onComplete();
+    }
   }
 
   /**

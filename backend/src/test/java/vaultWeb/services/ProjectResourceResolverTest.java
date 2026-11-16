@@ -20,8 +20,13 @@ class ProjectResourceResolverTest {
   private User owner, caller;
 
   @BeforeEach
-  void setup() {
+  void setup() throws Exception {
     cloud = mock(CloudPageMediaClient.class);
+    when(cloud.fetchProjectReference(anyString(), anyString(), any()))
+        .thenAnswer(
+            inv ->
+                cloud.fetchProjectReference(
+                    (String) inv.getArgument(0), (String) inv.getArgument(1)));
     resolver = new ProjectResourceResolver(cloud, new ObjectMapper());
     owner = new User();
     owner.setId(1L);
@@ -105,6 +110,31 @@ class ProjectResourceResolverTest {
   }
 
   @Test
+  void batchFetchesSharesOnceAndChecksEachResourceForLiveRevocation() throws Exception {
+    when(cloud.fetchProjectReference("/api/shares/shared-with-me", "Bearer reader-token"))
+        .thenReturn(response(200, share("owner", "note.md", false, "VIEW")));
+    when(cloud.fetchProjectReference("/api/shares/abc-123/view", "Bearer reader-token"))
+        .thenReturn(response(206, "x"), response(403, ""));
+    var result = resolver.resolveAll(java.util.List.of(link, link), caller, "Bearer reader-token");
+    assertTrue(result.get(0).available());
+    assertFalse(result.get(1).available());
+    assertNull(result.get(1).path());
+    verify(cloud).fetchProjectReference("/api/shares/shared-with-me", "Bearer reader-token");
+    verify(cloud, times(2))
+        .fetchProjectReference("/api/shares/abc-123/view", "Bearer reader-token");
+  }
+
+  @Test
+  void failedShareListingIsNotRetriedForEveryReference() throws Exception {
+    when(cloud.fetchProjectReference("/api/shares/shared-with-me", "Bearer reader-token"))
+        .thenThrow(new java.io.IOException());
+    var result =
+        resolver.resolveAll(java.util.Collections.nCopies(50, link), caller, "Bearer reader-token");
+    assertTrue(result.stream().noneMatch(r -> r.available()));
+    verify(cloud).fetchProjectReference("/api/shares/shared-with-me", "Bearer reader-token");
+  }
+
+  @Test
   void otherRangeErrorsAndUnauthorizedEmptyResponsesRemainPrivate() throws Exception {
     for (var rejected :
         java.util.List.of(
@@ -136,6 +166,7 @@ class ProjectResourceResolverTest {
     assertEquals("abc-123", result.shareId());
     verify(cloud).fetchProjectReference("/api/shares/shared-with-me", "Bearer reader-token");
     verify(cloud).fetchProjectReference("/api/shares/abc-123/view", "Bearer reader-token");
+    verify(cloud, times(2)).fetchProjectReference(anyString(), eq("Bearer reader-token"), any());
     verifyNoMoreInteractions(cloud);
   }
 
