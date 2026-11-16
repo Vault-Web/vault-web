@@ -249,6 +249,86 @@ describe('CloudComponent virus scan', () => {
   });
 });
 
+describe('CloudComponent PDF preview', () => {
+  let component: CloudComponent;
+  let cloudMock: jasmine.SpyObj<CloudService>;
+  let toastMock: jasmine.SpyObj<UiToastService>;
+  let tab: Window;
+
+  beforeEach(() => {
+    cloudMock = jasmine.createSpyObj<CloudService>('CloudService', [
+      'getMediaStreamUrl',
+      'getFileView',
+    ]);
+    toastMock = jasmine.createSpyObj<UiToastService>('UiToastService', [
+      'error',
+    ]);
+    component = new CloudComponent(
+      cloudMock,
+      {} as never,
+      toastMock as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    component.rootPath = '/root';
+    tab = {
+      location: { href: '' },
+      closed: false,
+      close: jasmine.createSpy('close'),
+    } as unknown as Window;
+    spyOn(window, 'open').and.returnValue(tab);
+  });
+
+  it('opens an authenticated PDF blob when media-token creation fails', fakeAsync(() => {
+    const blob = new Blob(['%PDF-1.7'], { type: 'application/pdf' });
+    cloudMock.getMediaStreamUrl.and.returnValue(
+      throwError(() => new Error('Media backend unavailable')),
+    );
+    cloudMock.getFileView.and.returnValue(of(blob));
+    spyOn(URL, 'createObjectURL').and.returnValue('blob:pdf-preview');
+    spyOn(URL, 'revokeObjectURL');
+
+    component.previewFile({
+      name: 'doc.pdf',
+      path: '/root/doc.pdf',
+      size: 8,
+      mimeType: 'application/pdf',
+    });
+
+    expect(cloudMock.getMediaStreamUrl).toHaveBeenCalledWith('doc.pdf');
+    expect(cloudMock.getFileView).toHaveBeenCalledWith('doc.pdf');
+    expect(tab.location.href).toBe('blob:pdf-preview');
+    expect(toastMock.error).not.toHaveBeenCalled();
+    Object.defineProperty(tab, 'closed', { value: true });
+    tick(30_000);
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:pdf-preview');
+  }));
+
+  it('reports the Cloud view error if both PDF preview paths fail', () => {
+    cloudMock.getMediaStreamUrl.and.returnValue(
+      throwError(() => new Error('Media backend unavailable')),
+    );
+    cloudMock.getFileView.and.returnValue(
+      throwError(() => new Error('Cloud view unavailable')),
+    );
+
+    component.previewFile({
+      name: 'doc.pdf',
+      path: '/root/doc.pdf',
+      size: 8,
+      mimeType: 'application/pdf',
+    });
+
+    expect(tab.close).toHaveBeenCalled();
+    expect(toastMock.error).toHaveBeenCalledWith(
+      'Preview failed',
+      'Cloud view unavailable',
+    );
+  });
+});
+
 describe('CloudComponent Unsaved Changes Flow', () => {
   let component: CloudComponent;
   let cloudMock: jasmine.SpyObj<CloudService>;
