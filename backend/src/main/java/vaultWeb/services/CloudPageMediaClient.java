@@ -119,16 +119,30 @@ public class CloudPageMediaClient {
         && !endpoint.matches("/api/shares/[a-zA-Z0-9-]+/(view|content)")) {
       throw new IllegalArgumentException("Unsupported project reference endpoint");
     }
-    return httpClient.send(
-        HttpRequest.newBuilder(URI.create(cloudPageBaseUrl + endpoint))
-            .timeout(timeout)
-            .GET()
-            .header("Authorization", authorization)
-            .header("Range", "bytes=0-0")
-            .build(),
-        info ->
-            HttpResponse.BodySubscribers.mapping(
-                new BoundedBodySubscriber(), bytes -> new java.io.ByteArrayInputStream(bytes)));
+    var pending =
+        httpClient.sendAsync(
+            HttpRequest.newBuilder(URI.create(cloudPageBaseUrl + endpoint))
+                .timeout(timeout)
+                .GET()
+                .header("Authorization", authorization)
+                .header("Range", "bytes=0-0")
+                .build(),
+            info ->
+                HttpResponse.BodySubscribers.mapping(
+                    new BoundedBodySubscriber(),
+                    bytes -> (InputStream) new java.io.ByteArrayInputStream(bytes)));
+    try {
+      return pending.get(timeout.toNanos(), java.util.concurrent.TimeUnit.NANOSECONDS);
+    } catch (java.util.concurrent.TimeoutException ex) {
+      pending.cancel(true);
+      throw new java.net.http.HttpTimeoutException("Project reference request timed out");
+    } catch (java.util.concurrent.ExecutionException ex) {
+      if (ex.getCause() instanceof IOException io) throw io;
+      throw new IOException("Project reference request failed", ex.getCause());
+    } catch (InterruptedException ex) {
+      pending.cancel(true);
+      throw ex;
+    }
   }
 
   /** Finish the bounded body before returning so the request timeout covers slow bodies too. */

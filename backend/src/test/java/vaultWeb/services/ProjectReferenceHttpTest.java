@@ -22,7 +22,7 @@ class ProjectReferenceHttpTest {
           try (var body = exchange.getResponseBody()) {
             body.write('[');
             body.flush();
-            Thread.sleep(2000);
+            Thread.sleep(10000);
             body.write(']');
           } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
@@ -46,10 +46,10 @@ class ProjectReferenceHttpTest {
               "http://127.0.0.1:" + server.getAddress().getPort(),
               false);
       assertTimeoutPreemptively(
-          Duration.ofSeconds(1),
+          Duration.ofSeconds(3),
           () ->
               assertThrows(
-                  IOException.class,
+                  java.net.http.HttpTimeoutException.class,
                   () ->
                       client.fetchProjectReference(
                           "/api/shares/shared-with-me",
