@@ -1,4 +1,5 @@
 import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 import { AuthService } from './auth.service';
 import { WebSocketService } from './web-socket.service';
 
@@ -62,6 +63,35 @@ describe('WebSocketService', () => {
     expect(destinations).toEqual([...expected, ...expected]);
 
     subscriptions.forEach((subscription) => subscription.unsubscribe());
+  });
+
+  it('refreshes credentials only in the STOMP CONNECT headers', async () => {
+    await client.beforeConnect(client);
+    expect(client.connectHeaders).toEqual({
+      Authorization: 'Bearer test-token',
+    });
+    authMock.getToken.and.returnValue('refreshed-token');
+    await client.beforeConnect(client);
+    expect(client.connectHeaders).toEqual({
+      Authorization: 'Bearer refreshed-token',
+    });
+  });
+
+  it('opens a token-free SockJS URL before and after token refresh', () => {
+    spyOn(
+      SockJS.prototype as unknown as { _receiveInfo: () => void },
+      '_receiveInfo',
+    ).and.stub();
+    for (const token of ['test-token', 'refreshed-token']) {
+      authMock.getToken.and.returnValue(token);
+      const socket = client.webSocketFactory!() as unknown as {
+        url: string;
+        close: () => void;
+      };
+      expect(socket.url).toBe(`${service['hostUrl']}/ws-chat`);
+      expect(socket.url).not.toContain(token);
+      socket.close();
+    }
   });
 
   it('does not restore a subscription after it is unsubscribed', () => {

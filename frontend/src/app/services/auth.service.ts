@@ -146,13 +146,24 @@ export class AuthService {
   }
 
   logout(): void {
+    const current = this.router.url || '';
+    const shareId = current.startsWith('/share-target?')
+      ? new URL(current, 'https://vault.invalid').searchParams.get('id')
+      : null;
+    const queryParams =
+      shareId && /^[a-f0-9-]{36}$/.test(shareId)
+        ? { returnShare: shareId }
+        : undefined;
     localStorage.removeItem('token');
     localStorage.removeItem('username');
     this.http
       .post(`${this.apiUrl}/auth/logout`, {}, { withCredentials: true })
       .pipe(
         finalize(() => {
-          this.router.navigate(['/login']);
+          this.router.navigate(
+            ['/login'],
+            queryParams ? { queryParams } : undefined,
+          );
         }),
       )
       .subscribe({

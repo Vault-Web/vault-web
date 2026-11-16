@@ -7,16 +7,10 @@ import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
-import org.springframework.messaging.simp.stomp.StompCommand;
-import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
-import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.ExecutorChannelInterceptor;
-import org.springframework.messaging.support.MessageHeaderAccessor;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
-import vaultWeb.security.JwtUtil;
 
 /**
  * WebSocket configuration enabling STOMP messaging for real-time chat functionality. Sets up the
@@ -28,7 +22,7 @@ import vaultWeb.security.JwtUtil;
 @RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
-  private final JwtUtil jwtUtil;
+  private final StompAuthenticationInterceptor authenticationInterceptor;
   private final GroupSubscriptionInterceptor groupSubscriptionInterceptor;
 
   /**
@@ -54,7 +48,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
   public void registerStompEndpoints(StompEndpointRegistry registry) {
     registry
         .addEndpoint("/ws-chat")
-        .addInterceptors(new JwtHandshakeInterceptor(jwtUtil))
         .setAllowedOriginPatterns(
             "http://localhost",
             "https://localhost",
@@ -103,33 +96,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
    */
   @Override
   public void configureClientInboundChannel(ChannelRegistration registration) {
-    registration.interceptors(
-        new ChannelInterceptor() {
-          @Override
-          public Message<?> preSend(Message<?> message, MessageChannel channel) {
-            StompHeaderAccessor accessor =
-                MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
-
-            if (accessor == null) {
-              return message;
-            }
-
-            if (StompCommand.CONNECT.equals(accessor.getCommand())) {
-              String authHeader = accessor.getFirstNativeHeader("Authorization");
-
-              if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7);
-
-                if (jwtUtil.validateToken(token)) {
-                  Authentication auth = jwtUtil.getAuthentication(token);
-                  accessor.setUser(auth);
-                }
-              }
-            }
-
-            return message;
-          }
-        },
-        groupSubscriptionInterceptor);
+    registration.interceptors(authenticationInterceptor, groupSubscriptionInterceptor);
   }
 }

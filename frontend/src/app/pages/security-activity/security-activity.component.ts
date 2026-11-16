@@ -1,13 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { UserService, SecurityEventDto } from '../../services/user.service';
 import { UiToastService } from '../../core/services/ui-toast.service';
 
 @Component({
   selector: 'app-security-activity',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './security-activity.component.html',
   styleUrl: './security-activity.component.scss',
 })
@@ -15,6 +16,39 @@ export class SecurityActivityComponent implements OnInit {
   events: SecurityEventDto[] = [];
   isLoading = true;
   error: string | null = null;
+  selectedEventType = '';
+  failuresOnly = false;
+
+  get eventTypes(): string[] {
+    return [...new Set(this.events.map((event) => event.eventType))].sort();
+  }
+
+  get filteredEvents(): SecurityEventDto[] {
+    return this.events.filter(
+      (event) =>
+        (!this.selectedEventType ||
+          event.eventType === this.selectedEventType) &&
+        (!this.failuresOnly || event.status === 'FAILURE'),
+    );
+  }
+
+  get repeatedFailedLogins(): number {
+    let consecutive = 0;
+    let longest = 0;
+    for (const event of this.events) {
+      consecutive =
+        event.eventType === 'LOGIN' && event.status === 'FAILURE'
+          ? consecutive + 1
+          : 0;
+      longest = Math.max(longest, consecutive);
+    }
+    return longest >= 3 ? longest : 0;
+  }
+
+  clearFilters(): void {
+    this.selectedEventType = '';
+    this.failuresOnly = false;
+  }
 
   constructor(
     private userService: UserService,

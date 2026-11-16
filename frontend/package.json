@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve --ssl",
-    "build": "ng build",
+    "build": "ng build && node scripts/build-pwa.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "eslint 'src/**/*.{ts,html}'",

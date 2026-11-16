@@ -1,0 +1,28 @@
+.share-handoff {
+  max-width: 48rem;
+  margin: auto;
+  padding: 1.5rem;
+  overflow-wrap: anywhere;
+  pre {
+    white-space: pre-wrap;
+    font: inherit;
+  }
+  button,
+  a {
+    display: inline-block;
+    margin: 0.4rem;
+    padding: 0.65rem;
+    min-height: 44px;
+  }
+  button {
+    border: 1px solid currentColor;
+    border-radius: 0.4rem;
+  }
+  button:disabled {
+    opacity: 0.6;
+  }
+  [role="alert"] {
+    border-left: 3px solid #f59e0b;
+    padding: 0.75rem;
+  }
+}
