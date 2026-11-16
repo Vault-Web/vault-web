@@ -57,6 +57,57 @@
   font-weight: 600;
 }
 
+.activity-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  color: var(--color-text-secondary);
+
+  select,
+  button {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    background: var(--color-background-secondary);
+    color: var(--color-text-primary);
+    max-width: 100%;
+  }
+
+  button:disabled {
+    opacity: 0.6;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.failure-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-count,
+.history-note {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.failed-login-hint {
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--color-border);
+  border-left: 4px solid #f97316;
+  border-radius: 0.5rem;
+  color: var(--color-text-primary);
+  background: var(--color-background-secondary);
+}
+
 .empty-state {
   padding: 3rem 2rem;
   text-align: center;

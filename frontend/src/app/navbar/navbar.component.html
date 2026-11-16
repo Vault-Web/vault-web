@@ -44,6 +44,12 @@
       <!-- Desktop Links and Theme Toggle -->
       <div class="hidden md:flex space-x-6 items-center">
         <a
+          routerLink="/projects"
+          class="navbar-link"
+          routerLinkActive="is-active"
+          >Projects</a
+        >
+        <a
           routerLink="/"
           class="navbar-link"
           routerLinkActive="is-active"
@@ -131,6 +137,13 @@
 
   <!-- Mobile Menu Overlay -->
   <div *ngIf="isMobileMenuOpen" class="md:hidden mobile-menu px-4 pt-4">
+    <a
+      routerLink="/projects"
+      (click)="closeMobileMenu()"
+      class="mobile-link block py-2"
+      routerLinkActive="is-active"
+      >Projects</a
+    >
     <a
       routerLink="/"
       (click)="closeMobileMenu()"

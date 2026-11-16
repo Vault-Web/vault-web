@@ -13,7 +13,8 @@
           - 📄 [SecurityConfig.java](backend/src/main/java/vaultWeb/config/SecurityConfig.java)
           - 📄 [WebMvcConfig.java](backend/src/main/java/vaultWeb/config/WebMvcConfig.java)
           - 📁 **websocket**
-            - 📄 [JwtHandshakeInterceptor.java](backend/src/main/java/vaultWeb/config/websocket/JwtHandshakeInterceptor.java)
+            - 📄 [GroupSubscriptionInterceptor.java](backend/src/main/java/vaultWeb/config/websocket/GroupSubscriptionInterceptor.java)
+            - 📄 [StompAuthenticationInterceptor.java](backend/src/main/java/vaultWeb/config/websocket/StompAuthenticationInterceptor.java)
             - 📄 [TypingDisconnectListener.java](backend/src/main/java/vaultWeb/config/websocket/TypingDisconnectListener.java)
             - 📄 [WebSocketConfig.java](backend/src/main/java/vaultWeb/config/websocket/WebSocketConfig.java)
         - 📁 **controllers**
@@ -22,12 +23,16 @@
           - 📄 [DeviceController.java](backend/src/main/java/vaultWeb/controllers/DeviceController.java)
           - 📄 [GroupChatPollController.java](backend/src/main/java/vaultWeb/controllers/GroupChatPollController.java)
           - 📄 [GroupController.java](backend/src/main/java/vaultWeb/controllers/GroupController.java)
+          - 📄 [MediaController.java](backend/src/main/java/vaultWeb/controllers/MediaController.java)
           - 📄 [PrivateChatController.java](backend/src/main/java/vaultWeb/controllers/PrivateChatController.java)
           - 📄 [PrivateChatPollController.java](backend/src/main/java/vaultWeb/controllers/PrivateChatPollController.java)
+          - 📄 [ProjectController.java](backend/src/main/java/vaultWeb/controllers/ProjectController.java)
           - 📄 [TypingIndicatorController.java](backend/src/main/java/vaultWeb/controllers/TypingIndicatorController.java)
           - 📄 [UserController.java](backend/src/main/java/vaultWeb/controllers/UserController.java)
         - 📁 **dtos**
           - 📄 [BatchOperationDto.java](backend/src/main/java/vaultWeb/dtos/BatchOperationDto.java)
+          - 📄 [ChatErrorDto.java](backend/src/main/java/vaultWeb/dtos/ChatErrorDto.java)
+          - 📄 [ChatMessageDeletedDto.java](backend/src/main/java/vaultWeb/dtos/ChatMessageDeletedDto.java)
           - 📄 [ChatMessageDto.java](backend/src/main/java/vaultWeb/dtos/ChatMessageDto.java)
           - 📄 [ClearChatRequestDto.java](backend/src/main/java/vaultWeb/dtos/ClearChatRequestDto.java)
           - 📄 [CreateGroupFromChatsRequest.java](backend/src/main/java/vaultWeb/dtos/CreateGroupFromChatsRequest.java)
@@ -36,9 +41,11 @@
           - 📄 [GroupDto.java](backend/src/main/java/vaultWeb/dtos/GroupDto.java)
           - 📄 [GroupMemberDto.java](backend/src/main/java/vaultWeb/dtos/GroupMemberDto.java)
           - 📄 [GroupResponseDto.java](backend/src/main/java/vaultWeb/dtos/GroupResponseDto.java)
+          - 📄 [MessageStatusUpdateDto.java](backend/src/main/java/vaultWeb/dtos/MessageStatusUpdateDto.java)
           - 📄 [PollRequestDto.java](backend/src/main/java/vaultWeb/dtos/PollRequestDto.java)
           - 📄 [PollResponseDto.java](backend/src/main/java/vaultWeb/dtos/PollResponseDto.java)
           - 📄 [PrivateChatDto.java](backend/src/main/java/vaultWeb/dtos/PrivateChatDto.java)
+          - 📄 [ProjectDto.java](backend/src/main/java/vaultWeb/dtos/ProjectDto.java)
           - 📄 [TypingIndicatorDto.java](backend/src/main/java/vaultWeb/dtos/TypingIndicatorDto.java)
           - 📁 **dashboard**
             - 📄 [UserDashboardDto.java](backend/src/main/java/vaultWeb/dtos/dashboard/UserDashboardDto.java)
@@ -61,6 +68,8 @@
           - 📄 [LastAdminException.java](backend/src/main/java/vaultWeb/exceptions/LastAdminException.java)
           - 📄 [PollDoesNotBelongToGroupException.java](backend/src/main/java/vaultWeb/exceptions/PollDoesNotBelongToGroupException.java)
           - 📄 [PollOptionNotFoundException.java](backend/src/main/java/vaultWeb/exceptions/PollOptionNotFoundException.java)
+          - 📄 [PrivateMessageSendException.java](backend/src/main/java/vaultWeb/exceptions/PrivateMessageSendException.java)
+          - 📄 [ProjectConflictException.java](backend/src/main/java/vaultWeb/exceptions/ProjectConflictException.java)
           - 📄 [RateLimitExceededException.java](backend/src/main/java/vaultWeb/exceptions/RateLimitExceededException.java)
           - 📄 [UnauthorizedException.java](backend/src/main/java/vaultWeb/exceptions/UnauthorizedException.java)
           - 📁 **notfound**
@@ -79,10 +88,15 @@
           - 📄 [PollOption.java](backend/src/main/java/vaultWeb/models/PollOption.java)
           - 📄 [PollVote.java](backend/src/main/java/vaultWeb/models/PollVote.java)
           - 📄 [PrivateChat.java](backend/src/main/java/vaultWeb/models/PrivateChat.java)
+          - 📄 [Project.java](backend/src/main/java/vaultWeb/models/Project.java)
+          - 📄 [ProjectActivity.java](backend/src/main/java/vaultWeb/models/ProjectActivity.java)
+          - 📄 [ProjectMember.java](backend/src/main/java/vaultWeb/models/ProjectMember.java)
+          - 📄 [ProjectResourceLink.java](backend/src/main/java/vaultWeb/models/ProjectResourceLink.java)
           - 📄 [RefreshToken.java](backend/src/main/java/vaultWeb/models/RefreshToken.java)
           - 📄 [SecurityEvent.java](backend/src/main/java/vaultWeb/models/SecurityEvent.java)
           - 📄 [User.java](backend/src/main/java/vaultWeb/models/User.java)
           - 📁 **enums**
+            - 📄 [MessageStatus.java](backend/src/main/java/vaultWeb/models/enums/MessageStatus.java)
             - 📄 [MessageType.java](backend/src/main/java/vaultWeb/models/enums/MessageType.java)
             - 📄 [Role.java](backend/src/main/java/vaultWeb/models/enums/Role.java)
         - 📁 **repositories**
@@ -93,6 +107,10 @@
           - 📄 [PollRepository.java](backend/src/main/java/vaultWeb/repositories/PollRepository.java)
           - 📄 [PollVoteRepository.java](backend/src/main/java/vaultWeb/repositories/PollVoteRepository.java)
           - 📄 [PrivateChatRepository.java](backend/src/main/java/vaultWeb/repositories/PrivateChatRepository.java)
+          - 📄 [ProjectActivityRepository.java](backend/src/main/java/vaultWeb/repositories/ProjectActivityRepository.java)
+          - 📄 [ProjectMemberRepository.java](backend/src/main/java/vaultWeb/repositories/ProjectMemberRepository.java)
+          - 📄 [ProjectRepository.java](backend/src/main/java/vaultWeb/repositories/ProjectRepository.java)
+          - 📄 [ProjectResourceRepository.java](backend/src/main/java/vaultWeb/repositories/ProjectResourceRepository.java)
           - 📄 [RefreshTokenRepository.java](backend/src/main/java/vaultWeb/repositories/RefreshTokenRepository.java)
           - 📄 [SecurityEventRepository.java](backend/src/main/java/vaultWeb/repositories/SecurityEventRepository.java)
           - 📄 [UserRepository.java](backend/src/main/java/vaultWeb/repositories/UserRepository.java)
@@ -100,6 +118,7 @@
           - 📄 [JwtAuthFilter.java](backend/src/main/java/vaultWeb/security/JwtAuthFilter.java)
           - 📄 [JwtAuthenticationEntryPoint.java](backend/src/main/java/vaultWeb/security/JwtAuthenticationEntryPoint.java)
           - 📄 [JwtUtil.java](backend/src/main/java/vaultWeb/security/JwtUtil.java)
+          - 📄 [MediaTokenService.java](backend/src/main/java/vaultWeb/security/MediaTokenService.java)
           - 📄 [RateLimitFilter.java](backend/src/main/java/vaultWeb/security/RateLimitFilter.java)
           - 📄 [TokenHashUtil.java](backend/src/main/java/vaultWeb/security/TokenHashUtil.java)
           - 📁 **annotations**
@@ -115,12 +134,15 @@
             - 📄 [JwtAuthenticationException.java](backend/src/main/java/vaultWeb/security/exception/JwtAuthenticationException.java)
         - 📁 **services**
           - 📄 [ChatService.java](backend/src/main/java/vaultWeb/services/ChatService.java)
+          - 📄 [CloudPageMediaClient.java](backend/src/main/java/vaultWeb/services/CloudPageMediaClient.java)
           - 📄 [DashboardService.java](backend/src/main/java/vaultWeb/services/DashboardService.java)
           - 📄 [DeviceService.java](backend/src/main/java/vaultWeb/services/DeviceService.java)
           - 📄 [GroupService.java](backend/src/main/java/vaultWeb/services/GroupService.java)
           - 📄 [PollService.java](backend/src/main/java/vaultWeb/services/PollService.java)
           - 📄 [PrivateChatService.java](backend/src/main/java/vaultWeb/services/PrivateChatService.java)
           - 📄 [ProfilePictureService.java](backend/src/main/java/vaultWeb/services/ProfilePictureService.java)
+          - 📄 [ProjectResourceResolver.java](backend/src/main/java/vaultWeb/services/ProjectResourceResolver.java)
+          - 📄 [ProjectService.java](backend/src/main/java/vaultWeb/services/ProjectService.java)
           - 📄 [TypingIndicatorService.java](backend/src/main/java/vaultWeb/services/TypingIndicatorService.java)
           - 📄 [UserService.java](backend/src/main/java/vaultWeb/services/UserService.java)
           - 📁 **auth**
@@ -134,10 +156,17 @@
       - 📁 **vaultWeb**
         - 📄 [BackendApplicationTests.java](backend/src/test/java/vaultWeb/BackendApplicationTests.java)
         - 📄 [BackendApplicationTimeZoneTest.java](backend/src/test/java/vaultWeb/BackendApplicationTimeZoneTest.java)
+        - 📁 **config**
+          - 📁 **websocket**
+            - 📄 [GroupSubscriptionIntegrationTest.java](backend/src/test/java/vaultWeb/config/websocket/GroupSubscriptionIntegrationTest.java)
+            - 📄 [GroupSubscriptionInterceptorTest.java](backend/src/test/java/vaultWeb/config/websocket/GroupSubscriptionInterceptorTest.java)
+            - 📄 [StompAuthenticationIntegrationTest.java](backend/src/test/java/vaultWeb/config/websocket/StompAuthenticationIntegrationTest.java)
+            - 📄 [StompAuthenticationInterceptorTest.java](backend/src/test/java/vaultWeb/config/websocket/StompAuthenticationInterceptorTest.java)
         - 📁 **controllers**
           - 📄 [ChatControllerTest.java](backend/src/test/java/vaultWeb/controllers/ChatControllerTest.java)
           - 📄 [DashboardControllerTest.java](backend/src/test/java/vaultWeb/controllers/DashboardControllerTest.java)
           - 📄 [GroupControllerTest.java](backend/src/test/java/vaultWeb/controllers/GroupControllerTest.java)
+          - 📄 [MediaControllerTest.java](backend/src/test/java/vaultWeb/controllers/MediaControllerTest.java)
           - 📄 [PrivateChatControllerTest.java](backend/src/test/java/vaultWeb/controllers/PrivateChatControllerTest.java)
           - 📄 [UserControllerTest.java](backend/src/test/java/vaultWeb/controllers/UserControllerTest.java)
         - 📁 **integration**
@@ -145,8 +174,13 @@
           - 📄 [SecurityActivityControllerIntegrationTest.java](backend/src/test/java/vaultWeb/integration/SecurityActivityControllerIntegrationTest.java)
           - 📄 [SecurityAuditIntegrationTest.java](backend/src/test/java/vaultWeb/integration/SecurityAuditIntegrationTest.java)
           - 📄 [UserControllerIntegrationTest.java](backend/src/test/java/vaultWeb/integration/UserControllerIntegrationTest.java)
+        - 📁 **repositories**
+          - 📄 [ChatMessageRepositoryTest.java](backend/src/test/java/vaultWeb/repositories/ChatMessageRepositoryTest.java)
+          - 📄 [PollVoteRepositoryTest.java](backend/src/test/java/vaultWeb/repositories/PollVoteRepositoryTest.java)
         - 📁 **security**
+          - 📄 [MediaTokenServiceTest.java](backend/src/test/java/vaultWeb/security/MediaTokenServiceTest.java)
           - 📁 **aspects**
+            - 📄 [AdminOnlyAspectTest.java](backend/src/test/java/vaultWeb/security/aspects/AdminOnlyAspectTest.java)
             - 📄 [RateLimitAspectTest.java](backend/src/test/java/vaultWeb/security/aspects/RateLimitAspectTest.java)
             - 📄 [SecurityAuditAspectTest.java](backend/src/test/java/vaultWeb/security/aspects/SecurityAuditAspectTest.java)
         - 📁 **services**
@@ -156,6 +190,9 @@
           - 📄 [PollServiceTest.java](backend/src/test/java/vaultWeb/services/PollServiceTest.java)
           - 📄 [PrivateChatServiceTest.java](backend/src/test/java/vaultWeb/services/PrivateChatServiceTest.java)
           - 📄 [ProfilePictureServiceTest.java](backend/src/test/java/vaultWeb/services/ProfilePictureServiceTest.java)
+          - 📄 [ProjectIntegrationTest.java](backend/src/test/java/vaultWeb/services/ProjectIntegrationTest.java)
+          - 📄 [ProjectReferenceHttpTest.java](backend/src/test/java/vaultWeb/services/ProjectReferenceHttpTest.java)
+          - 📄 [ProjectResourceResolverTest.java](backend/src/test/java/vaultWeb/services/ProjectResourceResolverTest.java)
           - 📄 [TypingIndicatorServiceTest.java](backend/src/test/java/vaultWeb/services/TypingIndicatorServiceTest.java)
           - 📄 [UserServiceTest.java](backend/src/test/java/vaultWeb/services/UserServiceTest.java)
           - 📁 **auth**
@@ -174,6 +211,7 @@
     - 📄 [app.component.ts](frontend/src/app/app.component.ts)
     - 📄 [app.config.ts](frontend/src/app/app.config.ts)
     - 📄 [app.routes.ts](frontend/src/app/app.routes.ts)
+    - 📄 [auth.guard.spec.ts](frontend/src/app/auth.guard.spec.ts)
     - 📄 [auth.guard.ts](frontend/src/app/auth.guard.ts)
     - 📁 **config**
       - 📄 [external-domains.config.ts](frontend/src/app/config/external-domains.config.ts)
@@ -185,24 +223,30 @@
         - 📄 [ui-toast.service.ts](frontend/src/app/core/services/ui-toast.service.ts)
       - 📁 **utils**
         - 📄 [api-error.util.ts](frontend/src/app/core/utils/api-error.util.ts)
+        - 📄 [file-size.util.spec.ts](frontend/src/app/core/utils/file-size.util.spec.ts)
+        - 📄 [file-size.util.ts](frontend/src/app/core/utils/file-size.util.ts)
     - 📁 **models**
       - 📁 **dtos**
         - 📄 [BatchOperationResponse.ts](frontend/src/app/models/dtos/BatchOperationResponse.ts)
+        - 📄 [ChatErrorDto.ts](frontend/src/app/models/dtos/ChatErrorDto.ts)
+        - 📄 [ChatMessageDeletedDto.ts](frontend/src/app/models/dtos/ChatMessageDeletedDto.ts)
         - 📄 [ChatMessageDto.ts](frontend/src/app/models/dtos/ChatMessageDto.ts)
         - 📄 [ClearChatRequestDto.ts](frontend/src/app/models/dtos/ClearChatRequestDto.ts)
         - 📄 [CreateGroupFromChatsRequest.ts](frontend/src/app/models/dtos/CreateGroupFromChatsRequest.ts)
         - 📄 [DeviceDto.ts](frontend/src/app/models/dtos/DeviceDto.ts)
+        - 📄 [FileChecksumDto.ts](frontend/src/app/models/dtos/FileChecksumDto.ts)
         - 📄 [FileDto.ts](frontend/src/app/models/dtos/FileDto.ts)
+        - 📄 [FileScanResultDto.ts](frontend/src/app/models/dtos/FileScanResultDto.ts)
         - 📄 [FolderContentItemDto.ts](frontend/src/app/models/dtos/FolderContentItemDto.ts)
         - 📄 [FolderDto.ts](frontend/src/app/models/dtos/FolderDto.ts)
         - 📄 [FolderListItemDto.ts](frontend/src/app/models/dtos/FolderListItemDto.ts)
         - 📄 [GroupDto.ts](frontend/src/app/models/dtos/GroupDto.ts)
         - 📄 [PageResponseDto.ts](frontend/src/app/models/dtos/PageResponseDto.ts)
-        - 📄 [PasswordEntryCreateRequestDto.ts](frontend/src/app/models/dtos/PasswordEntryCreateRequestDto.ts)
-        - 📄 [PasswordEntryDto.ts](frontend/src/app/models/dtos/PasswordEntryDto.ts)
-        - 📄 [PasswordRevealResponseDto.ts](frontend/src/app/models/dtos/PasswordRevealResponseDto.ts)
         - 📄 [PrivateChatDto.ts](frontend/src/app/models/dtos/PrivateChatDto.ts)
+        - 📄 [ResourceShareDto.ts](frontend/src/app/models/dtos/ResourceShareDto.ts)
+        - 📄 [ScanJobDto.ts](frontend/src/app/models/dtos/ScanJobDto.ts)
         - 📄 [SearchResultDto.ts](frontend/src/app/models/dtos/SearchResultDto.ts)
+        - 📄 [SecureSendLinkDto.ts](frontend/src/app/models/dtos/SecureSendLinkDto.ts)
         - 📄 [TrashEntryDto.ts](frontend/src/app/models/dtos/TrashEntryDto.ts)
         - 📄 [TypingIndicatorDto.ts](frontend/src/app/models/dtos/TypingIndicatorDto.ts)
         - 📄 [UserDashboardDto.ts](frontend/src/app/models/dtos/UserDashboardDto.ts)
@@ -213,9 +257,20 @@
       - 📄 [navbar.component.ts](frontend/src/app/navbar/navbar.component.ts)
     - 📁 **pages**
       - 📁 **cloud**
+        - 📄 [cloud-file-save.spec.ts](frontend/src/app/pages/cloud/cloud-file-save.spec.ts)
         - 📄 [cloud.component.html](frontend/src/app/pages/cloud/cloud.component.html)
         - 📄 [cloud.component.scss](frontend/src/app/pages/cloud/cloud.component.scss)
+        - 📄 [cloud.component.spec.ts](frontend/src/app/pages/cloud/cloud.component.spec.ts)
         - 📄 [cloud.component.ts](frontend/src/app/pages/cloud/cloud.component.ts)
+        - 📁 **move-to-dialog**
+          - 📄 [move-to-dialog.component.html](frontend/src/app/pages/cloud/move-to-dialog/move-to-dialog.component.html)
+          - 📄 [move-to-dialog.component.spec.ts](frontend/src/app/pages/cloud/move-to-dialog/move-to-dialog.component.spec.ts)
+          - 📄 [move-to-dialog.component.ts](frontend/src/app/pages/cloud/move-to-dialog/move-to-dialog.component.ts)
+        - 📁 **shared-links**
+          - 📄 [shared-links.component.html](frontend/src/app/pages/cloud/shared-links/shared-links.component.html)
+          - 📄 [shared-links.component.scss](frontend/src/app/pages/cloud/shared-links/shared-links.component.scss)
+          - 📄 [shared-links.component.spec.ts](frontend/src/app/pages/cloud/shared-links/shared-links.component.spec.ts)
+          - 📄 [shared-links.component.ts](frontend/src/app/pages/cloud/shared-links/shared-links.component.ts)
         - 📁 **trash**
           - 📄 [trash.component.html](frontend/src/app/pages/cloud/trash/trash.component.html)
           - 📄 [trash.component.scss](frontend/src/app/pages/cloud/trash/trash.component.scss)
@@ -241,11 +296,28 @@
         - 📄 [password-manager.component.scss](frontend/src/app/pages/password-manager/password-manager.component.scss)
         - 📄 [password-manager.component.ts](frontend/src/app/pages/password-manager/password-manager.component.ts)
       - 📁 **private-chat-dialog**
+        - 📄 [chat-day-separator.spec.ts](frontend/src/app/pages/private-chat-dialog/chat-day-separator.spec.ts)
+        - 📄 [chat-day-separator.ts](frontend/src/app/pages/private-chat-dialog/chat-day-separator.ts)
+        - 📄 [chat-markdown-component.spec.ts](frontend/src/app/pages/private-chat-dialog/chat-markdown-component.spec.ts)
+        - 📄 [chat-markdown.spec.ts](frontend/src/app/pages/private-chat-dialog/chat-markdown.spec.ts)
+        - 📄 [chat-markdown.ts](frontend/src/app/pages/private-chat-dialog/chat-markdown.ts)
         - 📄 [chat-reactions.ts](frontend/src/app/pages/private-chat-dialog/chat-reactions.ts)
+        - 📁 **emoji-picker**
+          - 📄 [emoji-data.spec.ts](frontend/src/app/pages/private-chat-dialog/emoji-picker/emoji-data.spec.ts)
+          - 📄 [emoji-data.ts](frontend/src/app/pages/private-chat-dialog/emoji-picker/emoji-data.ts)
+          - 📄 [emoji-picker.component.html](frontend/src/app/pages/private-chat-dialog/emoji-picker/emoji-picker.component.html)
+          - 📄 [emoji-picker.component.scss](frontend/src/app/pages/private-chat-dialog/emoji-picker/emoji-picker.component.scss)
+          - 📄 [emoji-picker.component.spec.ts](frontend/src/app/pages/private-chat-dialog/emoji-picker/emoji-picker.component.spec.ts)
+          - 📄 [emoji-picker.component.ts](frontend/src/app/pages/private-chat-dialog/emoji-picker/emoji-picker.component.ts)
         - 📄 [private-chat-dialog.component.html](frontend/src/app/pages/private-chat-dialog/private-chat-dialog.component.html)
         - 📄 [private-chat-dialog.component.scss](frontend/src/app/pages/private-chat-dialog/private-chat-dialog.component.scss)
         - 📄 [private-chat-dialog.component.spec.ts](frontend/src/app/pages/private-chat-dialog/private-chat-dialog.component.spec.ts)
         - 📄 [private-chat-dialog.component.ts](frontend/src/app/pages/private-chat-dialog/private-chat-dialog.component.ts)
+      - 📁 **projects**
+        - 📄 [projects.component.html](frontend/src/app/pages/projects/projects.component.html)
+        - 📄 [projects.component.scss](frontend/src/app/pages/projects/projects.component.scss)
+        - 📄 [projects.component.spec.ts](frontend/src/app/pages/projects/projects.component.spec.ts)
+        - 📄 [projects.component.ts](frontend/src/app/pages/projects/projects.component.ts)
       - 📁 **register**
         - 📄 [register.component.html](frontend/src/app/pages/register/register.component.html)
         - 📄 [register.component.scss](frontend/src/app/pages/register/register.component.scss)
@@ -253,24 +325,40 @@
       - 📁 **security-activity**
         - 📄 [security-activity.component.html](frontend/src/app/pages/security-activity/security-activity.component.html)
         - 📄 [security-activity.component.scss](frontend/src/app/pages/security-activity/security-activity.component.scss)
+        - 📄 [security-activity.component.spec.ts](frontend/src/app/pages/security-activity/security-activity.component.spec.ts)
         - 📄 [security-activity.component.ts](frontend/src/app/pages/security-activity/security-activity.component.ts)
       - 📁 **server-error**
         - 📄 [server-error.component.html](frontend/src/app/pages/server-error/server-error.component.html)
         - 📄 [server-error.component.ts](frontend/src/app/pages/server-error/server-error.component.ts)
+      - 📁 **share**
+        - 📄 [share.component.html](frontend/src/app/pages/share/share.component.html)
+        - 📄 [share.component.scss](frontend/src/app/pages/share/share.component.scss)
+        - 📄 [share.component.spec.ts](frontend/src/app/pages/share/share.component.spec.ts)
+        - 📄 [share.component.ts](frontend/src/app/pages/share/share.component.ts)
+      - 📁 **share-target**
+        - 📄 [share-session.spec.ts](frontend/src/app/pages/share-target/share-session.spec.ts)
+        - 📄 [share-target.component.html](frontend/src/app/pages/share-target/share-target.component.html)
+        - 📄 [share-target.component.scss](frontend/src/app/pages/share-target/share-target.component.scss)
+        - 📄 [share-target.component.spec.ts](frontend/src/app/pages/share-target/share-target.component.spec.ts)
+        - 📄 [share-target.component.ts](frontend/src/app/pages/share-target/share-target.component.ts)
     - 📁 **services**
+      - 📄 [auth.service.spec.ts](frontend/src/app/services/auth.service.spec.ts)
       - 📄 [auth.service.ts](frontend/src/app/services/auth.service.ts)
+      - 📄 [cloud.service.spec.ts](frontend/src/app/services/cloud.service.spec.ts)
       - 📄 [cloud.service.ts](frontend/src/app/services/cloud.service.ts)
       - 📄 [dashboard.service.ts](frontend/src/app/services/dashboard.service.ts)
       - 📄 [e2ee.service.spec.ts](frontend/src/app/services/e2ee.service.spec.ts)
       - 📄 [e2ee.service.ts](frontend/src/app/services/e2ee.service.ts)
       - 📄 [group-chat.service.ts](frontend/src/app/services/group-chat.service.ts)
       - 📄 [group.service.ts](frontend/src/app/services/group.service.ts)
-      - 📄 [password-manager-unlock.service.ts](frontend/src/app/services/password-manager-unlock.service.ts)
-      - 📄 [password-manager-vault.service.ts](frontend/src/app/services/password-manager-vault.service.ts)
-      - 📄 [password-manager.service.ts](frontend/src/app/services/password-manager.service.ts)
       - 📄 [private-chat.service.ts](frontend/src/app/services/private-chat.service.ts)
+      - 📄 [project.service.spec.ts](frontend/src/app/services/project.service.spec.ts)
+      - 📄 [project.service.ts](frontend/src/app/services/project.service.ts)
+      - 📄 [public-share.service.ts](frontend/src/app/services/public-share.service.ts)
+      - 📄 [resource-share.service.ts](frontend/src/app/services/resource-share.service.ts)
       - 📄 [theme.service.ts](frontend/src/app/services/theme.service.ts)
       - 📄 [user.service.ts](frontend/src/app/services/user.service.ts)
+      - 📄 [web-socket.service.spec.ts](frontend/src/app/services/web-socket.service.spec.ts)
       - 📄 [web-socket.service.ts](frontend/src/app/services/web-socket.service.ts)
   - 📁 **environments**
     - 📄 [environment.ts](frontend/src/environments/environment.ts)
