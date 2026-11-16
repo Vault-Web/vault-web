@@ -2,7 +2,6 @@ package vaultWeb.services;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -24,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import vaultWeb.security.SigningSecrets;
 
 /**
  * Streams file bytes out of the cloud-page service on behalf of a user.
@@ -58,7 +58,7 @@ public class CloudPageMediaClient {
       @Value("${jwt.secret}") String sharedSecret,
       @Value("${app.cloudpage.base-url}") String cloudPageBaseUrl,
       @Value("${app.cloudpage.trust-self-signed:false}") boolean trustSelfSigned) {
-    this.cloudPageKey = Keys.hmacShaKeyFor(sharedSecret.getBytes());
+    this.cloudPageKey = SigningSecrets.toKey("jwt.secret", "JWT_SECRET", sharedSecret);
     this.cloudPageBaseUrl = stripTrailingSlash(cloudPageBaseUrl);
     this.httpClient = buildHttpClient(trustSelfSigned);
   }

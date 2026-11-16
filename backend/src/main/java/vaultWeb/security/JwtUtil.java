@@ -4,7 +4,6 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -57,8 +56,9 @@ public class JwtUtil {
 
   public JwtUtil(
       @Value("${jwt.secret}") String secret, @Value("${jwt.refreshSecret}") String refreshSecret) {
-    this.SECRET_KEY = Keys.hmacShaKeyFor(secret.getBytes());
-    this.REFRESH_KEY = Keys.hmacShaKeyFor(refreshSecret.getBytes());
+    this.SECRET_KEY = SigningSecrets.toKey("jwt.secret", "JWT_SECRET", secret);
+    this.REFRESH_KEY =
+        SigningSecrets.toKey("jwt.refreshSecret", "JWT_REFRESHSECRET", refreshSecret);
   }
 
   /**

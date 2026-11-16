@@ -43,6 +43,31 @@ To develop or run the backend independently, you'll need:
 - PostgreSQL database instance
 - Maven (or use the included Maven Wrapper)
 
+## Required configuration
+
+The backend signs JWTs with three secrets. There are no defaults: it refuses to start
+unless each one is set, is at least 32 bytes long, and is not one of the values that used to be
+committed to this repository.
+
+| Environment variable | Property | Used for |
+| --- | --- | --- |
+| `JWT_SECRET` | `jwt.secret` | Access tokens. Must be identical to the secret configured in cloud-page. |
+| `JWT_REFRESHSECRET` | `jwt.refreshSecret` | Refresh tokens |
+| `JWT_MEDIASECRET` | `jwt.mediaSecret` | Short-lived media URLs |
+
+Generate a value for each and export them before starting the backend:
+
+```bash
+export JWT_SECRET=$(openssl rand -hex 32)
+export JWT_REFRESHSECRET=$(openssl rand -hex 32)
+export JWT_MEDIASECRET=$(openssl rand -hex 32)
+./mvnw spring-boot:run
+```
+
+> **Existing deployments:** the previous defaults were public in the repository history, so any
+> deployment that ever ran with them must be treated as compromised. Set new values and rotate
+> them (this invalidates existing sessions).
+
 ## Running the backend
 
 The backend can run in **HTTP** or **HTTPS** mode depending on your development workflow.

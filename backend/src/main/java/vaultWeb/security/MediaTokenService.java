@@ -4,7 +4,6 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import java.time.Instant;
 import java.util.Date;
 import javax.crypto.SecretKey;
@@ -51,7 +50,7 @@ public class MediaTokenService {
   public MediaTokenService(
       @Value("${jwt.mediaSecret}") String mediaSecret,
       @Value("${app.media.token-ttl-seconds:300}") long ttlSeconds) {
-    this.mediaKey = Keys.hmacShaKeyFor(mediaSecret.getBytes());
+    this.mediaKey = SigningSecrets.toKey("jwt.mediaSecret", "JWT_MEDIASECRET", mediaSecret);
     this.ttlMillis = ttlSeconds * 1000;
   }
 
