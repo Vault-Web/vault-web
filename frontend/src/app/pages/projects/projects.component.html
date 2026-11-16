@@ -1,0 +1,264 @@
+<main class="projects-page">
+  <header>
+    <h1>Project workspaces</h1>
+    <p>
+      Bring related files and conversations together. Cloud and group
+      permissions stay independent.
+    </p>
+  </header>
+  <p *ngIf="error" role="alert">{{ error }}</p>
+  <p *ngIf="loading" role="status">Loading projects…</p>
+  <div class="project-layout" [attr.aria-busy]="loading || busy">
+    <aside aria-label="Projects">
+      <button type="button" (click)="newProject()" [disabled]="busy">
+        New project
+      </button>
+      <button type="button" (click)="load()" [disabled]="busy">
+        Refresh list
+      </button>
+      <p *ngIf="!loading && projects.length === 0">
+        No projects yet. Create a workspace to get started.
+      </p>
+      <ul>
+        <li *ngFor="let project of projects">
+          <button
+            type="button"
+            (click)="select(project.id)"
+            [disabled]="busy"
+            [attr.aria-current]="selected?.id === project.id ? 'page' : null"
+          >
+            {{ project.name }} <span *ngIf="project.archived">(archived)</span>
+          </button>
+        </li>
+      </ul>
+    </aside>
+    <section *ngIf="!loading" aria-label="Project overview">
+      <h2>{{ selected ? selected.name : "Create project" }}</h2>
+      <p *ngIf="selected">
+        Your role: {{ selected.role }} · Created
+        {{ selected.createdAt | date: "mediumDate" }}
+      </p>
+      <p *ngIf="selected?.archived" role="status">
+        Archived: reopen to edit metadata, members or resources. Members may
+        still leave.
+      </p>
+      <form *ngIf="!selected || editable" (ngSubmit)="save()">
+        <label for="project-name">Name</label
+        ><input
+          id="project-name"
+          name="name"
+          [(ngModel)]="name"
+          required
+          maxlength="120"
+          [disabled]="busy"
+        />
+        <label for="project-description">Description</label
+        ><textarea
+          id="project-description"
+          name="description"
+          [(ngModel)]="description"
+          maxlength="2000"
+          [disabled]="busy"
+        ></textarea>
+        <label for="project-discussion"
+          >Existing discussion group ID (optional)</label
+        ><input
+          id="project-discussion"
+          type="number"
+          min="1"
+          name="discussion"
+          [(ngModel)]="discussionId"
+          [disabled]="busy"
+        />
+        <p>
+          You must already belong to this group. Project membership never joins
+          it automatically.
+        </p>
+        <label *ngIf="selected"
+          ><input
+            type="checkbox"
+            name="clearDiscussion"
+            [(ngModel)]="clearDiscussion"
+            [disabled]="busy"
+          />
+          Remove existing discussion reference (including one unavailable to
+          you)</label
+        >
+        <button type="submit" [disabled]="busy || !name.trim()">
+          {{ busy ? "Saving…" : selected ? "Save project" : "Create project" }}
+        </button>
+      </form>
+      <ng-container *ngIf="selected as project">
+        <p *ngIf="!editable">{{ project.description }}</p>
+        <div class="actions">
+          <button
+            *ngIf="manages"
+            type="button"
+            (click)="archive()"
+            [disabled]="busy"
+          >
+            {{ project.archived ? "Reopen project" : "Archive project" }}
+          </button>
+          <button type="button" (click)="select(project.id)" [disabled]="busy">
+            Refresh overview
+          </button>
+          <button type="button" (click)="leave()" [disabled]="busy">
+            Leave project
+          </button>
+          <button
+            *ngIf="project.discussionGroupId"
+            type="button"
+            (click)="openDiscussion()"
+            [disabled]="busy"
+          >
+            Open discussion
+          </button>
+        </div>
+        <h3>Members</h3>
+        <p>
+          At least one owner must remain. Add another owner before the last
+          owner leaves.
+        </p>
+        <ul>
+          <li *ngFor="let member of project.members">
+            {{ member.username }} — {{ member.role }}
+            <button
+              *ngIf="
+                editable &&
+                (project.role === 'OWNER' || member.role === 'MEMBER')
+              "
+              type="button"
+              (click)="removeMember(member.userId)"
+              [disabled]="busy"
+              [attr.aria-label]="'Remove ' + member.username"
+            >
+              Remove
+            </button>
+          </li>
+        </ul>
+        <form *ngIf="editable" (ngSubmit)="addMember()">
+          <label for="project-member"
+            >Existing username (add or change role)</label
+          ><input
+            id="project-member"
+            name="member"
+            [(ngModel)]="memberName"
+            required
+            [disabled]="busy"
+          />
+          <label for="project-role">Role</label
+          ><select
+            id="project-role"
+            name="role"
+            [(ngModel)]="memberRole"
+            [disabled]="busy"
+          >
+            <option value="MEMBER">Member</option>
+            <ng-container *ngIf="project.role === 'OWNER'"
+              ><option value="ADMIN">Admin</option>
+              <option value="OWNER">Owner</option></ng-container
+            >
+          </select>
+          <button type="submit" [disabled]="busy || !memberName.trim()">
+            Save member
+          </button>
+        </form>
+        <h3>Linked Cloud resources</h3>
+        <p>
+          References do not copy files or grant access. Other members need an
+          existing exact-resource Cloud share with View permission.
+        </p>
+        <p *ngIf="project.resources.length === 0">No linked resources.</p>
+        <ul>
+          <li *ngFor="let resource of project.resources">
+            <ng-container *ngIf="resource.available; else unavailable"
+              >{{ resource.path }} · {{ resource.ownerUsername }}
+              <button
+                type="button"
+                (click)="openResource(resource)"
+                [disabled]="busy"
+              >
+                {{ resource.folder ? "Check folder" : "Open file" }}
+              </button></ng-container
+            >
+            <ng-template #unavailable
+              >Resource unavailable — Cloud access is independent; the file may
+              have moved or the service may be offline.</ng-template
+            >
+            <button
+              *ngIf="editable"
+              type="button"
+              (click)="unlink(resource.id)"
+              [disabled]="busy"
+            >
+              Unlink reference
+            </button>
+          </li>
+        </ul>
+        <p role="status">{{ resourceMessage }}</p>
+        <form *ngIf="editable" (ngSubmit)="link()">
+          <label for="project-path">Path in your Cloud storage</label
+          ><input
+            id="project-path"
+            name="path"
+            [(ngModel)]="path"
+            required
+            maxlength="1024"
+            [disabled]="busy"
+          />
+          <label
+            ><input
+              type="checkbox"
+              name="folder"
+              [(ngModel)]="folder"
+              [disabled]="busy"
+            />
+            Folder</label
+          >
+          <button type="submit" [disabled]="busy || !path.trim()">
+            Link existing resource
+          </button>
+        </form>
+        <h3>Recent activity</h3>
+        <p *ngIf="project.activity.length === 0">No recent activity.</p>
+        <ol>
+          <li *ngFor="let entry of project.activity">
+            {{ entry.event.split("_").join(" ").toLowerCase() }} ·
+            {{ entry.actor }} · {{ entry.createdAt | date: "medium" }}
+          </li>
+        </ol>
+        <section *ngIf="project.role === 'OWNER'" aria-label="Delete project">
+          <button
+            type="button"
+            (click)="confirmingDelete = !confirmingDelete"
+            [disabled]="busy"
+          >
+            Delete project…
+          </button>
+          <div *ngIf="confirmingDelete">
+            <p>
+              Delete this project's metadata, membership and activity
+              permanently? Cloud files and discussion history are kept.
+            </p>
+            <button type="button" (click)="delete()" [disabled]="busy">
+              Confirm deletion</button
+            ><button
+              type="button"
+              (click)="confirmingDelete = false"
+              [disabled]="busy"
+            >
+              Cancel
+            </button>
+          </div>
+        </section>
+      </ng-container>
+    </section>
+  </div>
+  <app-private-chat-dialog
+    *ngIf="discussion"
+    [groupId]="discussion.id"
+    [groupName]="discussion.name"
+    [currentUsername]="auth.getUsername()"
+    (closeChat)="discussion = null"
+  ></app-private-chat-dialog>
+</main>

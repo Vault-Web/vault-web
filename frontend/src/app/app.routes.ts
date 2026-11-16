@@ -12,9 +12,11 @@ import { ServerErrorComponent } from './pages/server-error/server-error.componen
 import { SecurityActivityComponent } from './pages/security-activity/security-activity.component';
 import { ShareComponent } from './pages/share/share.component';
 import { SharedLinksComponent } from './pages/cloud/shared-links/shared-links.component';
+import { ProjectsComponent } from './pages/projects/projects.component';
 import { ShareTargetComponent } from './pages/share-target/share-target.component';
 
 export const routes: Routes = [
+  { path: 'projects', component: ProjectsComponent, canActivate: [authGuard] },
   { path: 'share-target', component: ShareTargetComponent },
   { path: 'login', component: LoginComponent, data: { hideNavbar: true } },
   { path: '', component: HomeComponent, canActivate: [authGuard] },

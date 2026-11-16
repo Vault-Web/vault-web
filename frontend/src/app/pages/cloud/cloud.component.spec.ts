@@ -1362,7 +1362,7 @@ describe('CloudComponent unsaved-edit guard', () => {
       );
     }));
 
-    it('surfaces folder archive backend errors using toast notifications', (done) => {
+    it('surfaces folder archive backend errors using toast notifications', async () => {
       const mockErrorResponse = {
         error: new Blob([JSON.stringify({ message: 'Rate limit exceeded' })], {
           type: 'application/json',
@@ -1371,39 +1371,33 @@ describe('CloudComponent unsaved-edit guard', () => {
       cloudMock.getFolderArchive.and.returnValue(
         throwError(() => mockErrorResponse),
       );
-
-      toastMock.error.and.callFake((title, message) => {
-        try {
-          expect(title).toBe('Download failed');
-          expect(message).toBe('Rate limit exceeded');
-          done();
-        } catch (error) {
-          done.fail(error instanceof Error ? error : String(error));
-        }
+      const notified = new Promise<void>((resolve) => {
+        toastMock.error.and.callFake(() => resolve());
       });
-
       component.downloadFolder('/root/sub', 'sub');
+      await notified;
+      expect(toastMock.error).toHaveBeenCalledOnceWith(
+        'Download failed',
+        'Rate limit exceeded',
+      );
     });
 
-    it('falls back to generic error message if error blob is not parseable', (done) => {
+    it('falls back to generic error message if error blob is not parseable', async () => {
       const mockErrorResponse = {
         error: new Blob(['invalid json'], { type: 'application/json' }),
       };
       cloudMock.getFolderArchive.and.returnValue(
         throwError(() => mockErrorResponse),
       );
-
-      toastMock.error.and.callFake((title, message) => {
-        try {
-          expect(title).toBe('Download failed');
-          expect(message).toBe('Request failed. Please try again.');
-          done();
-        } catch (error) {
-          done.fail(error instanceof Error ? error : String(error));
-        }
+      const notified = new Promise<void>((resolve) => {
+        toastMock.error.and.callFake(() => resolve());
       });
-
       component.downloadFolder('/root/sub', 'sub');
+      await notified;
+      expect(toastMock.error).toHaveBeenCalledOnceWith(
+        'Download failed',
+        'Request failed. Please try again.',
+      );
     });
   });
 });
