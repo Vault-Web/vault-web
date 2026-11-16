@@ -246,6 +246,34 @@ describe('Share target handoff', () => {
     expect(component.draft).toBe(draft);
   });
 
+  it('retries a failed locked destination recovery and uploads only remaining files', async () => {
+    draft.destinationUser = 'owner';
+    draft.destinationPath = '/owner/nested';
+    draft.uploaded = ['shared-' + id + '-0-one.txt'];
+    cloud.getFolderByPath.and.returnValue(throwError(() => ({ status: 503 })));
+    await component.ngOnInit();
+    expect(component.folder).toBeUndefined();
+    const nested = { ...folder, path: '/owner/nested' };
+    cloud.getFolderByPath.and.callFake((path) =>
+      of(path === '/' ? folder : nested),
+    );
+    await component.loadDestination();
+    expect(component.folder?.path).toBe(nested.path);
+    await component.openFolder('/owner/sibling');
+    expect(component.folder?.path).toBe(nested.path);
+    await component.upload();
+    expect(cloud.uploadFile.calls.count()).toBe(2);
+    expect(
+      cloud.uploadFile.calls.allArgs().every((args) => args[0] === nested.path),
+    ).toBeTrue();
+    expect(
+      cloud.uploadFile.calls
+        .allArgs()
+        .some((args) => args[1].name.endsWith('-0-one.txt')),
+    ).toBeFalse();
+    expect(component.complete).toBeTrue();
+  });
+
   it('handles missing drafts and unavailable destination without losing content', async () => {
     store.read.and.resolveTo(undefined);
     await component.ngOnInit();

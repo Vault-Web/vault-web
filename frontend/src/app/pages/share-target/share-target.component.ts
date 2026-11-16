@@ -106,18 +106,7 @@ export class ShareTargetComponent implements OnInit, OnDestroy {
           ),
         );
       }
-      if (this.auth.isLoggedIn()) {
-        // Resolve the real Cloud root before restoring a nested destination.
-        await this.openFolder('/', true);
-        if (
-          this.folder &&
-          this.draft.destinationPath &&
-          this.draft.destinationPath !== this.rootPath
-        ) {
-          this.folder = undefined;
-          await this.openFolder(this.draft.destinationPath, true);
-        }
-      }
+      if (this.auth.isLoggedIn()) await this.loadDestination();
     } catch (error) {
       this.error =
         error instanceof Error
@@ -130,6 +119,19 @@ export class ShareTargetComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     clearTimeout(this.timer);
+  }
+
+  async loadDestination(): Promise<void> {
+    if (this.busy || !this.draft || this.expired || this.complete) return;
+    // Resolve the real Cloud root before restoring the persisted destination.
+    // Recovery can retry a locked destination, never pick a different one.
+    this.folder = undefined;
+    await this.openFolder('/', true);
+    const path = this.draft?.destinationPath;
+    if (this.folder && path && path !== this.rootPath) {
+      this.folder = undefined;
+      await this.openFolder(path, true);
+    }
   }
 
   async openFolder(path: string, recovering = false): Promise<void> {

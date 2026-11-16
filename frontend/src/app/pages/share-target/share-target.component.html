@@ -40,7 +40,7 @@
       <button
         *ngIf="!folder"
         type="button"
-        (click)="openFolder('/')"
+        (click)="loadDestination()"
         [disabled]="busy"
       >
         Load Cloud destination
