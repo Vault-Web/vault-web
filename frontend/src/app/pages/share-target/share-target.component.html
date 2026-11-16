@@ -1,0 +1,99 @@
+<main class="share-handoff" aria-labelledby="share-heading">
+  <h1 id="share-heading">Save shared content to Cloud</h1>
+  <p *ngIf="loading" role="status">Reading shared content…</p>
+  <p *ngIf="error" role="alert">{{ error }}</p>
+  <p *ngIf="expired" role="alert">
+    This temporary draft expired. Please share remaining content again.
+  </p>
+  <p *ngIf="complete" role="status">Shared content saved to Cloud.</p>
+  <ng-container *ngIf="draft && !expired">
+    <p>
+      Review before uploading. Only the newest share is retained on this device,
+      for 30 minutes. Shared content is never uploaded automatically.
+    </p>
+    <h2 *ngIf="draft.title">{{ draft.title }}</h2>
+    <pre *ngIf="draft.text">{{ draft.text }}</pre>
+    <p *ngIf="draft.url" class="shared-url">{{ draft.url }}</p>
+    <p *ngIf="draft.title || draft.text || draft.url">
+      Text, title and URL will be saved together as a plain-text note.
+    </p>
+    <ul>
+      <li *ngFor="let file of draft.files">
+        {{ file.name }} ({{ file.size | number }} bytes)
+      </li>
+    </ul>
+    <ng-container *ngIf="!auth.isLoggedIn(); else destination">
+      <p>
+        Sign in to choose your Cloud destination. Your draft stays on this
+        device.
+      </p>
+      <a [routerLink]="['/login']" [queryParams]="{ returnShare: id }"
+        >Sign in and return to this share</a
+      >
+    </ng-container>
+    <ng-template #destination>
+      <p>
+        Uploading as <strong>{{ auth.getUsername() }}</strong
+        >. Files receive unique “shared-” names to avoid replacing existing
+        files.
+      </p>
+      <button
+        *ngIf="!folder"
+        type="button"
+        (click)="loadDestination()"
+        [disabled]="busy"
+      >
+        Load Cloud destination
+      </button>
+      <section
+        *ngIf="folder"
+        aria-labelledby="destination-heading"
+        [attr.aria-busy]="busy"
+      >
+        <h2 id="destination-heading">Destination: {{ folder.path }}</h2>
+        <p *ngIf="uploaded.length">
+          Destination is locked after the first completed upload.
+        </p>
+        <button
+          *ngIf="folder.path !== rootPath"
+          type="button"
+          (click)="openFolder(parentPath())"
+          [disabled]="busy || uploaded.length > 0"
+        >
+          Parent folder
+        </button>
+        <ul>
+          <li *ngFor="let child of folder.folders">
+            <button
+              type="button"
+              (click)="openFolder(child.path)"
+              [disabled]="busy || uploaded.length > 0"
+            >
+              {{ child.name }}
+            </button>
+          </li>
+        </ul>
+        <p *ngIf="!folder.folders.length">No subfolders. You can save here.</p>
+        <button type="button" (click)="upload()" [disabled]="busy">
+          {{
+            busy
+              ? "Working…"
+              : uploaded.length
+                ? "Retry remaining uploads here"
+                : "Save shared content here"
+          }}
+        </button>
+      </section>
+    </ng-template>
+    <button type="button" (click)="discard()" [disabled]="busy">
+      Discard draft
+    </button>
+  </ng-container>
+  <section *ngIf="uploaded.length">
+    <h2>Completed uploads</h2>
+    <ul>
+      <li *ngFor="let name of uploaded">{{ name }}</li>
+    </ul>
+  </section>
+  <a routerLink="/cloud">Open Cloud</a>
+</main>

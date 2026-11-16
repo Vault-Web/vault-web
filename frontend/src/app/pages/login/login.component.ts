@@ -76,7 +76,15 @@ export class LoginComponent implements OnInit {
           return;
         }
 
-        this.router.navigate(['']);
+        const returnShare =
+          this.route.snapshot.queryParamMap.get('returnShare');
+        if (returnShare && /^[a-f0-9-]{36}$/.test(returnShare)) {
+          this.router.navigate(['/share-target'], {
+            queryParams: { id: returnShare },
+          });
+        } else {
+          this.router.navigate(['']);
+        }
       },
       error: (err) => {
         const apiError = extractApiErrorPayload(err);

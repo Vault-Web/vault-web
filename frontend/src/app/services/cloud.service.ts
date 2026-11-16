@@ -66,12 +66,19 @@ export class CloudService {
   getFolderByPath(
     relativePath?: string,
     includeChildCounts = false,
+    preserveErrorInPage = false,
   ): Observable<FolderDto> {
     const path = this.normalizePath(relativePath);
     const params = new HttpParams()
       .set('path', path)
       .set('includeChildCounts', String(includeChildCounts));
-    return this.http.get<FolderDto>(`${this.apiUrl}/folders/path`, { params });
+    return this.http.get<FolderDto>(`${this.apiUrl}/folders/path`, {
+      params,
+      context: new HttpContext().set(
+        SKIP_GLOBAL_ERROR_PAGE,
+        preserveErrorInPage,
+      ),
+    });
   }
 
   getFolderContent(
@@ -130,6 +137,7 @@ export class CloudService {
     folderPath: string,
     file: File,
     ifMatch?: string,
+    preserveErrorInPage = false,
   ): Observable<FolderDto> {
     const formData = new FormData();
     formData.append('file', file);
@@ -142,6 +150,10 @@ export class CloudService {
     return this.http.post<FolderDto>(`${this.apiUrl}/files/upload`, formData, {
       params,
       headers,
+      context: new HttpContext().set(
+        SKIP_GLOBAL_ERROR_PAGE,
+        preserveErrorInPage,
+      ),
     });
   }
 
