@@ -104,6 +104,28 @@ describe('Share target handoff', () => {
     expect(store.remove).toHaveBeenCalledOnceWith(id);
   });
 
+  it('preserves ordinary punctuation and file bytes through confirmed uploads', async () => {
+    draft.files = [
+      new File(['invoice bytes'], 'john@example.com-invoice.pdf', {
+        type: 'application/pdf',
+      }),
+      new File(['photo bytes'], 'Photo^1.jpg', { type: 'image/jpeg' }),
+    ];
+    await component.ngOnInit();
+    expect(cloud.uploadFile).not.toHaveBeenCalled();
+    await component.upload();
+    const files = cloud.uploadFile.calls.allArgs().map((args) => args[1]);
+    expect(files[0].name).toBe(
+      'shared-' + id + '-0-john@example.com-invoice.pdf',
+    );
+    expect(files[1].name).toBe('shared-' + id + '-1-Photo^1.jpg');
+    expect(await files[0].text()).toBe('invoice bytes');
+    expect(await files[1].text()).toBe('photo bytes');
+    expect(files[0].type).toBe('application/pdf');
+    expect(files[1].type).toBe('image/jpeg');
+    expect(component.complete).toBeTrue();
+  });
+
   it('retains failed content, locks destination, and retries only remaining files', async () => {
     cloud.uploadFile.and.returnValues(
       of(folder),

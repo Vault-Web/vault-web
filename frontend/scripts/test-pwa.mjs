@@ -133,9 +133,11 @@ try {
   );
   const receipt = await evaluate(`(async () => {
     const form = new FormData(); form.set('title', '<script>private title</script>'); form.set('text', 'private body'); form.set('url', 'https://example.test/private'); form.append('files', new File(['real file bytes'], 'photo.txt', {type:'text/plain'}));
+    form.append('files', new File(['invoice bytes'], 'john@example.com-invoice.pdf', {type:'application/pdf'}));
+    form.append('files', new File(['photo bytes'], 'Photo^1.jpg', {type:'image/jpeg'}));
     const response = await fetch('/share-target', {method:'POST', body:form});
     const id = new URL(response.url).searchParams.get('id'); const draft = await vaultShareStore.read(id);
-    return { id, title:draft.title, text:draft.text, url:draft.url, file:await draft.files[0].text(), name:draft.files[0].name };
+    return { id, title:draft.title, text:draft.text, url:draft.url, file:await draft.files[0].text(), name:draft.files[0].name, files:await Promise.all(draft.files.map(async file => ({name:file.name, text:await file.text(), type:file.type}))) };
   })()`);
   assert.match(receipt.id, /^[a-f0-9-]{36}$/);
   assert.equal(receipt.file, "real file bytes");
@@ -143,6 +145,25 @@ try {
   assert.equal(receipt.text, "private body");
   assert.equal(receipt.url, "https://example.test/private");
   assert.equal(receipt.name, "photo.txt");
+  assert.deepEqual(receipt.files, [
+    { name: "photo.txt", text: "real file bytes", type: "text/plain" },
+    {
+      name: "john@example.com-invoice.pdf",
+      text: "invoice bytes",
+      type: "application/pdf",
+    },
+    { name: "Photo^1.jpg", text: "photo bytes", type: "image/jpeg" },
+  ]);
+  assert.equal(
+    await evaluate(`(() => {
+      for (const name of ['folder/file.txt', 'folder' + String.fromCharCode(92) + 'file.txt', 'bad' + String.fromCharCode(0) + '.txt', '']) {
+        try { vaultShareStore.validate({title:'', text:'', url:'', files:[new File(['bytes'], name)]}); return false; }
+        catch { /* Path separators, NUL and empty names remain rejected. */ }
+      }
+      return true;
+    })()`),
+    true,
+  );
   const progress = await evaluate(
     `(async()=>{await vaultShareStore.progress('${receipt.id}','owner','/owner/nested',['completed.txt']); const draft=await vaultShareStore.read('${receipt.id}'); return {user:draft.destinationUser,path:draft.destinationPath,uploaded:draft.uploaded};})()`,
   );

@@ -66,7 +66,8 @@ rollback has been executed by these tests.
 ## Verification
 
 Automated: build/format/spec typecheck, share-component regressions, real Chromium
-service worker installation, multipart file/text receipt, temporary draft expiry,
+service worker installation, multipart file/text receipt (including `@` and `^`
+in filenames), confirmed uploads preserving file bytes, temporary draft expiry,
 static offline shell and network-only API/runtime configuration checks via
 `node scripts/test-pwa.mjs` after `npm run build`. Run the existing Cloud regression
 contract and pinned OpenAPI fixture as well.
