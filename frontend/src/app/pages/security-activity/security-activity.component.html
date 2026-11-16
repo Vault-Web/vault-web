@@ -23,15 +23,55 @@
         <span class="badge">{{ events.length }} events</span>
       </header>
 
+      <div *ngIf="events.length > 0" class="activity-filters">
+        <label for="security-event-type">Event type</label>
+        <select id="security-event-type" [(ngModel)]="selectedEventType">
+          <option value="">All event types</option>
+          <option *ngFor="let type of eventTypes" [value]="type">
+            {{ getFriendlyEventType(type) }}
+          </option>
+        </select>
+        <label class="failure-filter">
+          <input type="checkbox" [(ngModel)]="failuresOnly" />
+          Failed attempts only
+        </label>
+        <button
+          type="button"
+          class="clear-filters"
+          (click)="clearFilters()"
+          [disabled]="!selectedEventType && !failuresOnly"
+        >
+          Clear filters
+        </button>
+        <p class="filter-count" role="status">
+          Showing {{ filteredEvents.length }} of {{ events.length }} loaded
+          events
+        </p>
+        <p class="history-note">Only the latest 50 events are available.</p>
+      </div>
+
+      <p *ngIf="repeatedFailedLogins" class="failed-login-hint" role="status">
+        {{ repeatedFailedLogins }} consecutive failed logins appear in your
+        recent activity. If you do not recognize these attempts, review your
+        account security.
+      </p>
+
       <div *ngIf="events.length === 0" class="empty-state">
         <p>No security activity logged yet.</p>
       </div>
 
-      <div class="timeline-wrap" *ngIf="events.length > 0">
+      <div
+        *ngIf="events.length > 0 && filteredEvents.length === 0"
+        class="empty-state"
+      >
+        <p>No events match these filters.</p>
+      </div>
+
+      <div class="timeline-wrap" *ngIf="filteredEvents.length > 0">
         <ul class="timeline">
           <li
             class="timeline-entry"
-            *ngFor="let event of events; trackBy: trackById"
+            *ngFor="let event of filteredEvents; trackBy: trackById"
             [class.highlighted]="isHighlightEvent(event.eventType)"
           >
             <div class="dot-container">

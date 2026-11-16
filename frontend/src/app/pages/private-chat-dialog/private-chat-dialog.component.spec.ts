@@ -317,12 +317,24 @@ describe('PrivateChatDialogComponent formatMessage', () => {
     expect(html).not.toContain('href="https://example.com."');
   });
 
-  it('escapes HTML entities in plain text to prevent XSS', () => {
-    const html = toHtml(
+  it('removes raw scripts from Markdown to prevent XSS', () => {
+    const container = document.createElement('div');
+    container.innerHTML = toHtml(
       component.formatMessage('<script>alert("xss")</script>'),
     );
-    expect(html).not.toContain('<script>');
-    expect(html).toContain('&lt;script&gt;');
+    expect(container.querySelector('script')).toBeNull();
+    expect(container.textContent).not.toContain('alert("xss")');
+  });
+
+  it('displays script examples in fenced code without creating a script element', () => {
+    const container = document.createElement('div');
+    container.innerHTML = toHtml(
+      component.formatMessage('```html\n<script>alert("xss")</script>\n```'),
+    );
+    expect(container.querySelector('script')).toBeNull();
+    expect(container.querySelector('pre code')?.textContent).toContain(
+      '<script>alert("xss")</script>',
+    );
   });
 
   it('does not linkify javascript: scheme URLs', () => {

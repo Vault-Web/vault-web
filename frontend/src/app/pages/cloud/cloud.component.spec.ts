@@ -1126,44 +1126,42 @@ describe('CloudComponent unsaved-edit guard', () => {
           type: 'application/json',
         }),
       };
-      spyOn<any>(component, 'getErrorMessage').and.returnValue(
-        'Rate limit exceeded',
-      );
       cloudMock.getFolderArchive.and.returnValue(
         throwError(() => mockErrorResponse),
       );
 
-      component.downloadFolder('/root/sub', 'sub');
+      toastMock.error.and.callFake((title, message) => {
+        try {
+          expect(title).toBe('Download failed');
+          expect(message).toBe('Rate limit exceeded');
+          done();
+        } catch (error) {
+          done.fail(error instanceof Error ? error : String(error));
+        }
+      });
 
-      setTimeout(() => {
-        expect(toastMock.error).toHaveBeenCalledWith(
-          'Download failed',
-          'Rate limit exceeded',
-        );
-        done();
-      }, 50);
+      component.downloadFolder('/root/sub', 'sub');
     });
 
     it('falls back to generic error message if error blob is not parseable', (done) => {
       const mockErrorResponse = {
         error: new Blob(['invalid json'], { type: 'application/json' }),
       };
-      spyOn<any>(component, 'getErrorMessage').and.returnValue(
-        'Request failed. Please try again.',
-      );
       cloudMock.getFolderArchive.and.returnValue(
         throwError(() => mockErrorResponse),
       );
 
-      component.downloadFolder('/root/sub', 'sub');
+      toastMock.error.and.callFake((title, message) => {
+        try {
+          expect(title).toBe('Download failed');
+          expect(message).toBe('Request failed. Please try again.');
+          done();
+        } catch (error) {
+          done.fail(error instanceof Error ? error : String(error));
+        }
+      });
 
-      setTimeout(() => {
-        expect(toastMock.error).toHaveBeenCalledWith(
-          'Download failed',
-          'Request failed. Please try again.',
-        );
-        done();
-      }, 50);
+      component.downloadFolder('/root/sub', 'sub');
     });
   });
 });
