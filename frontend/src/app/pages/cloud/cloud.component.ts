@@ -2532,6 +2532,30 @@ export class CloudComponent implements OnInit, OnDestroy {
           }
         },
         error: (err) => {
+          if (ext === 'pdf' && tab) {
+            // The authenticated Cloud view endpoint remains usable when the
+            // media-token endpoint is unavailable on an older backend.
+            this.cloudService.getFileView(relativePath).subscribe({
+              next: (blob) => {
+                const blobUrl = window.URL.createObjectURL(blob);
+                tab.location.href = blobUrl;
+                const cleanup = window.setInterval(() => {
+                  if (tab.closed) {
+                    window.URL.revokeObjectURL(blobUrl);
+                    window.clearInterval(cleanup);
+                  }
+                }, 30_000);
+              },
+              error: (viewError) => {
+                tab.close();
+                this.toast.error(
+                  'Preview failed',
+                  this.getErrorMessage(viewError),
+                );
+              },
+            });
+            return;
+          }
           tab?.close();
           this.toast.error('Preview failed', this.getErrorMessage(err));
         },

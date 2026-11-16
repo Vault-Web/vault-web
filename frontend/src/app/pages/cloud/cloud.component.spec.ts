@@ -411,6 +411,86 @@ describe('CloudComponent virus scan', () => {
   });
 });
 
+describe('CloudComponent PDF preview', () => {
+  let component: CloudComponent;
+  let cloudMock: jasmine.SpyObj<CloudService>;
+  let toastMock: jasmine.SpyObj<UiToastService>;
+  let tab: Window;
+
+  beforeEach(() => {
+    cloudMock = jasmine.createSpyObj<CloudService>('CloudService', [
+      'getMediaStreamUrl',
+      'getFileView',
+    ]);
+    toastMock = jasmine.createSpyObj<UiToastService>('UiToastService', [
+      'error',
+    ]);
+    component = new CloudComponent(
+      cloudMock,
+      {} as never,
+      toastMock as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    component.rootPath = '/root';
+    tab = {
+      location: { href: '' },
+      closed: false,
+      close: jasmine.createSpy('close'),
+    } as unknown as Window;
+    spyOn(window, 'open').and.returnValue(tab);
+  });
+
+  it('opens an authenticated PDF blob when media-token creation fails', fakeAsync(() => {
+    const blob = new Blob(['%PDF-1.7'], { type: 'application/pdf' });
+    cloudMock.getMediaStreamUrl.and.returnValue(
+      throwError(() => new Error('Media backend unavailable')),
+    );
+    cloudMock.getFileView.and.returnValue(of(blob));
+    spyOn(URL, 'createObjectURL').and.returnValue('blob:pdf-preview');
+    spyOn(URL, 'revokeObjectURL');
+
+    component.previewFile({
+      name: 'doc.pdf',
+      path: '/root/doc.pdf',
+      size: 8,
+      mimeType: 'application/pdf',
+    });
+
+    expect(cloudMock.getMediaStreamUrl).toHaveBeenCalledWith('doc.pdf');
+    expect(cloudMock.getFileView).toHaveBeenCalledWith('doc.pdf');
+    expect(tab.location.href).toBe('blob:pdf-preview');
+    expect(toastMock.error).not.toHaveBeenCalled();
+    Object.defineProperty(tab, 'closed', { value: true });
+    tick(30_000);
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:pdf-preview');
+  }));
+
+  it('reports the Cloud view error if both PDF preview paths fail', () => {
+    cloudMock.getMediaStreamUrl.and.returnValue(
+      throwError(() => new Error('Media backend unavailable')),
+    );
+    cloudMock.getFileView.and.returnValue(
+      throwError(() => new Error('Cloud view unavailable')),
+    );
+
+    component.previewFile({
+      name: 'doc.pdf',
+      path: '/root/doc.pdf',
+      size: 8,
+      mimeType: 'application/pdf',
+    });
+
+    expect(tab.close).toHaveBeenCalled();
+    expect(toastMock.error).toHaveBeenCalledWith(
+      'Preview failed',
+      'Cloud view unavailable',
+    );
+  });
+});
+
 describe('CloudComponent Unsaved Changes Flow', () => {
   let component: CloudComponent;
   let cloudMock: jasmine.SpyObj<CloudService>;
@@ -1288,44 +1368,42 @@ describe('CloudComponent unsaved-edit guard', () => {
           type: 'application/json',
         }),
       };
-      spyOn<any>(component, 'getErrorMessage').and.returnValue(
-        'Rate limit exceeded',
-      );
       cloudMock.getFolderArchive.and.returnValue(
         throwError(() => mockErrorResponse),
       );
 
-      component.downloadFolder('/root/sub', 'sub');
+      toastMock.error.and.callFake((title, message) => {
+        try {
+          expect(title).toBe('Download failed');
+          expect(message).toBe('Rate limit exceeded');
+          done();
+        } catch (error) {
+          done.fail(error instanceof Error ? error : String(error));
+        }
+      });
 
-      setTimeout(() => {
-        expect(toastMock.error).toHaveBeenCalledWith(
-          'Download failed',
-          'Rate limit exceeded',
-        );
-        done();
-      }, 50);
+      component.downloadFolder('/root/sub', 'sub');
     });
 
     it('falls back to generic error message if error blob is not parseable', (done) => {
       const mockErrorResponse = {
         error: new Blob(['invalid json'], { type: 'application/json' }),
       };
-      spyOn<any>(component, 'getErrorMessage').and.returnValue(
-        'Request failed. Please try again.',
-      );
       cloudMock.getFolderArchive.and.returnValue(
         throwError(() => mockErrorResponse),
       );
 
-      component.downloadFolder('/root/sub', 'sub');
+      toastMock.error.and.callFake((title, message) => {
+        try {
+          expect(title).toBe('Download failed');
+          expect(message).toBe('Request failed. Please try again.');
+          done();
+        } catch (error) {
+          done.fail(error instanceof Error ? error : String(error));
+        }
+      });
 
-      setTimeout(() => {
-        expect(toastMock.error).toHaveBeenCalledWith(
-          'Download failed',
-          'Request failed. Please try again.',
-        );
-        done();
-      }, 50);
+      component.downloadFolder('/root/sub', 'sub');
     });
   });
 });
