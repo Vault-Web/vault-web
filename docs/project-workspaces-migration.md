@@ -35,6 +35,12 @@ each response is capped at 1 MiB. Remaining or oversized references fail closed
 as unavailable; a later overview retries them. No credentials or share results
 are cached across requests. Existing media streaming retains its separate policy.
 
+Link creation also checks Cloud outside any database transaction or project row
+lock. It first checks project permission/state, then verifies the caller's resource,
+then acquires the project write lock and rechecks membership, role, archive state
+and the reference limit before saving the reference and activity atomically.
+Changes during Cloud resolution cannot authorize a stale write.
+
 An optional discussion references an existing group. The setter must belong to
 it; overview returns its ID only to existing group members and the existing chat
 API independently checks membership. Project deletion never deletes that group.

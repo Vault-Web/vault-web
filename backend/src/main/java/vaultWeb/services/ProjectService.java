@@ -198,21 +198,43 @@ public class ProjectService {
     event(p, caller, leave ? "MEMBER_LEFT" : "MEMBER_REMOVED");
   }
 
+  @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
   public void link(Long id, ProjectDto.Link input, String authorization) {
-    User caller = caller();
-    Project p = locked(id, caller);
-    requireAdmin(membership(p, caller));
-    active(p);
-    if (resources.findByProjectIdOrderByIdAsc(id).size() >= 50)
-      throw new IllegalArgumentException("Resource limit reached");
+    var transaction =
+        new org.springframework.transaction.support.TransactionTemplate(transactionManager);
+    transaction.setReadOnly(true);
+    User caller =
+        transaction.execute(
+            status -> {
+              User user = caller();
+              Project p =
+                  projects
+                      .findById(id)
+                      .orElseThrow(() -> new AccessDeniedException("Project unavailable"));
+              canLink(p, user);
+              return user;
+            });
     ProjectResourceLink link = new ProjectResourceLink();
-    link.setProject(p);
     link.setOwner(caller);
     link.setPath(ProjectResourceResolver.canonical(input.path()));
     link.setFolder(input.folder());
     if (!resolver.resolve(link, caller, authorization).available()) denied();
-    resources.save(link);
-    event(p, caller, "RESOURCE_LINKED");
+    transaction.setReadOnly(false);
+    transaction.executeWithoutResult(
+        status -> {
+          Project p = locked(id, caller);
+          canLink(p, caller);
+          link.setProject(p);
+          resources.save(link);
+          event(p, caller, "RESOURCE_LINKED");
+        });
+  }
+
+  private void canLink(Project p, User caller) {
+    requireAdmin(membership(p, caller));
+    active(p);
+    if (resources.findByProjectIdOrderByIdAsc(p.getId()).size() >= 50)
+      throw new IllegalArgumentException("Resource limit reached");
   }
 
   public void unlink(Long id, Long linkId) {

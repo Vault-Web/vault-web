@@ -92,6 +92,85 @@ class ProjectIntegrationTest {
   }
 
   @Test
+  void linkCloudCheckRunsOutsideTransactionAndRechecksProjectState() {
+    doAnswer(
+            inv -> {
+              assertFalse(
+                  org.springframework.transaction.support.TransactionSynchronizationManager
+                      .isActualTransactionActive());
+              var pool = Executors.newSingleThreadExecutor();
+              try {
+                pool.submit(
+                        () -> {
+                          current.set(owner);
+                          try {
+                            service.update(id, new ProjectDto.Update(null, null, true, null));
+                          } finally {
+                            current.remove();
+                          }
+                        })
+                    .get(5, TimeUnit.SECONDS);
+              } finally {
+                pool.shutdownNow();
+              }
+              return new ProjectDto.Resource(
+                  null, true, owner.getUsername(), "/note.md", false, null);
+            })
+        .when(resolver)
+        .resolve(any(), any(), any());
+    assertThrows(
+        ProjectConflictException.class,
+        () -> service.link(id, new ProjectDto.Link("/note.md", false), "Bearer synthetic"));
+    assertTrue(resources.findByProjectIdOrderByIdAsc(id).isEmpty());
+    assertFalse(
+        activity.findTop50ByProjectIdOrderByIdDesc(id).stream()
+            .anyMatch(a -> a.getEvent().equals("RESOURCE_LINKED")));
+  }
+
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.ValueSource(strings = {"removed", "demoted", "limit"})
+  void linkRechecksPermissionAndLimitAfterCloudResolution(String change) {
+    service.member(id, new ProjectDto.Membership(admin.getUsername(), Role.ADMIN));
+    current.set(admin);
+    doAnswer(
+            inv -> {
+              current.set(owner);
+              try {
+                if (change.equals("removed")) service.removeMember(id, admin.getId(), false);
+                else if (change.equals("demoted"))
+                  service.member(id, new ProjectDto.Membership(admin.getUsername(), Role.MEMBER));
+                else {
+                  for (int i = 0; i < 50; i++) {
+                    var existing = new vaultWeb.models.ProjectResourceLink();
+                    existing.setProject(projects.findById(id).orElseThrow());
+                    existing.setOwner(owner);
+                    existing.setPath("/existing-" + i);
+                    resources.save(existing);
+                  }
+                }
+              } finally {
+                current.set(admin);
+              }
+              return new ProjectDto.Resource(
+                  null, true, admin.getUsername(), "/note.md", false, null);
+            })
+        .when(resolver)
+        .resolve(any(), any(), any());
+    if (change.equals("limit"))
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> service.link(id, new ProjectDto.Link("/note.md", false), "Bearer synthetic"));
+    else
+      assertThrows(
+          AccessDeniedException.class,
+          () -> service.link(id, new ProjectDto.Link("/note.md", false), "Bearer synthetic"));
+    assertEquals(change.equals("limit") ? 50 : 0, resources.findByProjectIdOrderByIdAsc(id).size());
+    assertFalse(
+        activity.findTop50ByProjectIdOrderByIdDesc(id).stream()
+            .anyMatch(a -> a.getEvent().equals("RESOURCE_LINKED")));
+  }
+
+  @Test
   void cloudResolutionDoesNotHoldDatabaseTransaction() {
     service.link(id, new ProjectDto.Link("/note.md", false), "Bearer synthetic");
     when(resolver.resolveAll(anyList(), any(), any()))
