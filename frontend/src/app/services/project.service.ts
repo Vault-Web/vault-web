@@ -53,6 +53,7 @@ export class ProjectService {
       description?: string;
       archived?: boolean;
       discussionGroupId?: number | null;
+      clearDiscussion?: boolean;
     },
   ) {
     return this.http.patch<void>(`${this.url}/${id}`, payload, this.options);

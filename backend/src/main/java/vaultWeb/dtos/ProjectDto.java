@@ -28,7 +28,16 @@ public record ProjectDto(
 
   public record Activity(String event, String actor, Instant createdAt) {}
 
-  public record Update(String name, String description, Boolean archived, Long discussionGroupId) {}
+  public record Update(
+      String name,
+      String description,
+      Boolean archived,
+      Long discussionGroupId,
+      Boolean clearDiscussion) {
+    public Update(String name, String description, Boolean archived, Long discussionGroupId) {
+      this(name, description, archived, discussionGroupId, null);
+    }
+  }
 
   public record Membership(String username, Role role) {}
 

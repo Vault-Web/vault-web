@@ -131,13 +131,34 @@ class ProjectIntegrationTest {
     groupMembers.save(membership);
     service.update(id, new ProjectDto.Update("Thesis", "", null, group.getId()));
     service.member(id, new ProjectDto.Membership(member.getUsername(), Role.MEMBER));
+    service.member(id, new ProjectDto.Membership(admin.getUsername(), Role.ADMIN));
     assertEquals(group.getId(), service.overview(id, "Bearer synthetic").discussionGroupId());
     current.set(member);
     assertNull(service.overview(id, "Bearer synthetic").discussionGroupId());
     assertTrue(groupMembers.findByGroupIdAndUserId(group.getId(), member.getId()).isEmpty());
+    current.set(admin);
+    assertNull(service.overview(id, "Bearer synthetic").discussionGroupId());
+    service.update(id, new ProjectDto.Update("Renamed by non-group admin", "Context", null, null));
+    assertEquals(group.getId(), projects.findById(id).orElseThrow().getDiscussionGroupId());
+    service.update(id, new ProjectDto.Update(null, null, null, null, true));
+    assertNull(projects.findById(id).orElseThrow().getDiscussionGroupId());
     current.set(owner);
     service.delete(id);
     assertTrue(groups.existsById(group.getId()));
+  }
+
+  @Test
+  void partialUpdatesPreserveOmittedMetadataAndAllowExplicitEmptyDescription() {
+    service.update(id, new ProjectDto.Update("New name", null, null, null));
+    assertEquals("Private context", service.overview(id, "Bearer synthetic").description());
+    service.update(id, new ProjectDto.Update(null, "Description only", null, null));
+    assertEquals("New name", service.overview(id, "Bearer synthetic").name());
+    assertEquals("Description only", service.overview(id, "Bearer synthetic").description());
+    service.update(id, new ProjectDto.Update(null, "", null, null));
+    assertEquals("", service.overview(id, "Bearer synthetic").description());
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> service.update(id, new ProjectDto.Update(null, null, null, 123L, true)));
   }
 
   @Test

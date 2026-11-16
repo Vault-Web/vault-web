@@ -100,7 +100,10 @@ public class ProjectService {
       p.setArchived(input.archived());
       event(p, caller, p.isArchived() ? "PROJECT_ARCHIVED" : "PROJECT_REOPENED");
     }
-    if (input.name() != null) {
+    if (input.name() != null
+        || input.description() != null
+        || input.discussionGroupId() != null
+        || Boolean.TRUE.equals(input.clearDiscussion())) {
       active(p);
       metadata(p, input, caller);
       event(p, caller, "PROJECT_UPDATED");
@@ -236,17 +239,19 @@ public class ProjectService {
   }
 
   private void metadata(Project p, ProjectDto.Update input, User caller) {
-    if (input.name() == null
-        || input.name().isBlank()
-        || input.name().length() > 120
+    if ((input.name() != null && (input.name().isBlank() || input.name().length() > 120))
+        || (p.getId() == null && input.name() == null)
         || (input.description() != null && input.description().length() > 2000))
       throw new IllegalArgumentException("Invalid project metadata");
+    if (Boolean.TRUE.equals(input.clearDiscussion()) && input.discussionGroupId() != null)
+      throw new IllegalArgumentException("Cannot set and clear discussion together");
     if (input.discussionGroupId() != null
         && groupMembers.findByGroupIdAndUserId(input.discussionGroupId(), caller.getId()).isEmpty())
       denied();
-    p.setName(input.name().strip());
-    p.setDescription(input.description() == null ? "" : input.description());
-    p.setDiscussionGroupId(input.discussionGroupId());
+    if (input.name() != null) p.setName(input.name().strip());
+    if (input.description() != null) p.setDescription(input.description());
+    if (input.discussionGroupId() != null) p.setDiscussionGroupId(input.discussionGroupId());
+    if (Boolean.TRUE.equals(input.clearDiscussion())) p.setDiscussionGroupId(null);
   }
 
   private void event(Project p, User caller, String name) {

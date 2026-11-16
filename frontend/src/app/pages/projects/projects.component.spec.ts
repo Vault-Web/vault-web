@@ -107,6 +107,29 @@ describe('ProjectsComponent', () => {
     expect(component.editable).toBeFalse();
     expect(component.manages).toBeTrue();
   });
+
+  it('preserves a hidden discussion link on rename unless removal is explicit', () => {
+    component.select(1);
+    service.update.and.returnValue(of(void 0));
+    component.name = 'Renamed';
+    component.save();
+    expect(service.update).toHaveBeenCalledWith(
+      1,
+      jasmine.objectContaining({
+        name: 'Renamed',
+        discussionGroupId: undefined,
+        clearDiscussion: false,
+      }),
+    );
+    component.clearDiscussion = true;
+    component.save();
+    expect(service.update).toHaveBeenCalledWith(
+      1,
+      jasmine.objectContaining({
+        clearDiscussion: true,
+      }),
+    );
+  });
   it('resets pending detail and inputs when creating a new project', () => {
     const pending = new Subject<Project>();
     service.get.and.returnValue(pending);

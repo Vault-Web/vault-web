@@ -38,6 +38,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   name = '';
   description = '';
   discussionId: number | null = null;
+  clearDiscussion = false;
   memberName = '';
   memberRole: ProjectRole = 'MEMBER';
   path = '';
@@ -96,6 +97,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
           this.name = project.name;
           this.description = project.description;
           this.discussionId = project.discussionGroupId;
+          this.clearDiscussion = false;
           this.loading = false;
         },
         error: () => {
@@ -112,6 +114,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     this.name = '';
     this.description = '';
     this.discussionId = null;
+    this.clearDiscussion = false;
     this.error = '';
     this.discussion = null;
     this.confirmingDelete = false;
@@ -123,7 +126,10 @@ export class ProjectsComponent implements OnInit, OnDestroy {
         this.service.update(this.selected.id, {
           name: this.name,
           description: this.description,
-          discussionGroupId: this.discussionId,
+          discussionGroupId: this.clearDiscussion
+            ? undefined
+            : this.discussionId || undefined,
+          clearDiscussion: this.clearDiscussion,
         }),
       );
     } else {

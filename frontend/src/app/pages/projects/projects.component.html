@@ -74,6 +74,16 @@
           You must already belong to this group. Project membership never joins
           it automatically.
         </p>
+        <label *ngIf="selected"
+          ><input
+            type="checkbox"
+            name="clearDiscussion"
+            [(ngModel)]="clearDiscussion"
+            [disabled]="busy"
+          />
+          Remove existing discussion reference (including one unavailable to
+          you)</label
+        >
         <button type="submit" [disabled]="busy || !name.trim()">
           {{ busy ? "Saving…" : selected ? "Save project" : "Create project" }}
         </button>

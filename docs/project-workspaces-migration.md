@@ -30,6 +30,10 @@ Use the existing Cloud page for full editing/navigation.
 An optional discussion references an existing group. The setter must belong to
 it; overview returns its ID only to existing group members and the existing chat
 API independently checks membership. Project deletion never deletes that group.
+PATCH applies supplied metadata fields independently: omitted/null fields preserve
+stored values, an empty description clears it, and `clearDiscussion: true` explicitly
+removes a discussion reference. Renaming by an admin outside the discussion group
+preserves its hidden ID. Setting a new ID and clearing it together is rejected.
 
 ## Prerequisites and compatibility
 
