@@ -97,5 +97,24 @@ globalThis.vaultShareStore = (() => {
         return {};
       });
     },
+    async progress(id, destinationUser, destinationPath, uploaded) {
+      await transaction((store) => {
+        const request = store.get(id);
+        request.onsuccess = () => {
+          if (request.result && request.result.expiresAt > Date.now()) {
+            store.put(
+              {
+                ...request.result,
+                destinationUser,
+                destinationPath,
+                uploaded: [...uploaded],
+              },
+              id,
+            );
+          }
+        };
+        return {};
+      });
+    },
   };
 })();

@@ -143,6 +143,14 @@ try {
   assert.equal(receipt.text, "private body");
   assert.equal(receipt.url, "https://example.test/private");
   assert.equal(receipt.name, "photo.txt");
+  const progress = await evaluate(
+    `(async()=>{await vaultShareStore.progress('${receipt.id}','owner','/owner/nested',['completed.txt']); const draft=await vaultShareStore.read('${receipt.id}'); return {user:draft.destinationUser,path:draft.destinationPath,uploaded:draft.uploaded};})()`,
+  );
+  assert.deepEqual(progress, {
+    user: "owner",
+    path: "/owner/nested",
+    uploaded: ["completed.txt"],
+  });
   assert.equal(
     await evaluate(
       `(async () => { const form = new FormData(); return new URL((await fetch('/share-target', {method:'POST',body:form})).url).searchParams.get('error'); })()`,

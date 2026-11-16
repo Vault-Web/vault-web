@@ -12,6 +12,9 @@ export interface ShareDraft {
   url: string;
   files: File[];
   expiresAt: number;
+  destinationUser?: string;
+  destinationPath?: string;
+  uploaded?: string[];
 }
 declare global {
   interface Window {
@@ -19,6 +22,12 @@ declare global {
       read(id: string): Promise<ShareDraft | undefined>;
       remove(id: string): Promise<void>;
       cleanup(): Promise<void>;
+      progress(
+        id: string,
+        destinationUser: string,
+        destinationPath: string,
+        uploaded: string[],
+      ): Promise<void>;
     };
   }
 }
@@ -65,6 +74,8 @@ export class ShareTargetComponent implements OnInit, OnDestroy {
         throw new Error(
           'This draft has expired or was replaced by a newer share. Please share it again.',
         );
+      this.destinationUser = this.draft.destinationUser || null;
+      this.uploaded = this.draft.uploaded || [];
       this.timer = setTimeout(
         () => {
           this.expired = true;
@@ -95,7 +106,8 @@ export class ShareTargetComponent implements OnInit, OnDestroy {
           ),
         );
       }
-      if (this.auth.isLoggedIn()) await this.openFolder('/');
+      if (this.auth.isLoggedIn())
+        await this.openFolder(this.draft.destinationPath || '/', true);
     } catch (error) {
       this.error =
         error instanceof Error
@@ -110,17 +122,31 @@ export class ShareTargetComponent implements OnInit, OnDestroy {
     clearTimeout(this.timer);
   }
 
-  async openFolder(path: string): Promise<void> {
-    if (this.busy || !this.auth.isLoggedIn() || this.uploaded.length) return;
+  async openFolder(path: string, recovering = false): Promise<void> {
+    if (
+      this.busy ||
+      !this.auth.isLoggedIn() ||
+      (this.uploaded.length && !recovering)
+    )
+      return;
+    const user = this.auth.getUsername();
+    if (!user || (this.destinationUser && user !== this.destinationUser)) {
+      this.error =
+        'The signed-in account changed. Share this content again for the new account.';
+      return;
+    }
+    if (!this.destinationUser) this.destinationUser = user;
     this.busy = true;
     this.error = '';
     try {
       const folder = await firstValueFrom(
         this.cloud.getFolderByPath(path, false, true),
       );
+      if (!this.auth.isLoggedIn() || this.auth.getUsername() !== user) {
+        throw new Error('account changed');
+      }
       if (!this.rootPath) this.rootPath = folder.path;
       this.folder = folder;
-      this.destinationUser = this.auth.getUsername();
     } catch {
       this.error =
         'Cloud is unavailable or this folder cannot be accessed. Retry when online; your draft is retained for 30 minutes.';
@@ -153,6 +179,12 @@ export class ShareTargetComponent implements OnInit, OnDestroy {
     this.busy = true;
     this.error = '';
     try {
+      await window.vaultShareStore.progress(
+        this.id,
+        this.destinationUser!,
+        this.folder.path,
+        this.uploaded,
+      );
       for (const file of this.uploadFiles) {
         if (this.uploaded.includes(file.name)) continue;
         if (
@@ -167,6 +199,12 @@ export class ShareTargetComponent implements OnInit, OnDestroy {
           this.cloud.uploadFile(this.folder.path, file, undefined, true),
         );
         this.uploaded.push(file.name);
+        await window.vaultShareStore.progress(
+          this.id,
+          this.destinationUser!,
+          this.folder.path,
+          this.uploaded,
+        );
       }
       this.complete = true;
       this.uploadFiles = [];

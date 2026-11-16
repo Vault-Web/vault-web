@@ -4,7 +4,7 @@ import {
   convertToParamMap,
   provideRouter,
 } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { of, throwError, Subject } from 'rxjs';
 import { ShareTargetComponent, ShareDraft } from './share-target.component';
 import { AuthService } from '../../services/auth.service';
 import { CloudService } from '../../services/cloud.service';
@@ -39,7 +39,13 @@ describe('Share target handoff', () => {
       files: [new File(['one'], 'one.txt'), new File(['two'], 'two.txt')],
       expiresAt: Date.now() + 1800000,
     };
-    store = jasmine.createSpyObj('store', ['read', 'remove', 'cleanup']);
+    store = jasmine.createSpyObj('store', [
+      'read',
+      'remove',
+      'cleanup',
+      'progress',
+    ]);
+    store.progress.and.resolveTo();
     store.read.and.callFake(async () => draft);
     store.remove.and.resolveTo();
     window.vaultShareStore = store;
@@ -122,6 +128,43 @@ describe('Share target handoff', () => {
     await component.upload();
     expect(cloud.uploadFile).not.toHaveBeenCalled();
     expect(component.error).toContain('account changed');
+  });
+
+  it('does not rebind ownership when the account changes before folder navigation', async () => {
+    await component.ngOnInit();
+    auth.getUsername.and.returnValue('other');
+    await component.openFolder('/other');
+    expect(cloud.getFolderByPath.calls.count()).toBe(1);
+    await component.upload();
+    expect(cloud.uploadFile).not.toHaveBeenCalled();
+  });
+
+  it('rejects a folder response when the account changed while it was pending', async () => {
+    const response = new Subject<FolderDto>();
+    cloud.getFolderByPath.and.returnValue(response);
+    const init = component.ngOnInit();
+    await Promise.resolve();
+    auth.getUsername.and.returnValue('other');
+    response.next(folder);
+    await init;
+    expect(component.folder).toBeUndefined();
+    await component.upload();
+    expect(cloud.uploadFile).not.toHaveBeenCalled();
+  });
+
+  it('recovers the locked destination and completed files from temporary storage', async () => {
+    draft.destinationUser = 'owner';
+    draft.destinationPath = '/owner/nested';
+    draft.uploaded = ['shared-' + id + '-0-one.txt'];
+    await component.ngOnInit();
+    expect(cloud.getFolderByPath).toHaveBeenCalledWith(
+      '/owner/nested',
+      false,
+      true,
+    );
+    await component.upload();
+    expect(cloud.uploadFile.calls.count()).toBe(2);
+    expect(store.progress).toHaveBeenCalled();
   });
 
   it('handles missing drafts and unavailable destination without losing content', async () => {

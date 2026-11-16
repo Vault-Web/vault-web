@@ -37,7 +37,10 @@ server-side permissions/quota checks. Files receive unique `shared-<draft-id>-`
 names; titles, text and URLs become a literal `.txt` note, with no HTML rendering
 or automatic external navigation. Partial failures retain the draft and list
 completed uploads; retries keep the same destination and skip completed files.
-Account changes require a new share. Discarding a draft never deletes Cloud files.
+Account changes require a new share, including changes during folder requests.
+Temporary storage retains destination ownership/path and completed filenames so
+failed refresh/login can return to the draft and resume only remaining uploads.
+Discarding a draft never deletes Cloud files.
 
 ## Rollout and rollback
 
