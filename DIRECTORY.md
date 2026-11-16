@@ -120,6 +120,7 @@
           - 📄 [JwtUtil.java](backend/src/main/java/vaultWeb/security/JwtUtil.java)
           - 📄 [MediaTokenService.java](backend/src/main/java/vaultWeb/security/MediaTokenService.java)
           - 📄 [RateLimitFilter.java](backend/src/main/java/vaultWeb/security/RateLimitFilter.java)
+          - 📄 [SigningSecrets.java](backend/src/main/java/vaultWeb/security/SigningSecrets.java)
           - 📄 [TokenHashUtil.java](backend/src/main/java/vaultWeb/security/TokenHashUtil.java)
           - 📁 **annotations**
             - 📄 [AdminOnly.java](backend/src/main/java/vaultWeb/security/annotations/AdminOnly.java)
@@ -179,6 +180,8 @@
           - 📄 [PollVoteRepositoryTest.java](backend/src/test/java/vaultWeb/repositories/PollVoteRepositoryTest.java)
         - 📁 **security**
           - 📄 [MediaTokenServiceTest.java](backend/src/test/java/vaultWeb/security/MediaTokenServiceTest.java)
+          - 📄 [SigningSecretsConfigurationTest.java](backend/src/test/java/vaultWeb/security/SigningSecretsConfigurationTest.java)
+          - 📄 [SigningSecretsTest.java](backend/src/test/java/vaultWeb/security/SigningSecretsTest.java)
           - 📁 **aspects**
             - 📄 [AdminOnlyAspectTest.java](backend/src/test/java/vaultWeb/security/aspects/AdminOnlyAspectTest.java)
             - 📄 [RateLimitAspectTest.java](backend/src/test/java/vaultWeb/security/aspects/RateLimitAspectTest.java)
