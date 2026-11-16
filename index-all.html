@@ -92,10 +92,6 @@ loadScripts(document, 'script');</script>
 </dd>
 <dt><a href="vaultWeb/security/aspects/AdminOnlyAspect.html#%3Cinit%3E()" class="member-name-link">AdminOnlyAspect()</a> - Constructor for class vaultWeb.security.aspects.<a href="vaultWeb/security/aspects/AdminOnlyAspect.html" title="class in vaultWeb.security.aspects">AdminOnlyAspect</a></dt>
 <dd>&nbsp;</dd>
-<dt><a href="vaultWeb/config/websocket/JwtHandshakeInterceptor.html#afterHandshake(org.springframework.http.server.ServerHttpRequest,org.springframework.http.server.ServerHttpResponse,org.springframework.web.socket.WebSocketHandler,java.lang.Exception)" class="member-name-link">afterHandshake(ServerHttpRequest, ServerHttpResponse, WebSocketHandler, Exception)</a> - Method in class vaultWeb.config.websocket.<a href="vaultWeb/config/websocket/JwtHandshakeInterceptor.html" title="class in vaultWeb.config.websocket">JwtHandshakeInterceptor</a></dt>
-<dd>
-<div class="block">Invoked after the handshake is done.</div>
-</dd>
 <dt><a href="vaultWeb/exceptions/AlreadyMemberException.html" class="type-name-link" title="class in vaultWeb.exceptions">AlreadyMemberException</a> - Exception Class in <a href="vaultWeb/exceptions/package-summary.html">vaultWeb.exceptions</a></dt>
 <dd>
 <div class="block">Thrown when a user tries to join a group they are already a member of.</div>
@@ -155,10 +151,6 @@ loadScripts(document, 'script');</script>
 <dd>&nbsp;</dd>
 <dt><a href="vaultWeb/dtos/BatchOperationDto.html#%3Cinit%3E()" class="member-name-link">BatchOperationDto()</a> - Constructor for class vaultWeb.dtos.<a href="vaultWeb/dtos/BatchOperationDto.html" title="class in vaultWeb.dtos">BatchOperationDto</a></dt>
 <dd>&nbsp;</dd>
-<dt><a href="vaultWeb/config/websocket/JwtHandshakeInterceptor.html#beforeHandshake(org.springframework.http.server.ServerHttpRequest,org.springframework.http.server.ServerHttpResponse,org.springframework.web.socket.WebSocketHandler,java.util.Map)" class="member-name-link">beforeHandshake(ServerHttpRequest, ServerHttpResponse, WebSocketHandler, Map&lt;String, Object&gt;)</a> - Method in class vaultWeb.config.websocket.<a href="vaultWeb/config/websocket/JwtHandshakeInterceptor.html" title="class in vaultWeb.config.websocket">JwtHandshakeInterceptor</a></dt>
-<dd>
-<div class="block">Intercepts the handshake request before it is processed.</div>
-</dd>
 <dt><a href="vaultWeb/services/DashboardService.html#buildDashboard(vaultWeb.models.User)" class="member-name-link">buildDashboard(User)</a> - Method in class vaultWeb.services.<a href="vaultWeb/services/DashboardService.html" title="class in vaultWeb.services">DashboardService</a></dt>
 <dd>
 <div class="block">Builds the full dashboard payload for a given user.</div>
@@ -1004,12 +996,6 @@ loadScripts(document, 'script');</script>
 </dd>
 <dt><a href="vaultWeb/security/JwtAuthFilter.html#%3Cinit%3E()" class="member-name-link">JwtAuthFilter()</a> - Constructor for class vaultWeb.security.<a href="vaultWeb/security/JwtAuthFilter.html" title="class in vaultWeb.security">JwtAuthFilter</a></dt>
 <dd>&nbsp;</dd>
-<dt><a href="vaultWeb/config/websocket/JwtHandshakeInterceptor.html" class="type-name-link" title="class in vaultWeb.config.websocket">JwtHandshakeInterceptor</a> - Class in <a href="vaultWeb/config/websocket/package-summary.html">vaultWeb.config.websocket</a></dt>
-<dd>
-<div class="block">Intercepts WebSocket handshake requests to perform JWT-based authentication.</div>
-</dd>
-<dt><a href="vaultWeb/config/websocket/JwtHandshakeInterceptor.html#%3Cinit%3E()" class="member-name-link">JwtHandshakeInterceptor()</a> - Constructor for class vaultWeb.config.websocket.<a href="vaultWeb/config/websocket/JwtHandshakeInterceptor.html" title="class in vaultWeb.config.websocket">JwtHandshakeInterceptor</a></dt>
-<dd>&nbsp;</dd>
 <dt><a href="vaultWeb/security/JwtUtil.html" class="type-name-link" title="class in vaultWeb.security">JwtUtil</a> - Class in <a href="vaultWeb/security/package-summary.html">vaultWeb.security</a></dt>
 <dd>
 <div class="block">Utility class for creating and parsing JSON Web Tokens (JWT).</div>
@@ -1302,6 +1288,8 @@ loadScripts(document, 'script');</script>
 <dd>&nbsp;</dd>
 <dt><a href="vaultWeb/config/websocket/GroupSubscriptionInterceptor.html#preSend(org.springframework.messaging.Message,org.springframework.messaging.MessageChannel)" class="member-name-link">preSend(Message&lt;?&gt;, MessageChannel)</a> - Method in class vaultWeb.config.websocket.<a href="vaultWeb/config/websocket/GroupSubscriptionInterceptor.html" title="class in vaultWeb.config.websocket">GroupSubscriptionInterceptor</a></dt>
 <dd>&nbsp;</dd>
+<dt><a href="vaultWeb/config/websocket/StompAuthenticationInterceptor.html#preSend(org.springframework.messaging.Message,org.springframework.messaging.MessageChannel)" class="member-name-link">preSend(Message&lt;?&gt;, MessageChannel)</a> - Method in class vaultWeb.config.websocket.<a href="vaultWeb/config/websocket/StompAuthenticationInterceptor.html" title="class in vaultWeb.config.websocket">StompAuthenticationInterceptor</a></dt>
+<dd>&nbsp;</dd>
 <dt><a href="vaultWeb/models/PollContext.html#privateChat()" class="member-name-link">privateChat()</a> - Method in record class vaultWeb.models.<a href="vaultWeb/models/PollContext.html" title="class in vaultWeb.models">PollContext</a></dt>
 <dd>
 <div class="block">Returns the value of the <code>privateChat</code> record component.</div>
@@ -1511,6 +1499,12 @@ loadScripts(document, 'script');</script>
 <dt><a href="vaultWeb/models/enums/MessageStatus.html#SENT" class="member-name-link">SENT</a> - Enum constant in enum class vaultWeb.models.enums.<a href="vaultWeb/models/enums/MessageStatus.html" title="enum class in vaultWeb.models.enums">MessageStatus</a></dt>
 <dd>&nbsp;</dd>
 <dt><a href="vaultWeb/security/TokenHashUtil.html#sha256(java.lang.String)" class="member-name-link">sha256(String)</a> - Static method in class vaultWeb.security.<a href="vaultWeb/security/TokenHashUtil.html" title="class in vaultWeb.security">TokenHashUtil</a></dt>
+<dd>&nbsp;</dd>
+<dt><a href="vaultWeb/config/websocket/StompAuthenticationInterceptor.html" class="type-name-link" title="class in vaultWeb.config.websocket">StompAuthenticationInterceptor</a> - Class in <a href="vaultWeb/config/websocket/package-summary.html">vaultWeb.config.websocket</a></dt>
+<dd>
+<div class="block">Authenticates STOMP before any application handler or broker subscription can run.</div>
+</dd>
+<dt><a href="vaultWeb/config/websocket/StompAuthenticationInterceptor.html#%3Cinit%3E()" class="member-name-link">StompAuthenticationInterceptor()</a> - Constructor for class vaultWeb.config.websocket.<a href="vaultWeb/config/websocket/StompAuthenticationInterceptor.html" title="class in vaultWeb.config.websocket">StompAuthenticationInterceptor</a></dt>
 <dd>&nbsp;</dd>
 <dt><a href="vaultWeb/services/ProfilePictureService.html#store(org.springframework.web.multipart.MultipartFile,java.lang.Long)" class="member-name-link">store(MultipartFile, Long)</a> - Method in class vaultWeb.services.<a href="vaultWeb/services/ProfilePictureService.html" title="class in vaultWeb.services">ProfilePictureService</a></dt>
 <dd>
