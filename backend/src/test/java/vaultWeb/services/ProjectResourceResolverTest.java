@@ -36,6 +36,11 @@ class ProjectResourceResolverTest {
   }
 
   private HttpResponse<InputStream> response(int status, String json) {
+    return response(status, json, java.util.Map.of());
+  }
+
+  private HttpResponse<InputStream> response(
+      int status, String json, java.util.Map<String, java.util.List<String>> headers) {
     return new HttpResponse<>() {
       public int statusCode() {
         return status;
@@ -54,7 +59,7 @@ class ProjectResourceResolverTest {
       }
 
       public java.net.http.HttpHeaders headers() {
-        return java.net.http.HttpHeaders.of(java.util.Map.of(), (a, b) -> true);
+        return java.net.http.HttpHeaders.of(headers, (a, b) -> true);
       }
 
       public java.util.Optional<javax.net.ssl.SSLSession> sslSession() {
@@ -82,6 +87,42 @@ class ProjectResourceResolverTest {
         + ",\"permissions\":[\""
         + permission
         + "\"]}]";
+  }
+
+  @Test
+  void authenticatedEmptyFilesRemainAccessibleForOwnerAndExactShare() throws Exception {
+    var empty =
+        response(416, "", java.util.Map.of("Content-Range", java.util.List.of("bytes */0")));
+    when(cloud.fetchProjectReference("/api/files/view?path=%2Fnote.md", "Bearer owner-token"))
+        .thenReturn(empty);
+    assertTrue(resolver.resolve(link, owner, "Bearer owner-token").available());
+    when(cloud.fetchProjectReference("/api/shares/shared-with-me", "Bearer reader-token"))
+        .thenReturn(response(200, share("owner", "note.md", false, "VIEW")));
+    when(cloud.fetchProjectReference("/api/shares/abc-123/view", "Bearer reader-token"))
+        .thenReturn(response(206, "x"), empty);
+    assertTrue(resolver.resolve(link, caller, "Bearer reader-token").available());
+    assertTrue(resolver.resolve(link, caller, "Bearer reader-token").available());
+  }
+
+  @Test
+  void otherRangeErrorsAndUnauthorizedEmptyResponsesRemainPrivate() throws Exception {
+    for (var rejected :
+        java.util.List.of(
+            response(416, ""),
+            response(416, "", java.util.Map.of("Content-Range", java.util.List.of("bytes */10"))),
+            response(403, "", java.util.Map.of("Content-Range", java.util.List.of("bytes */0"))),
+            response(404, "", java.util.Map.of("Content-Range", java.util.List.of("bytes */0"))))) {
+      when(cloud.fetchProjectReference("/api/files/view?path=%2Fnote.md", "Bearer owner-token"))
+          .thenReturn(rejected);
+      var result = resolver.resolve(link, owner, "Bearer owner-token");
+      assertFalse(result.available());
+      assertNull(result.path());
+    }
+    link.setFolder(true);
+    when(cloud.fetchProjectReference("/api/folders/path?path=%2Fnote.md", "Bearer owner-token"))
+        .thenReturn(
+            response(416, "", java.util.Map.of("Content-Range", java.util.List.of("bytes */0"))));
+    assertFalse(resolver.resolve(link, owner, "Bearer owner-token").available());
   }
 
   @Test

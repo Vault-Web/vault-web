@@ -73,7 +73,16 @@ public class ProjectResourceResolver {
   private boolean accessible(String endpoint, String authorization) throws Exception {
     var response = cloud.fetchProjectReference(endpoint, authorization);
     try (var body = response.body()) {
-      return response.statusCode() == 200 || response.statusCode() == 206;
+      // Cloud validates ownership/share permissions before reporting an empty file's range.
+      boolean fileView = endpoint.startsWith("/api/files/view?") || endpoint.endsWith("/view");
+      return response.statusCode() == 200
+          || response.statusCode() == 206
+          || (fileView
+              && response.statusCode() == 416
+              && response
+                  .headers()
+                  .allValues("Content-Range")
+                  .equals(java.util.List.of("bytes */0")));
     }
   }
 
