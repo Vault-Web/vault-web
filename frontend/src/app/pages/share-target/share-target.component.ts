@@ -106,8 +106,18 @@ export class ShareTargetComponent implements OnInit, OnDestroy {
           ),
         );
       }
-      if (this.auth.isLoggedIn())
-        await this.openFolder(this.draft.destinationPath || '/', true);
+      if (this.auth.isLoggedIn()) {
+        // Resolve the real Cloud root before restoring a nested destination.
+        await this.openFolder('/', true);
+        if (
+          this.folder &&
+          this.draft.destinationPath &&
+          this.draft.destinationPath !== this.rootPath
+        ) {
+          this.folder = undefined;
+          await this.openFolder(this.draft.destinationPath, true);
+        }
+      }
     } catch (error) {
       this.error =
         error instanceof Error

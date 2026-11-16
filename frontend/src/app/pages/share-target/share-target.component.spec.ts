@@ -189,6 +189,63 @@ describe('Share target handoff', () => {
     expect(store.progress).toHaveBeenCalled();
   });
 
+  it('allows parent and sibling selection after the first upload fails and the draft reloads', async () => {
+    const nested = { ...folder, path: '/owner/nested', name: 'nested' };
+    const sibling = { ...folder, path: '/owner/sibling', name: 'sibling' };
+    cloud.getFolderByPath.and.callFake((path) =>
+      of(
+        path === '/owner/nested'
+          ? nested
+          : path === '/owner/sibling'
+            ? sibling
+            : folder,
+      ),
+    );
+    store.progress.and.callFake(async (_id, user, path, uploaded) => {
+      draft.destinationUser = user;
+      draft.destinationPath = path;
+      draft.uploaded = [...uploaded];
+    });
+    cloud.uploadFile.and.returnValue(throwError(() => ({ status: 503 })));
+    await component.ngOnInit();
+    await component.openFolder(nested.path);
+    await component.upload();
+    expect(draft.destinationPath).toBe(nested.path);
+    expect(draft.uploaded).toEqual([]);
+    component.ngOnDestroy();
+    const fixture = TestBed.createComponent(ShareTargetComponent);
+    component = fixture.componentInstance;
+    await component.ngOnInit();
+    expect(component.rootPath).toBe('/owner');
+    expect(component.folder?.path).toBe(nested.path);
+    expect(component.folder?.path).not.toBe(component.rootPath);
+    expect(component.parentPath()).toBe('/owner');
+    expect(component.busy).toBeFalse();
+    expect(component.uploaded).toEqual([]);
+    await component.openFolder(component.parentPath());
+    expect(component.folder?.path).toBe('/owner');
+    await component.openFolder(sibling.path);
+    cloud.uploadFile.and.returnValue(of(folder));
+    await component.upload();
+    expect(cloud.uploadFile.calls.mostRecent().args[0]).toBe(sibling.path);
+    expect(component.complete).toBeTrue();
+  });
+
+  it('does not fall back to the root when a locked destination is unavailable', async () => {
+    draft.destinationUser = 'owner';
+    draft.destinationPath = '/owner/missing';
+    draft.uploaded = ['shared-' + id + '-0-one.txt'];
+    cloud.getFolderByPath.and.callFake((path) =>
+      path === '/' ? of(folder) : throwError(() => ({ status: 404 })),
+    );
+    await component.ngOnInit();
+    expect(component.rootPath).toBe('/owner');
+    expect(component.folder).toBeUndefined();
+    await component.upload();
+    expect(cloud.uploadFile).not.toHaveBeenCalled();
+    expect(component.draft).toBe(draft);
+  });
+
   it('handles missing drafts and unavailable destination without losing content', async () => {
     store.read.and.resolveTo(undefined);
     await component.ngOnInit();
