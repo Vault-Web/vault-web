@@ -1,0 +1,10 @@
+  fix/336-authorization[m
+  fix/336-group-auth[m
+  fix/354-websocket-reconnect[m
+* [32mfix/center-timeline-markers[m
+  fix/issue-301-security-activity-scroll-area[m
+  fix/issue-314-chat-sender-security[m
+  fix/markdown-preview-styling[m
+  fix/validate-jwt-server-side[m
+  main[m
+  private-group-access[m
