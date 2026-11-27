@@ -292,6 +292,7 @@
 .timeline {
   position: relative;
   padding-left: 1.5rem;
+  --timeline-axis-x: 0.55rem;
 }
 
 .timeline-wrap {
@@ -303,7 +304,7 @@
 .timeline::before {
   content: "";
   position: absolute;
-  left: 0.55rem;
+  left: calc(var(--timeline-axis-x) - 1px);
   top: 0.5rem;
   bottom: 0.5rem;
   width: 2px;
@@ -314,9 +315,11 @@
   display: flex;
   gap: 1rem;
   position: relative;
+  --timeline-entry-shift: 0rem;
 }
 
 .timeline-entry.timeline-entry-clickable {
+  --timeline-entry-shift: -0.5rem;
   cursor: pointer;
   border-radius: 0.75rem;
   padding: 0.25rem 0.5rem;
@@ -334,7 +337,8 @@
   border-radius: 50%;
   background: var(--color-primary);
   position: absolute;
-  left: -1.1rem;
+  left: calc(var(--timeline-axis-x) - 1.5rem - var(--timeline-entry-shift));
+  transform: translateX(-50%);
   top: 0.45rem;
 }
 
