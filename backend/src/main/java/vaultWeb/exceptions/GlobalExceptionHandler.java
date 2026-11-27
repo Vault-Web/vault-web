@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import vaultWeb.exceptions.notfound.GroupNotFoundException;
 import vaultWeb.exceptions.notfound.NotMemberException;
+import vaultWeb.exceptions.notfound.PersonalAccessTokenNotFoundException;
 import vaultWeb.exceptions.notfound.PrivateChatNotFoundException;
 import vaultWeb.exceptions.notfound.UserNotFoundException;
 
@@ -179,6 +180,14 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ApiErrorResponse> handleDataAccessException(DataAccessException ex) {
     log.error("Database access error", ex);
     return error(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "Internal server error");
+  }
+
+  /** Handles PersonalAccessTokenNotFoundException (unknown or foreign token) and returns 404. */
+  @ExceptionHandler(PersonalAccessTokenNotFoundException.class)
+  public ResponseEntity<ApiErrorResponse> handlePatNotFound(
+      PersonalAccessTokenNotFoundException ex) {
+    log.warn("Personal access token not found");
+    return error(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", "Resource not found");
   }
 
   /** Handles any other RuntimeException and returns 500 Internal Server Error. */

@@ -14,6 +14,7 @@ import vaultWeb.exceptions.DuplicateUsernameException;
 import vaultWeb.exceptions.UnauthorizedException;
 import vaultWeb.models.User;
 import vaultWeb.repositories.UserRepository;
+import vaultWeb.services.auth.PersonalAccessTokenService;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -21,6 +22,8 @@ class UserServiceTest {
   @Mock private UserRepository userRepository;
 
   @Mock private PasswordEncoder passwordEncoder;
+
+  @Mock private PersonalAccessTokenService personalAccessTokenService;
 
   @InjectMocks private UserService userService;
 

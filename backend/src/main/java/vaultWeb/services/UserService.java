@@ -6,6 +6,8 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import vaultWeb.dtos.user.SecurityEventDto;
 import vaultWeb.exceptions.DuplicateUsernameException;
 import vaultWeb.exceptions.UnauthorizedException;
@@ -14,6 +16,7 @@ import vaultWeb.models.User;
 import vaultWeb.repositories.SecurityEventRepository;
 import vaultWeb.repositories.UserRepository;
 import vaultWeb.security.annotations.SecurityEventType;
+import vaultWeb.services.auth.PersonalAccessTokenService;
 
 /**
  * Service class for managing users.
@@ -27,6 +30,7 @@ public class UserService {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final SecurityEventRepository securityEventRepository;
+  private final PersonalAccessTokenService personalAccessTokenService;
 
   /**
    * Registers a new user by encoding their password and assigning the default role.
@@ -93,6 +97,18 @@ public class UserService {
 
     user.setPassword(passwordEncoder.encode(newPassword));
     userRepository.save(user);
+
+    // A password change usually signals suspected compromise: revoke all personal access tokens.
+    int revoked = personalAccessTokenService.revokeAllForUser(user);
+    if (revoked > 0) {
+      logSecurityEvent(user, SecurityEventType.PAT_REVOKED_ALL, "SUCCESS", currentRequest(), null);
+    }
+  }
+
+  private static HttpServletRequest currentRequest() {
+    return RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attrs
+        ? attrs.getRequest()
+        : null;
   }
 
   /**

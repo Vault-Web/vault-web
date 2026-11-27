@@ -17,6 +17,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import vaultWeb.security.exception.JwtAuthenticationException;
+import vaultWeb.security.pat.PatTokens;
 import vaultWeb.services.auth.MyUserDetailsService;
 
 /**
@@ -84,6 +85,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     final String authHeader = request.getHeader("Authorization");
+    if (PatTokens.isBearerPat(authHeader)) {
+      // Personal access tokens are handled exclusively by PatAuthFilter; never parse them as JWTs.
+      filterChain.doFilter(request, response);
+      return;
+    }
     String username = null;
     String jwt;
 
