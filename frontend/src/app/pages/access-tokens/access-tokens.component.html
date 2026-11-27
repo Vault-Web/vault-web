@@ -1,0 +1,260 @@
+<div class="tokens-shell">
+  <p-confirmdialog></p-confirmdialog>
+
+  <section class="tokens-headline">
+    <div>
+      <h1 class="tokens-title text-base sm:text-lg">Access tokens</h1>
+      <p class="tokens-subtitle text-xxs sm:text-xs">
+        Personal access tokens let CLI tools, backup clients and scripts call a
+        limited set of Vault Web APIs as you. They expire, can be revoked at any
+        time, and are revoked automatically when you change your password.
+      </p>
+    </div>
+    <div class="tokens-headline-actions">
+      <p-button
+        label="Refresh"
+        icon="pi pi-refresh"
+        [outlined]="true"
+        styleClass="p-button-sm text-xxs sm:text-xs"
+        (click)="load()"
+      ></p-button>
+      <p-button
+        label="New token"
+        icon="pi pi-plus"
+        styleClass="p-button-sm text-xxs sm:text-xs"
+        (click)="openCreate()"
+      ></p-button>
+    </div>
+  </section>
+
+  <div *ngIf="loading" class="tokens-state text-xxs sm:text-xs">
+    <i class="pi pi-spin pi-spinner"></i> Loading...
+  </div>
+  <div
+    *ngIf="error"
+    class="tokens-state tokens-state-error text-xxs sm:text-xs"
+  >
+    <i class="pi pi-exclamation-triangle"></i> {{ error }}
+  </div>
+
+  <section *ngIf="!loading && !error" class="tokens-table-wrap">
+    <p-table
+      [value]="tokens"
+      styleClass="text-xxs sm:text-xs"
+      [tableStyle]="{ 'min-width': '100%' }"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Name</th>
+          <th>Scopes</th>
+          <th>Created</th>
+          <th>Expires</th>
+          <th>Last used</th>
+          <th>Status</th>
+          <th class="text-right">Actions</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-token>
+        <tr>
+          <td class="break-all">
+            <strong>{{ token.name }}</strong>
+            <div class="tokens-muted tokens-id">
+              vw_pat_{{ token.publicId }}_…
+            </div>
+          </td>
+          <td>
+            <span
+              *ngFor="let scope of token.scopes"
+              class="tokens-scope"
+              [pTooltip]="scopeDescription(scope)"
+              tooltipPosition="top"
+              >{{ scope }}</span
+            >
+          </td>
+          <td class="tokens-muted">{{ token.createdAt | date: "medium" }}</td>
+          <td class="tokens-muted">{{ token.expiresAt | date: "medium" }}</td>
+          <td class="tokens-muted">
+            <span *ngIf="token.lastUsedAt">{{
+              token.lastUsedAt | date: "medium"
+            }}</span>
+            <span *ngIf="!token.lastUsedAt">Never used</span>
+          </td>
+          <td>
+            <span
+              class="tokens-badge"
+              [ngClass]="'is-' + token.status.toLowerCase()"
+            >
+              {{ token.status.toLowerCase() }}
+            </span>
+          </td>
+          <td>
+            <div class="tokens-actions">
+              <p-button
+                label="Revoke"
+                icon="pi pi-ban"
+                severity="danger"
+                styleClass="p-button-text p-button-sm"
+                [disabled]="
+                  isProcessing(token.publicId) || token.status !== 'ACTIVE'
+                "
+                [loading]="isProcessing(token.publicId)"
+                (click)="confirmRevoke(token)"
+                pTooltip="Revoke this token"
+                tooltipPosition="top"
+                ariaLabel="Revoke token"
+              ></p-button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="7" class="tokens-empty text-xxs sm:text-xs">
+            You have no access tokens yet.
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+    <p class="tokens-hint text-xxs sm:text-xs">
+      {{ activeCount }} of 20 active tokens. Send a token only in the
+      <code>Authorization: Bearer</code> header; never put it in a URL.
+    </p>
+  </section>
+
+  <!-- Create -->
+  <p-dialog
+    [(visible)]="showCreateDialog"
+    (onHide)="onCreateDialogHide()"
+    [modal]="true"
+    [closable]="true"
+    [draggable]="false"
+    [resizable]="false"
+    header="New access token"
+    [style]="{ width: '30rem', maxWidth: '95vw' }"
+  >
+    <form class="tokens-form" (ngSubmit)="submitCreate()" autocomplete="off">
+      <label class="tokens-field">
+        <span>Name</span>
+        <input
+          type="text"
+          name="name"
+          class="tokens-input"
+          [(ngModel)]="name"
+          [maxlength]="maxNameLength"
+          placeholder="e.g. backup-client on nas"
+          required
+        />
+      </label>
+
+      <fieldset class="tokens-field">
+        <legend>Scopes</legend>
+        <label *ngFor="let scope of scopes" class="tokens-scope-option">
+          <input
+            type="checkbox"
+            [name]="'scope-' + scope.value"
+            [checked]="selectedScopes.has(scope.value)"
+            (change)="toggleScope(scope.value, $any($event.target).checked)"
+          />
+          <span>
+            <code>{{ scope.value }}</code> — {{ scope.description }}
+          </span>
+        </label>
+        <p *ngIf="scopes.length === 0" class="tokens-muted">
+          No scopes are available.
+        </p>
+      </fieldset>
+
+      <label class="tokens-field">
+        <span>Expires in</span>
+        <select
+          name="expiresInDays"
+          class="tokens-input"
+          [(ngModel)]="expiresInDays"
+        >
+          <option *ngFor="let days of expiryOptions" [ngValue]="days">
+            {{ days }} days
+          </option>
+        </select>
+      </label>
+
+      <label class="tokens-field">
+        <span>Current password</span>
+        <div class="tokens-password">
+          <input
+            [type]="showPassword ? 'text' : 'password'"
+            name="currentPassword"
+            class="tokens-input"
+            [(ngModel)]="currentPassword"
+            autocomplete="current-password"
+            required
+          />
+          <p-button
+            type="button"
+            [icon]="showPassword ? 'pi pi-eye-slash' : 'pi pi-eye'"
+            styleClass="p-button-text p-button-sm"
+            (click)="showPassword = !showPassword"
+            [ariaLabel]="showPassword ? 'Hide password' : 'Show password'"
+          ></p-button>
+        </div>
+      </label>
+
+      <p *ngIf="createError" class="tokens-state-error text-xxs sm:text-xs">
+        <i class="pi pi-exclamation-triangle"></i> {{ createError }}
+      </p>
+
+      <div class="tokens-dialog-actions">
+        <p-button
+          type="button"
+          label="Cancel"
+          styleClass="p-button-text p-button-sm"
+          (click)="showCreateDialog = false"
+        ></p-button>
+        <p-button
+          type="submit"
+          label="Create token"
+          icon="pi pi-key"
+          styleClass="p-button-sm"
+          [disabled]="!canSubmit"
+          [loading]="creating"
+        ></p-button>
+      </div>
+    </form>
+  </p-dialog>
+
+  <!-- Reveal once -->
+  <p-dialog
+    [(visible)]="showSecretDialog"
+    (onHide)="clearSecret()"
+    [modal]="true"
+    [closable]="false"
+    [closeOnEscape]="false"
+    [draggable]="false"
+    [resizable]="false"
+    header="Copy your new token"
+    [style]="{ width: '34rem', maxWidth: '95vw' }"
+  >
+    <p class="tokens-warning text-xxs sm:text-xs">
+      <i class="pi pi-exclamation-triangle"></i>
+      This is the only time the token is shown. Store it somewhere safe, such as
+      a password manager. If you lose it, revoke it and create a new one.
+    </p>
+    <div class="tokens-secret">
+      <code class="tokens-secret-value" data-testid="pat-secret">{{
+        createdSecret
+      }}</code>
+      <p-button
+        [label]="copied ? 'Copied' : 'Copy'"
+        [icon]="copied ? 'pi pi-check' : 'pi pi-copy'"
+        styleClass="p-button-sm"
+        (click)="copySecret()"
+      ></p-button>
+    </div>
+    <div class="tokens-dialog-actions">
+      <p-button
+        label="Done"
+        styleClass="p-button-sm"
+        (click)="closeSecretDialog()"
+      ></p-button>
+    </div>
+  </p-dialog>
+</div>
