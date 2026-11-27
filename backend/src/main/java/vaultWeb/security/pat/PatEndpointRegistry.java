@@ -14,7 +14,7 @@ import vaultWeb.models.enums.PatScope;
  *
  * <p>Anything not listed here is denied for PAT callers, including token lifecycle, session/refresh
  * endpoints, administration, chat, groups, devices (E2EE key material), polls and media. Keep
- * {@code backend/docs/personal-access-tokens.md} in sync when adding entries.
+ * {@code docs/personal-access-tokens.md} in sync when adding entries.
  */
 @Component
 public class PatEndpointRegistry {

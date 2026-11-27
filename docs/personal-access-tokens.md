@@ -28,6 +28,13 @@ vw_pat_<publicId>_<secret>
 - Send it only as `Authorization: Bearer vw_pat_...`. Tokens are never accepted in query
   strings or cookies, and never on WebSocket/STOMP.
 
+## Settings page
+
+Signed-in users manage tokens at **Access Tokens** (`/access-tokens`): create a
+named token with scopes, a 7/30/90/365-day expiry and the current password; copy the
+secret from a one-time dialog (it is cleared from memory when the dialog closes);
+list metadata (scopes, created, expires, last used, status) and revoke.
+
 ## Lifecycle API (interactive session required)
 
 These endpoints all require a browser JWT. Requests made with a PAT are refused
@@ -68,7 +75,8 @@ Each request still goes through the endpoint's normal ownership checks (for exam
 
 Scopes that aren't available yet:
 
-- `projects:read` / `projects:write`: will be added once project endpoints exist.
+- `projects:read` / `projects:write`: not offered yet. Project endpoints (`/api/projects/**`)
+  now exist but are denied for PATs until these scopes are defined in a follow-up.
 - `cloud:read` / `cloud:upload` / `cloud:write`: **not supported**. See
   [Cloud](#cloud-not-supported-yet).
 
@@ -114,3 +122,22 @@ enabled, core and cloud-page#191 have to agree on:
 
 Until then, the `audience` column is always `core`, and tokens with any other audience are
 rejected.
+
+## Rollout and rollback
+
+1. Take a protected PostgreSQL backup. Apply `docs/migrations/personal-access-tokens.sql`
+   manually in staging first, then in production. The script is additive (two new tables,
+   no changes to existing ones) and fails instead of accepting a partial schema if the
+   tables already exist. Do not rely on Hibernate `ddl-auto=update` as the migration
+   procedure; runtime settings are unchanged by this feature.
+2. Deploy the backend before the frontend. Old frontends never call `/api/auth/tokens`;
+   old backends ignore the new tables.
+3. Verify: create a token, call `GET /api/dashboard/me` with it, confirm a denied route
+   returns `403 INSUFFICIENT_SCOPE`, revoke it, and confirm the next call returns `401`.
+   Check that browser login, refresh and chat behave as before.
+
+Rollback: roll back the frontend first, then the backend. Old backends do not read the
+token tables, so outstanding tokens simply stop working. **Do not drop the tables
+automatically**: keep them (and their backup) so a re-upgrade keeps users' token metadata.
+To remove the feature entirely, have an operator drop `personal_access_token_scope` and
+then `personal_access_token`. These tables hold only digests, never raw tokens.

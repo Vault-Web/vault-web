@@ -343,6 +343,8 @@ class PersonalAccessTokenIntegrationTest extends IntegrationTestBase {
       "GET, /api/groups/1/devices",
       "GET, /api/groups/1/messages",
       "POST, /api/media/token",
+      "GET, /api/projects",
+      "GET, /api/projects/1",
       "GET, /ws-chat/info",
       "GET, /v3/api-docs"
     })
