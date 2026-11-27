@@ -118,7 +118,9 @@
 
 .timeline-wrap {
   position: relative;
-  padding-left: 2rem;
+  --timeline-axis-x: 1.75rem;
+  --timeline-content-inset: 3.25rem;
+  padding-left: var(--timeline-content-inset);
   max-height: min(65vh, 720px);
   overflow-y: auto;
   padding-right: 0.75rem;
@@ -137,7 +139,7 @@
   &::before {
     content: "";
     position: absolute;
-    left: -1.45rem;
+    left: calc(var(--timeline-axis-x) - var(--timeline-content-inset) - 1px);
     top: 0.5rem;
     bottom: 0.5rem;
     width: 2px;
@@ -194,7 +196,8 @@
   align-items: center;
   justify-content: center;
   position: absolute;
-  left: -2.45rem;
+  left: calc(var(--timeline-axis-x) - var(--timeline-content-inset));
+  transform: translateX(-50%);
   top: 1rem;
   z-index: 2;
 
