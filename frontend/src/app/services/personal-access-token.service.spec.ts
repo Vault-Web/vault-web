@@ -37,16 +37,20 @@ describe('PersonalAccessTokenService', () => {
   });
 
   it('lists tokens and supported scopes', () => {
-    service.list().subscribe();
-    service.listScopes().subscribe();
+    let tokens: unknown[] | undefined;
+    let scopes: unknown[] | undefined;
+    service.list().subscribe((result) => (tokens = result));
+    service.listScopes().subscribe((result) => (scopes = result));
     http
       .expectOne((r) => r.method === 'GET' && r.url.endsWith('/auth/tokens'))
-      .flush([]);
+      .flush([{ publicId: 'AbC123xyz789' }]);
     http
       .expectOne(
         (r) => r.method === 'GET' && r.url.endsWith('/auth/tokens/scopes'),
       )
-      .flush([]);
+      .flush([{ value: 'profile:read' }]);
+    expect(tokens).toEqual([{ publicId: 'AbC123xyz789' }]);
+    expect(scopes).toEqual([{ value: 'profile:read' }]);
   });
 
   it('revokes by public id', () => {
