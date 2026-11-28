@@ -142,7 +142,13 @@ loadScripts(document, 'script');</script>
 <div class="table-header col-second">Method</div>
 <div class="table-header col-last">Description</div>
 <div class="col-first even-row-color"><code><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Optional.html" title="class or interface in java.util" class="external-link">Optional</a><wbr>&lt;<a href="../User.html" title="class in vaultWeb.models">User</a>&gt;</code></div>
-<div class="col-second even-row-color"><span class="type-name-label">UserRepository.</span><code><a href="../../repositories/UserRepository.html#findByUsername(java.lang.String)" class="member-name-link">findByUsername</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;username)</code></div>
+<div class="col-second even-row-color"><span class="type-name-label">UserRepository.</span><code><a href="../../repositories/UserRepository.html#findByIdForUpdate(java.lang.Long)" class="member-name-link">findByIdForUpdate</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Long.html" title="class or interface in java.lang" class="external-link">Long</a>&nbsp;id)</code></div>
+<div class="col-last even-row-color">&nbsp;</div>
+<div class="col-first odd-row-color"><code><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Optional.html" title="class or interface in java.util" class="external-link">Optional</a><wbr>&lt;<a href="../User.html" title="class in vaultWeb.models">User</a>&gt;</code></div>
+<div class="col-second odd-row-color"><span class="type-name-label">UserRepository.</span><code><a href="../../repositories/UserRepository.html#findByUsername(java.lang.String)" class="member-name-link">findByUsername</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;username)</code></div>
+<div class="col-last odd-row-color">&nbsp;</div>
+<div class="col-first even-row-color"><code><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Optional.html" title="class or interface in java.util" class="external-link">Optional</a><wbr>&lt;<a href="../User.html" title="class in vaultWeb.models">User</a>&gt;</code></div>
+<div class="col-second even-row-color"><span class="type-name-label">UserRepository.</span><code><a href="../../repositories/UserRepository.html#findByUsernameForUpdate(java.lang.String)" class="member-name-link">findByUsernameForUpdate</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;username)</code></div>
 <div class="col-last even-row-color">&nbsp;</div>
 </div>
 <div class="caption"><span>Methods in <a href="../../repositories/package-summary.html">vaultWeb.repositories</a> with parameters of type <a href="../User.html" title="class in vaultWeb.models">User</a></span></div>
@@ -409,34 +415,16 @@ loadScripts(document, 'script');</script>
 <div class="col-last even-row-color">
 <div class="block">Retrieves the currently authenticated user from the SecurityContext.</div>
 </div>
-<div class="col-first odd-row-color"><code><a href="../User.html" title="class in vaultWeb.models">User</a></code></div>
-<div class="col-second odd-row-color"><span class="type-name-label">LoginResult.</span><code><a href="../../services/auth/LoginResult.html#user()" class="member-name-link">user</a>()</code></div>
-<div class="col-last odd-row-color">
-<div class="block">Returns the value of the <code>user</code> record component.</div>
-</div>
 </div>
 <div class="caption"><span>Methods in <a href="../../services/auth/package-summary.html">vaultWeb.services.auth</a> with parameters of type <a href="../User.html" title="class in vaultWeb.models">User</a></span></div>
 <div class="summary-table three-column-summary">
 <div class="table-header col-first">Modifier and Type</div>
 <div class="table-header col-second">Method</div>
 <div class="table-header col-last">Description</div>
-<div class="col-first even-row-color"><code>void</code></div>
-<div class="col-second even-row-color"><span class="type-name-label">RefreshTokenService.</span><code><a href="../../services/auth/RefreshTokenService.html#create(vaultWeb.models.User,jakarta.servlet.http.HttpServletResponse)" class="member-name-link">create</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user,
- jakarta.servlet.http.HttpServletResponse&nbsp;response)</code></div>
+<div class="col-first even-row-color"><code>org.springframework.http.ResponseCookie</code></div>
+<div class="col-second even-row-color"><span class="type-name-label">RefreshTokenService.</span><code><a href="../../services/auth/RefreshTokenService.html#create(vaultWeb.models.User)" class="member-name-link">create</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user)</code></div>
 <div class="col-last even-row-color">
 <div class="block">Creates and issues a new refresh token for the given user.</div>
-</div>
-</div>
-<div class="caption"><span>Constructors in <a href="../../services/auth/package-summary.html">vaultWeb.services.auth</a> with parameters of type <a href="../User.html" title="class in vaultWeb.models">User</a></span></div>
-<div class="summary-table three-column-summary">
-<div class="table-header col-first">Modifier</div>
-<div class="table-header col-second">Constructor</div>
-<div class="table-header col-last">Description</div>
-<div class="col-first even-row-color"><code>&nbsp;</code></div>
-<div class="col-second even-row-color"><code><a href="../../services/auth/LoginResult.html#%3Cinit%3E(vaultWeb.models.User,java.lang.String)" class="member-name-link">LoginResult</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user,
- <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;accessToken)</code></div>
-<div class="col-last even-row-color">
-<div class="block">Creates an instance of a <code>LoginResult</code> record class.</div>
 </div>
 </div>
 </section>

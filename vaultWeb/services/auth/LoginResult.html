@@ -92,7 +92,7 @@ loadScripts(document, 'script');</script>
 </div>
 <section class="class-description" id="class-description">
 <hr>
-<div class="type-signature"><span class="modifiers">public record </span><span class="element-name type-name-label">LoginResult</span>(<a href="../../models/User.html" title="class in vaultWeb.models">User</a>&nbsp;user, <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;accessToken)
+<div class="type-signature"><span class="modifiers">public record </span><span class="element-name type-name-label">LoginResult</span>(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;accessToken, org.springframework.http.ResponseCookie&nbsp;refreshCookie)
 <span class="extends-implements">extends <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Record.html" title="class or interface in java.lang" class="external-link">Record</a></span></div>
 </section>
 <section class="summary">
@@ -105,8 +105,8 @@ loadScripts(document, 'script');</script>
 <div class="summary-table two-column-summary">
 <div class="table-header col-first">Constructor</div>
 <div class="table-header col-last">Description</div>
-<div class="col-constructor-name even-row-color"><code><a href="#%3Cinit%3E(vaultWeb.models.User,java.lang.String)" class="member-name-link">LoginResult</a><wbr>(<a href="../../models/User.html" title="class in vaultWeb.models">User</a>&nbsp;user,
- <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;accessToken)</code></div>
+<div class="col-constructor-name even-row-color"><code><a href="#%3Cinit%3E(java.lang.String,org.springframework.http.ResponseCookie)" class="member-name-link">LoginResult</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;accessToken,
+ org.springframework.http.ResponseCookie&nbsp;refreshCookie)</code></div>
 <div class="col-last even-row-color">
 <div class="block">Creates an instance of a <code>LoginResult</code> record class.</div>
 </div>
@@ -139,15 +139,15 @@ loadScripts(document, 'script');</script>
 <div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
 <div class="block">Returns a hash code value for this object.</div>
 </div>
-<div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>final <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a></code></div>
-<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#toString()" class="member-name-link">toString</a>()</code></div>
+<div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>org.springframework.http.ResponseCookie</code></div>
+<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#refreshCookie()" class="member-name-link">refreshCookie</a>()</code></div>
 <div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
-<div class="block">Returns a string representation of this record class.</div>
+<div class="block">Returns the value of the <code>refreshCookie</code> record component.</div>
 </div>
-<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="../../models/User.html" title="class in vaultWeb.models">User</a></code></div>
-<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#user()" class="member-name-link">user</a>()</code></div>
+<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>final <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a></code></div>
+<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#toString()" class="member-name-link">toString</a>()</code></div>
 <div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
-<div class="block">Returns the value of the <code>user</code> record component.</div>
+<div class="block">Returns a string representation of this record class.</div>
 </div>
 </div>
 </div>
@@ -167,15 +167,15 @@ loadScripts(document, 'script');</script>
 <h2>Constructor Details</h2>
 <ul class="member-list">
 <li>
-<section class="detail" id="&lt;init&gt;(vaultWeb.models.User,java.lang.String)">
+<section class="detail" id="&lt;init&gt;(java.lang.String,org.springframework.http.ResponseCookie)">
 <h3>LoginResult</h3>
-<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="element-name">LoginResult</span><wbr><span class="parameters">(<a href="../../models/User.html" title="class in vaultWeb.models">User</a>&nbsp;user,
- <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;accessToken)</span></div>
+<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="element-name">LoginResult</span><wbr><span class="parameters">(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;accessToken,
+ org.springframework.http.ResponseCookie&nbsp;refreshCookie)</span></div>
 <div class="block">Creates an instance of a <code>LoginResult</code> record class.</div>
 <dl class="notes">
 <dt>Parameters:</dt>
-<dd><code>user</code> - the value for the <code>user</code> record component</dd>
 <dd><code>accessToken</code> - the value for the <code>accessToken</code> record component</dd>
+<dd><code>refreshCookie</code> - the value for the <code>refreshCookie</code> record component</dd>
 </dl>
 </section>
 </li>
@@ -229,17 +229,6 @@ loadScripts(document, 'script');</script>
 </section>
 </li>
 <li>
-<section class="detail" id="user()">
-<h3>user</h3>
-<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type"><a href="../../models/User.html" title="class in vaultWeb.models">User</a></span>&nbsp;<span class="element-name">user</span>()</div>
-<div class="block">Returns the value of the <code>user</code> record component.</div>
-<dl class="notes">
-<dt>Returns:</dt>
-<dd>the value of the <code>user</code> record component</dd>
-</dl>
-</section>
-</li>
-<li>
 <section class="detail" id="accessToken()">
 <h3>accessToken</h3>
 <div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type"><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a></span>&nbsp;<span class="element-name">accessToken</span>()</div>
@@ -247,6 +236,17 @@ loadScripts(document, 'script');</script>
 <dl class="notes">
 <dt>Returns:</dt>
 <dd>the value of the <code>accessToken</code> record component</dd>
+</dl>
+</section>
+</li>
+<li>
+<section class="detail" id="refreshCookie()">
+<h3>refreshCookie</h3>
+<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type">org.springframework.http.ResponseCookie</span>&nbsp;<span class="element-name">refreshCookie</span>()</div>
+<div class="block">Returns the value of the <code>refreshCookie</code> record component.</div>
+<dl class="notes">
+<dt>Returns:</dt>
+<dd>the value of the <code>refreshCookie</code> record component</dd>
 </dl>
 </section>
 </li>

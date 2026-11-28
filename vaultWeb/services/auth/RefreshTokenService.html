@@ -120,9 +120,8 @@ loadScripts(document, 'script');</script>
 <div class="table-header col-first">Modifier and Type</div>
 <div class="table-header col-second">Method</div>
 <div class="table-header col-last">Description</div>
-<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>void</code></div>
-<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#create(vaultWeb.models.User,jakarta.servlet.http.HttpServletResponse)" class="member-name-link">create</a><wbr>(<a href="../../models/User.html" title="class in vaultWeb.models">User</a>&nbsp;user,
- jakarta.servlet.http.HttpServletResponse&nbsp;response)</code></div>
+<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>org.springframework.http.ResponseCookie</code></div>
+<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#create(vaultWeb.models.User)" class="member-name-link">create</a><wbr>(<a href="../../models/User.html" title="class in vaultWeb.models">User</a>&nbsp;user)</code></div>
 <div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
 <div class="block">Creates and issues a new refresh token for the given user.</div>
 </div>
@@ -158,10 +157,9 @@ loadScripts(document, 'script');</script>
 <h2>Method Details</h2>
 <ul class="member-list">
 <li>
-<section class="detail" id="create(vaultWeb.models.User,jakarta.servlet.http.HttpServletResponse)">
+<section class="detail" id="create(vaultWeb.models.User)">
 <h3>create</h3>
-<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type">void</span>&nbsp;<span class="element-name">create</span><wbr><span class="parameters">(<a href="../../models/User.html" title="class in vaultWeb.models">User</a>&nbsp;user,
- jakarta.servlet.http.HttpServletResponse&nbsp;response)</span></div>
+<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type">org.springframework.http.ResponseCookie</span>&nbsp;<span class="element-name">create</span><wbr><span class="parameters">(<a href="../../models/User.html" title="class in vaultWeb.models">User</a>&nbsp;user)</span></div>
 <div class="block">Creates and issues a new refresh token for the given user.
 
  <p><b>Session model:</b>
@@ -182,7 +180,7 @@ loadScripts(document, 'script');</script>
        instead of storing the token in plaintext.
    <li>Persists the refresh token metadata (jti, hash, user, expiration, and revocation status)
        in the database.
-   <li>Sends the refresh token to the client as a secure, HttpOnly cookie.
+   <li>Returns the refresh token as a secure, HttpOnly cookie.
  </ol>
 
  <p><b>Security considerations:</b>
@@ -197,7 +195,8 @@ loadScripts(document, 'script');</script>
 <dl class="notes">
 <dt>Parameters:</dt>
 <dd><code>user</code> - the authenticated user for whom the refresh token is issued</dd>
-<dd><code>response</code> - the HTTP response used to attach the refresh token cookie</dd>
+<dt>Returns:</dt>
+<dd>the cookie to send once the transaction commits</dd>
 </dl>
 </section>
 </li>

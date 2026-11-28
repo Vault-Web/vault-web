@@ -141,35 +141,37 @@ loadScripts(document, 'script');</script>
 <div class="table-header col-first">Modifier and Type</div>
 <div class="table-header col-second">Method</div>
 <div class="table-header col-last">Description</div>
-<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="../../models/User.html" title="class in vaultWeb.models">User</a></code></div>
-<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#getCurrentUser()" class="member-name-link">getCurrentUser</a>()</code></div>
-<div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="LoginResult.html" title="class in vaultWeb.services.auth">LoginResult</a></code></div>
+<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#changePassword(java.lang.String,java.lang.String)" class="member-name-link">changePassword</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;currentPassword,
+ <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;newPassword)</code></div>
+<div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">&nbsp;</div>
+<div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="../../models/User.html" title="class in vaultWeb.models">User</a></code></div>
+<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#getCurrentUser()" class="member-name-link">getCurrentUser</a>()</code></div>
+<div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
 <div class="block">Retrieves the currently authenticated user from the SecurityContext.</div>
 </div>
-<div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>boolean</code></div>
-<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#hasActiveRefreshSession(java.lang.String,java.lang.String)" class="member-name-link">hasActiveRefreshSession</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;token,
+<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>boolean</code></div>
+<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#hasActiveRefreshSession(java.lang.String,java.lang.String)" class="member-name-link">hasActiveRefreshSession</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;token,
  <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;username)</code></div>
-<div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
 <div class="block">Checks the current browser session for an operation that does not rotate the token.</div>
 </div>
-<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="LoginResult.html" title="class in vaultWeb.services.auth">LoginResult</a></code></div>
-<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#login(java.lang.String,java.lang.String)" class="member-name-link">login</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;username,
+<div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="LoginResult.html" title="class in vaultWeb.services.auth">LoginResult</a></code></div>
+<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#login(java.lang.String,java.lang.String)" class="member-name-link">login</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;username,
  <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;password)</code></div>
-<div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
-<div class="block">Authenticates a user using their username and password and returns a JWT token upon successful
- authentication.</div>
-</div>
-<div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>void</code></div>
-<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#logout(java.lang.String,jakarta.servlet.http.HttpServletResponse)" class="member-name-link">logout</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;rawRefreshToken,
- jakarta.servlet.http.HttpServletResponse&nbsp;response)</code></div>
 <div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div class="block">Validates the credentials and issues a fresh access token and refresh cookie.</div>
+</div>
+<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>void</code></div>
+<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#logout(java.lang.String,jakarta.servlet.http.HttpServletResponse)" class="member-name-link">logout</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;rawRefreshToken,
+ jakarta.servlet.http.HttpServletResponse&nbsp;response)</code></div>
+<div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
 <div class="block">Logs out the current session by revoking the active refresh token (identified via its jti) and
  deleting the refresh token cookie.</div>
 </div>
-<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>org.springframework.http.ResponseEntity<wbr>&lt;?&gt;</code></div>
-<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#refresh(java.lang.String,jakarta.servlet.http.HttpServletResponse)" class="member-name-link">refresh</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;rawRefreshToken,
- jakarta.servlet.http.HttpServletResponse&nbsp;response)</code></div>
-<div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>org.springframework.http.ResponseEntity<wbr>&lt;?&gt;</code></div>
+<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#refresh(java.lang.String)" class="member-name-link">refresh</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;rawRefreshToken)</code></div>
+<div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
 <div class="block">Refreshes the access token using a valid refresh token and performs refresh token rotation.</div>
 </div>
 </div>
@@ -217,37 +219,17 @@ loadScripts(document, 'script');</script>
 <h3>login</h3>
 <div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type"><a href="LoginResult.html" title="class in vaultWeb.services.auth">LoginResult</a></span>&nbsp;<span class="element-name">login</span><wbr><span class="parameters">(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;username,
  <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;password)</span></div>
-<div class="block">Authenticates a user using their username and password and returns a JWT token upon successful
- authentication.
+<div class="block">Validates the credentials and issues a fresh access token and refresh cookie.
 
- <p>Workflow:
-
- <ol>
-   <li>The AuthenticationManager validates the username and password against the stored hash.
-   <li>If authentication succeeds, the Authentication object is stored in the SecurityContext.
-   <li>UserDetails are retrieved from the Authentication object, containing basic security info
-       (username, roles).
-   <li>The full User entity is then loaded from the database for additional details.
-   <li>A JWT token is generated for the user, signed and valid for a specific duration.
- </ol>
-
- <p>Detailed notes on <code>authenticationManager.authenticate(...)</code>:
-
- <ul>
-   <li>Spring Security calls the UserDetailsService to fetch user info by username.
-   <li>The provided password is compared with the stored hashed password using PasswordEncoder.
-   <li>If the password matches, a fully authenticated Authentication object is returned.
-   <li>If the password does not match, a BadCredentialsException is thrown.
- </ul></div>
-<dl class="notes">
-<dt>Parameters:</dt>
-<dd><code>username</code> - the username provided by the client</dd>
-<dd><code>password</code> - the plaintext password provided by the client</dd>
-<dt>Returns:</dt>
-<dd>a signed JWT token representing the authenticated user</dd>
-<dt>Throws:</dt>
-<dd><code><a href="../../exceptions/notfound/UserNotFoundException.html" title="class in vaultWeb.exceptions.notfound">UserNotFoundException</a></code> - if the user does not exist in the database</dd>
-</dl>
+ <p>Holds the account row lock across authentication and session issuance so a password change
+ cannot leave behind a session issued against the old password.</div>
+</section>
+</li>
+<li>
+<section class="detail" id="changePassword(java.lang.String,java.lang.String)">
+<h3>changePassword</h3>
+<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type"><a href="LoginResult.html" title="class in vaultWeb.services.auth">LoginResult</a></span>&nbsp;<span class="element-name">changePassword</span><wbr><span class="parameters">(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;currentPassword,
+ <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;newPassword)</span></div>
 </section>
 </li>
 <li>
@@ -265,10 +247,9 @@ loadScripts(document, 'script');</script>
 </section>
 </li>
 <li>
-<section class="detail" id="refresh(java.lang.String,jakarta.servlet.http.HttpServletResponse)">
+<section class="detail" id="refresh(java.lang.String)">
 <h3>refresh</h3>
-<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type">org.springframework.http.ResponseEntity&lt;?&gt;</span>&nbsp;<span class="element-name">refresh</span><wbr><span class="parameters">(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;rawRefreshToken,
- jakarta.servlet.http.HttpServletResponse&nbsp;response)</span></div>
+<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type">org.springframework.http.ResponseEntity&lt;?&gt;</span>&nbsp;<span class="element-name">refresh</span><wbr><span class="parameters">(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;rawRefreshToken)</span></div>
 <div class="block">Refreshes the access token using a valid refresh token and performs refresh token rotation.
 
  <p><b>Workflow:</b>
@@ -307,7 +288,6 @@ loadScripts(document, 'script');</script>
 <dl class="notes">
 <dt>Parameters:</dt>
 <dd><code>rawRefreshToken</code> - the refresh JWT provided by the client (via HttpOnly cookie)</dd>
-<dd><code>response</code> - HTTP response used to set the rotated refresh token cookie</dd>
 <dt>Returns:</dt>
 <dd>a response containing a new access token if the refresh succeeds</dd>
 </dl>

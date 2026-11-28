@@ -190,6 +190,8 @@ loadScripts(document, 'script');</script>
 <dd>&nbsp;</dd>
 <dt><a href="vaultWeb/security/annotations/ApiRateLimit.html#capacity()" class="member-name-link">capacity()</a> - Element in annotation interface vaultWeb.security.annotations.<a href="vaultWeb/security/annotations/ApiRateLimit.html" title="annotation interface in vaultWeb.security.annotations">ApiRateLimit</a></dt>
 <dd>&nbsp;</dd>
+<dt><a href="vaultWeb/services/auth/AuthService.html#changePassword(java.lang.String,java.lang.String)" class="member-name-link">changePassword(String, String)</a> - Method in class vaultWeb.services.auth.<a href="vaultWeb/services/auth/AuthService.html" title="class in vaultWeb.services.auth">AuthService</a></dt>
+<dd>&nbsp;</dd>
 <dt><a href="vaultWeb/controllers/UserController.html#changePassword(vaultWeb.dtos.user.ChangePasswordRequest)" class="member-name-link">changePassword(ChangePasswordRequest)</a> - Method in class vaultWeb.controllers.<a href="vaultWeb/controllers/UserController.html" title="class in vaultWeb.controllers">UserController</a></dt>
 <dd>&nbsp;</dd>
 <dt><a href="vaultWeb/services/UserService.html#changePassword(vaultWeb.models.User,java.lang.String,java.lang.String)" class="member-name-link">changePassword(User, String, String)</a> - Method in class vaultWeb.services.<a href="vaultWeb/services/UserService.html" title="class in vaultWeb.services">UserService</a></dt>
@@ -307,7 +309,7 @@ loadScripts(document, 'script');</script>
 <dd>&nbsp;</dd>
 <dt><a href="vaultWeb/services/ProjectService.html#create(vaultWeb.dtos.ProjectDto.Update)" class="member-name-link">create(ProjectDto.Update)</a> - Method in class vaultWeb.services.<a href="vaultWeb/services/ProjectService.html" title="class in vaultWeb.services">ProjectService</a></dt>
 <dd>&nbsp;</dd>
-<dt><a href="vaultWeb/services/auth/RefreshTokenService.html#create(vaultWeb.models.User,jakarta.servlet.http.HttpServletResponse)" class="member-name-link">create(User, HttpServletResponse)</a> - Method in class vaultWeb.services.auth.<a href="vaultWeb/services/auth/RefreshTokenService.html" title="class in vaultWeb.services.auth">RefreshTokenService</a></dt>
+<dt><a href="vaultWeb/services/auth/RefreshTokenService.html#create(vaultWeb.models.User)" class="member-name-link">create(User)</a> - Method in class vaultWeb.services.auth.<a href="vaultWeb/services/auth/RefreshTokenService.html" title="class in vaultWeb.services.auth">RefreshTokenService</a></dt>
 <dd>
 <div class="block">Creates and issues a new refresh token for the given user.</div>
 </dd>
@@ -663,6 +665,8 @@ loadScripts(document, 'script');</script>
 <dd>&nbsp;</dd>
 <dt><a href="vaultWeb/repositories/PollRepository.html#findByGroupIdIn(java.util.List)" class="member-name-link">findByGroupIdIn(List&lt;Long&gt;)</a> - Method in interface vaultWeb.repositories.<a href="vaultWeb/repositories/PollRepository.html" title="interface in vaultWeb.repositories">PollRepository</a></dt>
 <dd>&nbsp;</dd>
+<dt><a href="vaultWeb/repositories/UserRepository.html#findByIdForUpdate(java.lang.Long)" class="member-name-link">findByIdForUpdate(Long)</a> - Method in interface vaultWeb.repositories.<a href="vaultWeb/repositories/UserRepository.html" title="interface in vaultWeb.repositories">UserRepository</a></dt>
+<dd>&nbsp;</dd>
 <dt><a href="vaultWeb/repositories/PollRepository.html#findByPrivateChatId(java.lang.Long)" class="member-name-link">findByPrivateChatId(Long)</a> - Method in interface vaultWeb.repositories.<a href="vaultWeb/repositories/PollRepository.html" title="interface in vaultWeb.repositories">PollRepository</a></dt>
 <dd>&nbsp;</dd>
 <dt><a href="vaultWeb/repositories/ChatMessageRepository.html#findByPrivateChatIdAndDeletedFalseOrderByTimestampAsc(java.lang.Long)" class="member-name-link">findByPrivateChatIdAndDeletedFalseOrderByTimestampAsc(Long)</a> - Method in interface vaultWeb.repositories.<a href="vaultWeb/repositories/ChatMessageRepository.html" title="interface in vaultWeb.repositories">ChatMessageRepository</a></dt>
@@ -686,6 +690,8 @@ loadScripts(document, 'script');</script>
 <dt><a href="vaultWeb/repositories/DeviceRepository.html#findByUserIn(java.util.Collection)" class="member-name-link">findByUserIn(Collection&lt;User&gt;)</a> - Method in interface vaultWeb.repositories.<a href="vaultWeb/repositories/DeviceRepository.html" title="interface in vaultWeb.repositories">DeviceRepository</a></dt>
 <dd>&nbsp;</dd>
 <dt><a href="vaultWeb/repositories/UserRepository.html#findByUsername(java.lang.String)" class="member-name-link">findByUsername(String)</a> - Method in interface vaultWeb.repositories.<a href="vaultWeb/repositories/UserRepository.html" title="interface in vaultWeb.repositories">UserRepository</a></dt>
+<dd>&nbsp;</dd>
+<dt><a href="vaultWeb/repositories/UserRepository.html#findByUsernameForUpdate(java.lang.String)" class="member-name-link">findByUsernameForUpdate(String)</a> - Method in interface vaultWeb.repositories.<a href="vaultWeb/repositories/UserRepository.html" title="interface in vaultWeb.repositories">UserRepository</a></dt>
 <dd>&nbsp;</dd>
 <dt><a href="vaultWeb/repositories/ProjectRepository.html#findForUser(java.lang.Long)" class="member-name-link">findForUser(Long)</a> - Method in interface vaultWeb.repositories.<a href="vaultWeb/repositories/ProjectRepository.html" title="interface in vaultWeb.repositories">ProjectRepository</a></dt>
 <dd>&nbsp;</dd>
@@ -1255,10 +1261,9 @@ loadScripts(document, 'script');</script>
 </dd>
 <dt><a href="vaultWeb/services/auth/AuthService.html#login(java.lang.String,java.lang.String)" class="member-name-link">login(String, String)</a> - Method in class vaultWeb.services.auth.<a href="vaultWeb/services/auth/AuthService.html" title="class in vaultWeb.services.auth">AuthService</a></dt>
 <dd>
-<div class="block">Authenticates a user using their username and password and returns a JWT token upon successful
- authentication.</div>
+<div class="block">Validates the credentials and issues a fresh access token and refresh cookie.</div>
 </dd>
-<dt><a href="vaultWeb/controllers/UserController.html#login(vaultWeb.dtos.user.LoginRequest,jakarta.servlet.http.HttpServletResponse)" class="member-name-link">login(LoginRequest, HttpServletResponse)</a> - Method in class vaultWeb.controllers.<a href="vaultWeb/controllers/UserController.html" title="class in vaultWeb.controllers">UserController</a></dt>
+<dt><a href="vaultWeb/controllers/UserController.html#login(vaultWeb.dtos.user.LoginRequest)" class="member-name-link">login(LoginRequest)</a> - Method in class vaultWeb.controllers.<a href="vaultWeb/controllers/UserController.html" title="class in vaultWeb.controllers">UserController</a></dt>
 <dd>&nbsp;</dd>
 <dt><a href="vaultWeb/security/annotations/SecurityEventType.html#LOGIN" class="member-name-link">LOGIN</a> - Enum constant in enum class vaultWeb.security.annotations.<a href="vaultWeb/security/annotations/SecurityEventType.html" title="enum class in vaultWeb.security.annotations">SecurityEventType</a></dt>
 <dd>&nbsp;</dd>
@@ -1268,7 +1273,7 @@ loadScripts(document, 'script');</script>
 <dd>&nbsp;</dd>
 <dt><a href="vaultWeb/services/auth/LoginResult.html" class="type-name-link" title="class in vaultWeb.services.auth">LoginResult</a> - Record Class in <a href="vaultWeb/services/auth/package-summary.html">vaultWeb.services.auth</a></dt>
 <dd>&nbsp;</dd>
-<dt><a href="vaultWeb/services/auth/LoginResult.html#%3Cinit%3E(vaultWeb.models.User,java.lang.String)" class="member-name-link">LoginResult(User, String)</a> - Constructor for record class vaultWeb.services.auth.<a href="vaultWeb/services/auth/LoginResult.html" title="class in vaultWeb.services.auth">LoginResult</a></dt>
+<dt><a href="vaultWeb/services/auth/LoginResult.html#%3Cinit%3E(java.lang.String,org.springframework.http.ResponseCookie)" class="member-name-link">LoginResult(String, ResponseCookie)</a> - Constructor for record class vaultWeb.services.auth.<a href="vaultWeb/services/auth/LoginResult.html" title="class in vaultWeb.services.auth">LoginResult</a></dt>
 <dd>
 <div class="block">Creates an instance of a <code>LoginResult</code> record class.</div>
 </dd>
@@ -1750,11 +1755,15 @@ loadScripts(document, 'script');</script>
 <dd>&nbsp;</dd>
 <dt><a href="vaultWeb/security/annotations/ApiRateLimit.html#refillTokens()" class="member-name-link">refillTokens()</a> - Element in annotation interface vaultWeb.security.annotations.<a href="vaultWeb/security/annotations/ApiRateLimit.html" title="annotation interface in vaultWeb.security.annotations">ApiRateLimit</a></dt>
 <dd>&nbsp;</dd>
-<dt><a href="vaultWeb/controllers/UserController.html#refresh(java.lang.String,jakarta.servlet.http.HttpServletResponse)" class="member-name-link">refresh(String, HttpServletResponse)</a> - Method in class vaultWeb.controllers.<a href="vaultWeb/controllers/UserController.html" title="class in vaultWeb.controllers">UserController</a></dt>
+<dt><a href="vaultWeb/controllers/UserController.html#refresh(java.lang.String)" class="member-name-link">refresh(String)</a> - Method in class vaultWeb.controllers.<a href="vaultWeb/controllers/UserController.html" title="class in vaultWeb.controllers">UserController</a></dt>
 <dd>&nbsp;</dd>
-<dt><a href="vaultWeb/services/auth/AuthService.html#refresh(java.lang.String,jakarta.servlet.http.HttpServletResponse)" class="member-name-link">refresh(String, HttpServletResponse)</a> - Method in class vaultWeb.services.auth.<a href="vaultWeb/services/auth/AuthService.html" title="class in vaultWeb.services.auth">AuthService</a></dt>
+<dt><a href="vaultWeb/services/auth/AuthService.html#refresh(java.lang.String)" class="member-name-link">refresh(String)</a> - Method in class vaultWeb.services.auth.<a href="vaultWeb/services/auth/AuthService.html" title="class in vaultWeb.services.auth">AuthService</a></dt>
 <dd>
 <div class="block">Refreshes the access token using a valid refresh token and performs refresh token rotation.</div>
+</dd>
+<dt><a href="vaultWeb/services/auth/LoginResult.html#refreshCookie()" class="member-name-link">refreshCookie()</a> - Method in record class vaultWeb.services.auth.<a href="vaultWeb/services/auth/LoginResult.html" title="class in vaultWeb.services.auth">LoginResult</a></dt>
+<dd>
+<div class="block">Returns the value of the <code>refreshCookie</code> record component.</div>
 </dd>
 <dt><a href="vaultWeb/models/RefreshToken.html" class="type-name-link" title="class in vaultWeb.models">RefreshToken</a> - Class in <a href="vaultWeb/models/package-summary.html">vaultWeb.models</a></dt>
 <dd>&nbsp;</dd>
@@ -2099,6 +2108,8 @@ loadScripts(document, 'script');</script>
 <dd>&nbsp;</dd>
 <dt><a href="vaultWeb/services/PollService.html#updatePollInPrivateChat(java.lang.Long,java.lang.Long,vaultWeb.models.User,vaultWeb.dtos.PollRequestDto)" class="member-name-link">updatePollInPrivateChat(Long, Long, User, PollRequestDto)</a> - Method in class vaultWeb.services.<a href="vaultWeb/services/PollService.html" title="class in vaultWeb.services">PollService</a></dt>
 <dd>&nbsp;</dd>
+<dt><a href="vaultWeb/repositories/UserRepository.html#updateProfilePicture(java.lang.Long,java.lang.String)" class="member-name-link">updateProfilePicture(Long, String)</a> - Method in interface vaultWeb.repositories.<a href="vaultWeb/repositories/UserRepository.html" title="interface in vaultWeb.repositories">UserRepository</a></dt>
+<dd>&nbsp;</dd>
 <dt><a href="vaultWeb/services/UserService.html#updateProfilePicture(vaultWeb.models.User,java.lang.String)" class="member-name-link">updateProfilePicture(User, String)</a> - Method in class vaultWeb.services.<a href="vaultWeb/services/UserService.html" title="class in vaultWeb.services">UserService</a></dt>
 <dd>
 <div class="block">Saves a profile picture path to the user's record in the database.</div>
@@ -2110,10 +2121,6 @@ loadScripts(document, 'script');</script>
 <dt><a href="vaultWeb/security/annotations/ApiRateLimit.html#useIpAddress()" class="member-name-link">useIpAddress()</a> - Element in annotation interface vaultWeb.security.annotations.<a href="vaultWeb/security/annotations/ApiRateLimit.html" title="annotation interface in vaultWeb.security.annotations">ApiRateLimit</a></dt>
 <dd>
 <div class="block">If true, uses IP address for rate limiting.</div>
-</dd>
-<dt><a href="vaultWeb/services/auth/LoginResult.html#user()" class="member-name-link">user()</a> - Method in record class vaultWeb.services.auth.<a href="vaultWeb/services/auth/LoginResult.html" title="class in vaultWeb.services.auth">LoginResult</a></dt>
-<dd>
-<div class="block">Returns the value of the <code>user</code> record component.</div>
 </dd>
 <dt><a href="vaultWeb/models/User.html" class="type-name-link" title="class in vaultWeb.models">User</a> - Class in <a href="vaultWeb/models/package-summary.html">vaultWeb.models</a></dt>
 <dd>&nbsp;</dd>
