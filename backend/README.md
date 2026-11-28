@@ -123,6 +123,18 @@ FATAL: invalid value for parameter "TimeZone"
 See `../common_problems.md` for platform-specific troubleshooting and startup
 guidance.
 
+## Private media previews
+
+PDF and audio/video previews use a stable URL that streams one Cloud file with
+HTTP range support. Keep the Vault Web tab that opened the preview running so it
+can renew access. Renewal requires the current access token and a valid
+`refresh_token` cookie from the same browser account. An expired, revoked, or
+different account's session cannot extend the preview.
+
+The access window is controlled by `app.media.token-ttl-seconds` and defaults
+to five minutes. Preview bindings are held in memory on one Vault Web backend.
+Reopen previews after a backend restart or a prolonged browser suspension.
+
 ## Database migrations
 
 Vault Web runs versioned PostgreSQL migrations with Flyway before Hibernate

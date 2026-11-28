@@ -18,7 +18,10 @@ import {
   CreateSecureSendRequestDto,
 } from '../models/dtos/SecureSendLinkDto';
 import { environment } from '../../environments/environment';
-import { SKIP_GLOBAL_ERROR_PAGE } from '../core/interceptors/token.interceptor';
+import {
+  REQUIRE_ACTIVE_SESSION,
+  SKIP_GLOBAL_ERROR_PAGE,
+} from '../core/interceptors/token.interceptor';
 
 interface RawSecureSendResponse {
   requiresNewLink?: boolean;
@@ -41,6 +44,12 @@ interface RawSecureSendResponse {
   revokedAt?: string | null;
   createdAt?: string;
   lastAccessedAt?: string | null;
+}
+
+export interface CloudMediaPreview {
+  url: string;
+  previewId?: string;
+  expiresIn: number;
 }
 
 @Injectable({
@@ -226,27 +235,54 @@ export class CloudService {
   }
 
   /**
-   * Returns a URL that natively streams the given file — with real HTTP range
-   * support, so a browser <video>/<audio> element can seek without downloading
-   * the whole file first.
-   *
-   * This does NOT go through cloud-page's own API (this.apiUrl / :8090).
-   * A native media element cannot attach an Authorization header, so cloud-page's
-   * endpoints aren't directly usable here. Instead this calls vault-web's own
-   * backend (mainApiUrl / :8080), which mints a short-lived, single-file token
-   * and exposes an unauthenticated-by-header streaming route that is secured by
-   * that token instead. See MediaController in vault-web/backend.
+   * Ask Vault Web for a single-file URL that supports native browser range requests.
+   * Backends predating renewable previews return the legacy token.
    */
-  getMediaStreamUrl(relativePath: string): Observable<string> {
+  createMediaPreview(
+    relativePath: string,
+    renewable: boolean,
+  ): Observable<CloudMediaPreview> {
     const path = this.normalizePath(relativePath);
     return this.http
       .post<{
-        token: string;
+        token?: string;
+        previewId?: string;
         expiresIn: number;
-      }>(`${environment.mainApiUrl}/media/token`, { path })
+      }>(
+        `${environment.mainApiUrl}/media/token`,
+        { path, renewable },
+        {
+          context: new HttpContext().set(SKIP_GLOBAL_ERROR_PAGE, true),
+        },
+      )
       .pipe(
-        map((res) => `${environment.mainApiUrl}/media/stream/${res.token}`),
+        map(({ previewId, token, expiresIn }) => {
+          const base = `${environment.mainApiUrl}/media/stream`;
+          if (previewId) {
+            return {
+              url: `${base}/preview/${encodeURIComponent(previewId)}`,
+              previewId,
+              expiresIn,
+            };
+          }
+          if (token)
+            return { url: `${base}/${encodeURIComponent(token)}`, expiresIn };
+          throw new Error('The media service did not return a preview URL.');
+        }),
       );
+  }
+
+  renewMediaPreview(id: string): Observable<void> {
+    return this.http.post<void>(
+      `${environment.mainApiUrl}/auth/refresh/media`,
+      { id },
+      {
+        withCredentials: true,
+        context: new HttpContext()
+          .set(SKIP_GLOBAL_ERROR_PAGE, true)
+          .set(REQUIRE_ACTIVE_SESSION, true),
+      },
+    );
   }
 
   listTrash(): Observable<TrashEntryDto[]> {

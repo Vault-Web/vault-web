@@ -33,14 +33,19 @@ import { FileChecksumDto } from '../../models/dtos/FileChecksumDto';
 import { CloudService } from '../../services/cloud.service';
 import {
   Observable,
+  EMPTY,
   catchError,
+  exhaustMap,
   finalize,
   firstValueFrom,
   from,
   map,
   mergeMap,
   of,
+  takeWhile,
   tap,
+  throwError,
+  timer,
 } from 'rxjs';
 import { UiToastService } from '../../core/services/ui-toast.service';
 import {
@@ -2514,6 +2519,20 @@ export class CloudComponent implements OnInit, OnDestroy {
     'aac',
   ]);
 
+  private readonly renewablePreviewExt = new Set([
+    'pdf',
+    'mp4',
+    'webm',
+    'mov',
+    'ogg',
+    'ogv',
+    'mp3',
+    'wav',
+    'flac',
+    'm4a',
+    'aac',
+  ]);
+
   previewFile(file: FileDto) {
     const ext = file.name.split('.').pop()?.toLowerCase();
     const textExt = ['txt', 'md', 'json', 'xml', 'log'];
@@ -2524,47 +2543,97 @@ export class CloudComponent implements OnInit, OnDestroy {
       // it after the async response instead would land outside the original
       // user gesture and get blocked as a popup by some browsers.
       const tab = window.open('', '_blank');
+      if (!tab) {
+        this.toast.error(
+          'Preview blocked',
+          'Allow popups to open this file preview.',
+        );
+        return;
+      }
       const relativePath = this.getRelativePath(file.path);
-      this.cloudService.getMediaStreamUrl(relativePath).subscribe({
-        next: (url) => {
-          if (tab) {
+      this.cloudService
+        .createMediaPreview(relativePath, this.renewablePreviewExt.has(ext))
+        .subscribe({
+          next: ({ url, previewId, expiresIn }) => {
+            if (tab.closed) return;
             tab.location.href = url;
-          }
-        },
-        error: (err) => {
-          if (ext === 'pdf' && tab) {
-            // The authenticated Cloud view endpoint remains usable when the
-            // media-token endpoint is unavailable on an older backend.
-            this.cloudService.getFileView(relativePath).subscribe({
-              next: (blob) => {
-                const blobUrl = window.URL.createObjectURL(blob);
-                tab.location.href = blobUrl;
-                const cleanup = window.setInterval(() => {
-                  if (tab.closed) {
-                    window.URL.revokeObjectURL(blobUrl);
-                    window.clearInterval(cleanup);
+            if (previewId) this.keepMediaPreviewOpen(tab, previewId, expiresIn);
+          },
+          error: (err) => {
+            if (ext === 'pdf' && !tab.closed) {
+              // The authenticated Cloud view endpoint remains usable when the
+              // media-token endpoint is unavailable on an older backend.
+              this.cloudService.getFileView(relativePath).subscribe({
+                next: (blob) => {
+                  if (tab.closed) return;
+                  if (blob.type !== 'application/pdf') {
+                    tab.close();
+                    this.toast.error(
+                      'Preview failed',
+                      'The response is not a PDF.',
+                    );
+                    return;
                   }
-                }, 30_000);
-              },
-              error: (viewError) => {
-                tab.close();
-                this.toast.error(
-                  'Preview failed',
-                  this.getErrorMessage(viewError),
-                );
-              },
-            });
-            return;
-          }
-          tab?.close();
-          this.toast.error('Preview failed', this.getErrorMessage(err));
-        },
-      });
+                  const blobUrl = window.URL.createObjectURL(blob);
+                  tab.location.href = blobUrl;
+                  const cleanup = window.setInterval(() => {
+                    if (tab.closed) {
+                      window.URL.revokeObjectURL(blobUrl);
+                      window.clearInterval(cleanup);
+                    }
+                  }, 30_000);
+                },
+                error: (viewError) => {
+                  tab.close();
+                  this.toast.error(
+                    'Preview failed',
+                    this.getErrorMessage(viewError),
+                  );
+                },
+              });
+              return;
+            }
+            tab.close();
+            this.toast.error('Preview failed', this.getErrorMessage(err));
+          },
+        });
     } else if (ext && textExt.includes(ext)) {
       this.editFile(file);
     } else {
       this.downloadFile(file);
     }
+  }
+
+  private keepMediaPreviewOpen(
+    tab: Window,
+    id: string,
+    expiresIn: number,
+  ): void {
+    const interval = Math.max(250, (expiresIn * 1000) / 3);
+    timer(interval, interval)
+      .pipe(
+        takeWhile(() => !tab.closed),
+        exhaustMap(() =>
+          this.cloudService
+            .renewMediaPreview(id)
+            .pipe(
+              catchError((error) =>
+                [401, 403, 404].includes(error.status)
+                  ? throwError(() => error)
+                  : EMPTY,
+              ),
+            ),
+        ),
+      )
+      .subscribe({
+        error: () => {
+          if (!tab.closed)
+            this.toast.error(
+              'Preview session ended',
+              'Reopen the preview to continue.',
+            );
+        },
+      });
   }
 
   openChecksumDialog(file: { path: string; name: string }): void {

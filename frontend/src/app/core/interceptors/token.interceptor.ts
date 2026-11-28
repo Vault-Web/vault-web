@@ -16,6 +16,9 @@ const PUBLIC_API_PREFIXES = [`${environment.cloudServiceApiUrl}/public/`];
 export const SKIP_GLOBAL_ERROR_PAGE = new HttpContextToken<boolean>(
   () => false,
 );
+export const REQUIRE_ACTIVE_SESSION = new HttpContextToken<boolean>(
+  () => false,
+);
 
 let refreshTokenSubject = new ReplaySubject<string>(1);
 let isRefreshing = false;
@@ -24,6 +27,12 @@ export const tokenInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const networkStatusService = inject(NetworkStatusService);
   const router = inject(Router);
+
+  if (req.context.get(REQUIRE_ACTIVE_SESSION) && !authService.getToken()) {
+    return throwError(
+      () => new HttpErrorResponse({ status: 401, url: req.url }),
+    );
+  }
 
   // Public endpoints are opened by recipients without a session. Their 401 means
   // "wrong password", not "session expired", so it must never trigger a token
@@ -67,7 +76,7 @@ export const tokenInterceptor: HttpInterceptorFn = (req, next) => {
   if (
     !req.url.includes('/login') &&
     !req.url.includes('/register') &&
-    !req.url.includes('/refresh')
+    !isRefreshRequest(req.url)
   ) {
     const token = authService.getToken();
     if (token) {
@@ -111,7 +120,7 @@ function handleUnauthorized(
   error: HttpErrorResponse,
 ) {
   // If the refresh endpoint itself returned 401, the refresh token is invalid.
-  if (req.url.includes('/auth/refresh')) {
+  if (isRefreshRequest(req.url)) {
     authService.logout();
     return throwError(() => error);
   }
@@ -146,6 +155,10 @@ function handleUnauthorized(
       return throwError(() => refreshErr);
     }),
   );
+}
+
+function isRefreshRequest(url: string): boolean {
+  return url === `${environment.mainApiUrl}/auth/refresh`;
 }
 
 /**
