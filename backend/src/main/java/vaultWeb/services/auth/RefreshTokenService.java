@@ -1,14 +1,11 @@
 package vaultWeb.services.auth;
 
-import jakarta.servlet.http.HttpServletResponse;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import vaultWeb.models.RefreshToken;
 import vaultWeb.models.User;
@@ -20,7 +17,6 @@ import vaultWeb.security.TokenHashUtil;
 @RequiredArgsConstructor
 public class RefreshTokenService {
   private final RefreshTokenRepository refreshTokenRepository;
-  private final PasswordEncoder passwordEncoder;
   private final JwtUtil jwtUtil;
 
   /**
@@ -44,7 +40,7 @@ public class RefreshTokenService {
    *       instead of storing the token in plaintext.
    *   <li>Persists the refresh token metadata (jti, hash, user, expiration, and revocation status)
    *       in the database.
-   *   <li>Sends the refresh token to the client as a secure, HttpOnly cookie.
+   *   <li>Returns the refresh token as a secure, HttpOnly cookie.
    * </ol>
    *
    * <p><b>Security considerations:</b>
@@ -58,9 +54,9 @@ public class RefreshTokenService {
    * </ul>
    *
    * @param user the authenticated user for whom the refresh token is issued
-   * @param response the HTTP response used to attach the refresh token cookie
+   * @return the cookie to send once the transaction commits
    */
-  public void create(User user, HttpServletResponse response) {
+  public ResponseCookie create(User user) {
 
     // revoke old tokens
     refreshTokenRepository.revokeAllByUser(user.getId());
@@ -83,16 +79,12 @@ public class RefreshTokenService {
 
     refreshTokenRepository.save(entity);
 
-    // set cookie
-    ResponseCookie cookie =
-        ResponseCookie.from("refresh_token", refreshToken)
-            .httpOnly(true)
-            .secure(true)
-            .sameSite("None")
-            .path("/api/auth/refresh")
-            .maxAge(Duration.ofDays(30))
-            .build();
-
-    response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    return ResponseCookie.from("refresh_token", refreshToken)
+        .httpOnly(true)
+        .secure(true)
+        .sameSite("None")
+        .path("/api/auth/refresh")
+        .maxAge(Duration.ofDays(30))
+        .build();
   }
 }

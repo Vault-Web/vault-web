@@ -5,6 +5,8 @@ import { of } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Router } from '@angular/router';
 
+type AccessTokenResponse = { token: string };
+
 @Injectable({
   providedIn: 'root',
 })
@@ -16,11 +18,9 @@ export class AuthService {
     private router: Router,
   ) {}
 
-  login(username: string, password: string): Observable<{ token: string }> {
+  login(username: string, password: string): Observable<AccessTokenResponse> {
     return this.http
-      .post<{
-        token: string;
-      }>(
+      .post<AccessTokenResponse>(
         `${this.apiUrl}/auth/login`,
         { username, password },
         { withCredentials: true },
@@ -41,8 +41,8 @@ export class AuthService {
     );
   }
 
-  refresh(): Observable<{ token: string }> {
-    return this.http.post<{ token: string }>(
+  refresh(): Observable<AccessTokenResponse> {
+    return this.http.post<AccessTokenResponse>(
       `${this.apiUrl}/auth/refresh`,
       {},
       { withCredentials: true },
@@ -53,10 +53,22 @@ export class AuthService {
     currentPassword: string,
     newPassword: string,
   ): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/auth/change-password`, {
-      currentPassword,
-      newPassword,
-    });
+    const previousToken = this.getToken();
+    return this.http
+      .post<AccessTokenResponse | null>(
+        `${this.apiUrl}/auth/change-password`,
+        { currentPassword, newPassword },
+        { withCredentials: true },
+      )
+      .pipe(
+        tap((session) => {
+          // Older backends respond with 204. Do not restore a session after logout.
+          if (session?.token && this.getToken() === previousToken) {
+            this.saveToken(session.token);
+          }
+        }),
+        map(() => undefined),
+      );
   }
 
   validateTokenWithServer(): Observable<boolean> {

@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import io.jsonwebtoken.Claims;
-import jakarta.servlet.http.HttpServletResponse;
 import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
@@ -67,21 +66,15 @@ class AuthServiceTest {
 
     when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
         .thenReturn(authentication);
-    when(authentication.getPrincipal())
-        .thenReturn(
-            org.springframework.security.core.userdetails.User.withUsername("testuser")
-                .password("hashedPwd")
-                .authorities("ROLE_USER")
-                .build());
-    when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+    when(userRepository.findByUsernameForUpdate("testuser")).thenReturn(Optional.of(user));
     when(jwtUtil.generateToken(user)).thenReturn("jwt-token");
 
     LoginResult result = authService.login("testuser", "password");
 
     assertNotNull(result);
-    assertEquals("testuser", result.user().getUsername());
     assertEquals("jwt-token", result.accessToken());
     verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
+    verify(refreshTokenService).create(user);
   }
 
   @Test
@@ -113,10 +106,12 @@ class AuthServiceTest {
     stored.setUser(user);
     Claims claims = mock(Claims.class);
     when(claims.getId()).thenReturn("token-id");
+    when(claims.getSubject()).thenReturn("7");
+    when(userRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(user));
     when(jwtUtil.parseRefreshToken(rawToken)).thenReturn(claims);
     when(refreshTokenRepository.findByTokenId("token-id")).thenReturn(Optional.of(stored));
 
-    var result = authService.refresh(rawToken, mock(HttpServletResponse.class));
+    var result = authService.refresh(rawToken);
 
     assertEquals(401, result.getStatusCode().value());
     verify(refreshTokenRepository, never()).revokeAllByUser(any());
@@ -124,22 +119,27 @@ class AuthServiceTest {
     verify(securityEventRepository).save(event.capture());
     assertEquals(SecurityEventType.TOKEN_REPLAY_DETECTED, event.getValue().getEventType());
     assertEquals(user, event.getValue().getUser());
-    verify(refreshTokenService, never()).create(any(), any());
+    verify(refreshTokenService, never()).create(any());
   }
 
   @Test
   void mismatchedRefreshTokenHashDoesNotTriggerReplayResponse() {
     String rawToken = "signed-refresh-token";
+    User user = createUser("testuser", "hashedPwd");
+    user.setId(7L);
     RefreshToken stored = new RefreshToken();
+    stored.setUser(user);
     stored.setTokenHash(TokenHashUtil.sha256("different-token"));
     stored.setExpiresAt(Instant.now().plusSeconds(3600));
     stored.setRevoked(true);
     Claims claims = mock(Claims.class);
     when(claims.getId()).thenReturn("token-id");
+    when(claims.getSubject()).thenReturn("7");
+    when(userRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(user));
     when(jwtUtil.parseRefreshToken(rawToken)).thenReturn(claims);
     when(refreshTokenRepository.findByTokenId("token-id")).thenReturn(Optional.of(stored));
 
-    var result = authService.refresh(rawToken, mock(HttpServletResponse.class));
+    var result = authService.refresh(rawToken);
 
     assertEquals(401, result.getStatusCode().value());
     verify(refreshTokenRepository, never()).revokeAllByUser(any());
