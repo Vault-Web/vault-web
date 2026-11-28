@@ -157,40 +157,55 @@ loadScripts(document, 'script');</script>
 <div class="table-header col-second">Method</div>
 <div class="table-header col-last">Description</div>
 <div class="col-first even-row-color"><code>long</code></div>
-<div class="col-second even-row-color"><span class="type-name-label">ChatMessageRepository.</span><code><a href="../../repositories/ChatMessageRepository.html#countBySender(vaultWeb.models.User)" class="member-name-link">countBySender</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;sender)</code></div>
+<div class="col-second even-row-color"><span class="type-name-label">PersonalAccessTokenRepository.</span><code><a href="../../repositories/PersonalAccessTokenRepository.html#countActiveByUser(vaultWeb.models.User,java.time.Instant)" class="member-name-link">countActiveByUser</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user,
+ <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/time/Instant.html" title="class or interface in java.time" class="external-link">Instant</a>&nbsp;now)</code></div>
 <div class="col-last even-row-color">&nbsp;</div>
-<div class="col-first odd-row-color"><code>void</code></div>
-<div class="col-second odd-row-color"><span class="type-name-label">GroupMemberRepository.</span><code><a href="../../repositories/GroupMemberRepository.html#deleteByGroupAndUser(vaultWeb.models.Group,vaultWeb.models.User)" class="member-name-link">deleteByGroupAndUser</a><wbr>(<a href="../Group.html" title="class in vaultWeb.models">Group</a>&nbsp;group,
- <a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;userId)</code></div>
+<div class="col-first odd-row-color"><code>long</code></div>
+<div class="col-second odd-row-color"><span class="type-name-label">ChatMessageRepository.</span><code><a href="../../repositories/ChatMessageRepository.html#countBySender(vaultWeb.models.User)" class="member-name-link">countBySender</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;sender)</code></div>
 <div class="col-last odd-row-color">&nbsp;</div>
-<div class="col-first even-row-color"><code>boolean</code></div>
-<div class="col-second even-row-color"><span class="type-name-label">PollVoteRepository.</span><code><a href="../../repositories/PollVoteRepository.html#existsByOption_PollAndUser(vaultWeb.models.Poll,vaultWeb.models.User)" class="member-name-link">existsByOption_PollAndUser</a><wbr>(<a href="../Poll.html" title="class in vaultWeb.models">Poll</a>&nbsp;poll,
- <a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user)</code></div>
+<div class="col-first even-row-color"><code>void</code></div>
+<div class="col-second even-row-color"><span class="type-name-label">GroupMemberRepository.</span><code><a href="../../repositories/GroupMemberRepository.html#deleteByGroupAndUser(vaultWeb.models.Group,vaultWeb.models.User)" class="member-name-link">deleteByGroupAndUser</a><wbr>(<a href="../Group.html" title="class in vaultWeb.models">Group</a>&nbsp;group,
+ <a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;userId)</code></div>
 <div class="col-last even-row-color">&nbsp;</div>
-<div class="col-first odd-row-color"><code><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html" title="class or interface in java.util" class="external-link">List</a><wbr>&lt;<a href="../GroupMember.html" title="class in vaultWeb.models">GroupMember</a>&gt;</code></div>
-<div class="col-second odd-row-color"><span class="type-name-label">GroupMemberRepository.</span><code><a href="../../repositories/GroupMemberRepository.html#findAllByUser(vaultWeb.models.User)" class="member-name-link">findAllByUser</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user)</code></div>
+<div class="col-first odd-row-color"><code>boolean</code></div>
+<div class="col-second odd-row-color"><span class="type-name-label">PollVoteRepository.</span><code><a href="../../repositories/PollVoteRepository.html#existsByOption_PollAndUser(vaultWeb.models.Poll,vaultWeb.models.User)" class="member-name-link">existsByOption_PollAndUser</a><wbr>(<a href="../Poll.html" title="class in vaultWeb.models">Poll</a>&nbsp;poll,
+ <a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user)</code></div>
+<div class="col-last odd-row-color">&nbsp;</div>
+<div class="col-first even-row-color"><code><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html" title="class or interface in java.util" class="external-link">List</a><wbr>&lt;<a href="../GroupMember.html" title="class in vaultWeb.models">GroupMember</a>&gt;</code></div>
+<div class="col-second even-row-color"><span class="type-name-label">GroupMemberRepository.</span><code><a href="../../repositories/GroupMemberRepository.html#findAllByUser(vaultWeb.models.User)" class="member-name-link">findAllByUser</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user)</code></div>
+<div class="col-last even-row-color">&nbsp;</div>
+<div class="col-first odd-row-color"><code><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html" title="class or interface in java.util" class="external-link">List</a><wbr>&lt;<a href="../PersonalAccessToken.html" title="class in vaultWeb.models">PersonalAccessToken</a>&gt;</code></div>
+<div class="col-second odd-row-color"><span class="type-name-label">PersonalAccessTokenRepository.</span><code><a href="../../repositories/PersonalAccessTokenRepository.html#findAllByUserOrderByCreatedAtDesc(vaultWeb.models.User)" class="member-name-link">findAllByUserOrderByCreatedAtDesc</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user)</code></div>
 <div class="col-last odd-row-color">&nbsp;</div>
 <div class="col-first even-row-color"><code><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Optional.html" title="class or interface in java.util" class="external-link">Optional</a><wbr>&lt;<a href="../GroupMember.html" title="class in vaultWeb.models">GroupMember</a>&gt;</code></div>
 <div class="col-second even-row-color"><span class="type-name-label">GroupMemberRepository.</span><code><a href="../../repositories/GroupMemberRepository.html#findByGroupAndUser(vaultWeb.models.Group,vaultWeb.models.User)" class="member-name-link">findByGroupAndUser</a><wbr>(<a href="../Group.html" title="class in vaultWeb.models">Group</a>&nbsp;group,
  <a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user)</code></div>
 <div class="col-last even-row-color">&nbsp;</div>
-<div class="col-first odd-row-color"><code><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Optional.html" title="class or interface in java.util" class="external-link">Optional</a><wbr>&lt;<a href="../PrivateChat.html" title="class in vaultWeb.models">PrivateChat</a>&gt;</code></div>
-<div class="col-second odd-row-color"><span class="type-name-label">PrivateChatRepository.</span><code><a href="../../repositories/PrivateChatRepository.html#findByUser1AndUser2(vaultWeb.models.User,vaultWeb.models.User)" class="member-name-link">findByUser1AndUser2</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user1,
- <a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user2)</code></div>
+<div class="col-first odd-row-color"><code><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Optional.html" title="class or interface in java.util" class="external-link">Optional</a><wbr>&lt;<a href="../PersonalAccessToken.html" title="class in vaultWeb.models">PersonalAccessToken</a>&gt;</code></div>
+<div class="col-second odd-row-color"><span class="type-name-label">PersonalAccessTokenRepository.</span><code><a href="../../repositories/PersonalAccessTokenRepository.html#findByPublicIdAndUser(java.lang.String,vaultWeb.models.User)" class="member-name-link">findByPublicIdAndUser</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;publicId,
+ <a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user)</code></div>
 <div class="col-last odd-row-color">&nbsp;</div>
-<div class="col-first even-row-color"><code><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html" title="class or interface in java.util" class="external-link">List</a><wbr>&lt;<a href="../PrivateChat.html" title="class in vaultWeb.models">PrivateChat</a>&gt;</code></div>
-<div class="col-second even-row-color"><span class="type-name-label">PrivateChatRepository.</span><code><a href="../../repositories/PrivateChatRepository.html#findByUser1OrUser2(vaultWeb.models.User,vaultWeb.models.User)" class="member-name-link">findByUser1OrUser2</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user1,
+<div class="col-first even-row-color"><code><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Optional.html" title="class or interface in java.util" class="external-link">Optional</a><wbr>&lt;<a href="../PrivateChat.html" title="class in vaultWeb.models">PrivateChat</a>&gt;</code></div>
+<div class="col-second even-row-color"><span class="type-name-label">PrivateChatRepository.</span><code><a href="../../repositories/PrivateChatRepository.html#findByUser1AndUser2(vaultWeb.models.User,vaultWeb.models.User)" class="member-name-link">findByUser1AndUser2</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user1,
  <a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user2)</code></div>
 <div class="col-last even-row-color">&nbsp;</div>
-<div class="col-first odd-row-color"><code><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Optional.html" title="class or interface in java.util" class="external-link">Optional</a><wbr>&lt;<a href="../PrivateChat.html" title="class in vaultWeb.models">PrivateChat</a>&gt;</code></div>
-<div class="col-second odd-row-color"><span class="type-name-label">PrivateChatRepository.</span><code><a href="../../repositories/PrivateChatRepository.html#findByUser2AndUser1(vaultWeb.models.User,vaultWeb.models.User)" class="member-name-link">findByUser2AndUser1</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user1,
+<div class="col-first odd-row-color"><code><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html" title="class or interface in java.util" class="external-link">List</a><wbr>&lt;<a href="../PrivateChat.html" title="class in vaultWeb.models">PrivateChat</a>&gt;</code></div>
+<div class="col-second odd-row-color"><span class="type-name-label">PrivateChatRepository.</span><code><a href="../../repositories/PrivateChatRepository.html#findByUser1OrUser2(vaultWeb.models.User,vaultWeb.models.User)" class="member-name-link">findByUser1OrUser2</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user1,
  <a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user2)</code></div>
 <div class="col-last odd-row-color">&nbsp;</div>
-<div class="col-first even-row-color"><code><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html" title="class or interface in java.util" class="external-link">List</a><wbr>&lt;<a href="../ChatMessage.html" title="class in vaultWeb.models">ChatMessage</a>&gt;</code></div>
-<div class="col-second even-row-color"><span class="type-name-label">ChatMessageRepository.</span><code><a href="../../repositories/ChatMessageRepository.html#findTop10BySenderOrderByTimestampDesc(vaultWeb.models.User)" class="member-name-link">findTop10BySenderOrderByTimestampDesc</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;sender)</code></div>
+<div class="col-first even-row-color"><code><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Optional.html" title="class or interface in java.util" class="external-link">Optional</a><wbr>&lt;<a href="../PrivateChat.html" title="class in vaultWeb.models">PrivateChat</a>&gt;</code></div>
+<div class="col-second even-row-color"><span class="type-name-label">PrivateChatRepository.</span><code><a href="../../repositories/PrivateChatRepository.html#findByUser2AndUser1(vaultWeb.models.User,vaultWeb.models.User)" class="member-name-link">findByUser2AndUser1</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user1,
+ <a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user2)</code></div>
 <div class="col-last even-row-color">&nbsp;</div>
-<div class="col-first odd-row-color"><code><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html" title="class or interface in java.util" class="external-link">List</a><wbr>&lt;<a href="../SecurityEvent.html" title="class in vaultWeb.models">SecurityEvent</a>&gt;</code></div>
-<div class="col-second odd-row-color"><span class="type-name-label">SecurityEventRepository.</span><code><a href="../../repositories/SecurityEventRepository.html#findTop50ByUserOrderByTimestampDesc(vaultWeb.models.User)" class="member-name-link">findTop50ByUserOrderByTimestampDesc</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user)</code></div>
+<div class="col-first odd-row-color"><code><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html" title="class or interface in java.util" class="external-link">List</a><wbr>&lt;<a href="../ChatMessage.html" title="class in vaultWeb.models">ChatMessage</a>&gt;</code></div>
+<div class="col-second odd-row-color"><span class="type-name-label">ChatMessageRepository.</span><code><a href="../../repositories/ChatMessageRepository.html#findTop10BySenderOrderByTimestampDesc(vaultWeb.models.User)" class="member-name-link">findTop10BySenderOrderByTimestampDesc</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;sender)</code></div>
+<div class="col-last odd-row-color">&nbsp;</div>
+<div class="col-first even-row-color"><code><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html" title="class or interface in java.util" class="external-link">List</a><wbr>&lt;<a href="../SecurityEvent.html" title="class in vaultWeb.models">SecurityEvent</a>&gt;</code></div>
+<div class="col-second even-row-color"><span class="type-name-label">SecurityEventRepository.</span><code><a href="../../repositories/SecurityEventRepository.html#findTop50ByUserOrderByTimestampDesc(vaultWeb.models.User)" class="member-name-link">findTop50ByUserOrderByTimestampDesc</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user)</code></div>
+<div class="col-last even-row-color">&nbsp;</div>
+<div class="col-first odd-row-color"><code>int</code></div>
+<div class="col-second odd-row-color"><span class="type-name-label">PersonalAccessTokenRepository.</span><code><a href="../../repositories/PersonalAccessTokenRepository.html#revokeAllActiveByUser(vaultWeb.models.User,java.time.Instant)" class="member-name-link">revokeAllActiveByUser</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user,
+ <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/time/Instant.html" title="class or interface in java.time" class="external-link">Instant</a>&nbsp;now)</code></div>
 <div class="col-last odd-row-color">&nbsp;</div>
 </div>
 <div class="caption"><span>Method parameters in <a href="../../repositories/package-summary.html">vaultWeb.repositories</a> with type arguments of type <a href="../User.html" title="class in vaultWeb.models">User</a></span></div>
@@ -425,6 +440,20 @@ loadScripts(document, 'script');</script>
 <div class="col-second even-row-color"><span class="type-name-label">RefreshTokenService.</span><code><a href="../../services/auth/RefreshTokenService.html#create(vaultWeb.models.User)" class="member-name-link">create</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;user)</code></div>
 <div class="col-last even-row-color">
 <div class="block">Creates and issues a new refresh token for the given user.</div>
+</div>
+<div class="col-first odd-row-color"><code><a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html" title="class or interface in java.util" class="external-link">List</a><wbr>&lt;<a href="../../dtos/pat/PersonalAccessTokenDto.html" title="class in vaultWeb.dtos.pat">PersonalAccessTokenDto</a>&gt;</code></div>
+<div class="col-second odd-row-color"><span class="type-name-label">PersonalAccessTokenService.</span><code><a href="../../services/auth/PersonalAccessTokenService.html#list(vaultWeb.models.User)" class="member-name-link">list</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;owner)</code></div>
+<div class="col-last odd-row-color">&nbsp;</div>
+<div class="col-first even-row-color"><code><a href="../../dtos/pat/PersonalAccessTokenDto.html" title="class in vaultWeb.dtos.pat">PersonalAccessTokenDto</a></code></div>
+<div class="col-second even-row-color"><span class="type-name-label">PersonalAccessTokenService.</span><code><a href="../../services/auth/PersonalAccessTokenService.html#revoke(vaultWeb.models.User,java.lang.String)" class="member-name-link">revoke</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;owner,
+ <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;publicId)</code></div>
+<div class="col-last even-row-color">
+<div class="block">Revokes one of the owner's tokens.</div>
+</div>
+<div class="col-first odd-row-color"><code>int</code></div>
+<div class="col-second odd-row-color"><span class="type-name-label">PersonalAccessTokenService.</span><code><a href="../../services/auth/PersonalAccessTokenService.html#revokeAllForUser(vaultWeb.models.User)" class="member-name-link">revokeAllForUser</a><wbr>(<a href="../User.html" title="class in vaultWeb.models">User</a>&nbsp;owner)</code></div>
+<div class="col-last odd-row-color">
+<div class="block">Revokes every non-revoked token of the user.</div>
 </div>
 </div>
 </section>

@@ -125,7 +125,13 @@ loadScripts(document, 'script');</script>
 <div class="col-last even-row-color all-classes-table all-classes-table-tab2">
 <div class="block">Global CORS configuration Source for the application.</div>
 </div>
-<div class="col-first odd-row-color all-classes-table all-classes-table-tab2"><a href="vaultWeb/dtos/CreateGroupFromChatsRequest.html" title="class in vaultWeb.dtos">CreateGroupFromChatsRequest</a></div>
+<div class="col-first odd-row-color all-classes-table all-classes-table-tab4"><a href="vaultWeb/dtos/pat/CreatedPersonalAccessTokenDto.html" title="class in vaultWeb.dtos.pat">CreatedPersonalAccessTokenDto</a></div>
+<div class="col-last odd-row-color all-classes-table all-classes-table-tab4">
+<div class="block">Response for token creation.</div>
+</div>
+<div class="col-first even-row-color all-classes-table all-classes-table-tab2"><a href="vaultWeb/dtos/CreateGroupFromChatsRequest.html" title="class in vaultWeb.dtos">CreateGroupFromChatsRequest</a></div>
+<div class="col-last even-row-color all-classes-table all-classes-table-tab2">&nbsp;</div>
+<div class="col-first odd-row-color all-classes-table all-classes-table-tab2"><a href="vaultWeb/dtos/pat/CreatePersonalAccessTokenRequest.html" title="class in vaultWeb.dtos.pat">CreatePersonalAccessTokenRequest</a></div>
 <div class="col-last odd-row-color all-classes-table all-classes-table-tab2">&nbsp;</div>
 <div class="col-first even-row-color all-classes-table all-classes-table-tab2"><a href="vaultWeb/controllers/DashboardController.html" title="class in vaultWeb.controllers">DashboardController</a></div>
 <div class="col-last even-row-color all-classes-table all-classes-table-tab2">
@@ -269,6 +275,59 @@ loadScripts(document, 'script');</script>
 <div class="col-first even-row-color all-classes-table all-classes-table-tab2"><a href="vaultWeb/config/OpenApiConfig.html" title="class in vaultWeb.config">OpenApiConfig</a></div>
 <div class="col-last even-row-color all-classes-table all-classes-table-tab2">
 <div class="block">Configuration class for OpenAPI / Swagger documentation.</div>
+</div>
+<div class="col-first odd-row-color all-classes-table all-classes-table-tab2"><a href="vaultWeb/security/pat/PatAccessPolicy.html" title="class in vaultWeb.security.pat">PatAccessPolicy</a></div>
+<div class="col-last odd-row-color all-classes-table all-classes-table-tab2">
+<div class="block">Authorization policy for requests that present a Bearer PAT: permitted only when the request
+ matches the <a href="vaultWeb/security/pat/PatEndpointRegistry.html" title="class in vaultWeb.security.pat"><code>PatEndpointRegistry</code></a> and the token holds the required scope.</div>
+</div>
+<div class="col-first even-row-color all-classes-table all-classes-table-tab2"><a href="vaultWeb/security/pat/PatAuthenticationToken.html" title="class in vaultWeb.security.pat">PatAuthenticationToken</a></div>
+<div class="col-last even-row-color all-classes-table all-classes-table-tab2">
+<div class="block">Authentication produced by a valid personal access token.</div>
+</div>
+<div class="col-first odd-row-color all-classes-table all-classes-table-tab2"><a href="vaultWeb/security/pat/PatAuthFilter.html" title="class in vaultWeb.security.pat">PatAuthFilter</a></div>
+<div class="col-last odd-row-color all-classes-table all-classes-table-tab2">
+<div class="block">Authenticates <code>Authorization: Bearer vw_pat_...</code> requests.</div>
+</div>
+<div class="col-first even-row-color all-classes-table all-classes-table-tab2"><a href="vaultWeb/security/pat/PatEndpointRegistry.html" title="class in vaultWeb.security.pat">PatEndpointRegistry</a></div>
+<div class="col-last even-row-color all-classes-table all-classes-table-tab2">
+<div class="block">The documented allow-list of core REST operations reachable with a personal access token.</div>
+</div>
+<div class="col-first odd-row-color all-classes-table all-classes-table-tab4"><a href="vaultWeb/security/pat/PatEndpointRegistry.Rule.html" title="class in vaultWeb.security.pat">PatEndpointRegistry.Rule</a></div>
+<div class="col-last odd-row-color all-classes-table all-classes-table-tab4">&nbsp;</div>
+<div class="col-first even-row-color all-classes-table all-classes-table-tab3"><a href="vaultWeb/models/enums/PatScope.html" title="enum class in vaultWeb.models.enums">PatScope</a></div>
+<div class="col-last even-row-color all-classes-table all-classes-table-tab3">
+<div class="block">Scopes that can be granted to a personal access token (PAT).</div>
+</div>
+<div class="col-first odd-row-color all-classes-table all-classes-table-tab4"><a href="vaultWeb/dtos/pat/PatScopeDto.html" title="class in vaultWeb.dtos.pat">PatScopeDto</a></div>
+<div class="col-last odd-row-color all-classes-table all-classes-table-tab4">
+<div class="block">A supported PAT scope and the core endpoints it unlocks.</div>
+</div>
+<div class="col-first even-row-color all-classes-table all-classes-table-tab2"><a href="vaultWeb/security/pat/PatTokens.html" title="class in vaultWeb.security.pat">PatTokens</a></div>
+<div class="col-last even-row-color all-classes-table all-classes-table-tab2">
+<div class="block">Format helpers for personal access tokens.</div>
+</div>
+<div class="col-first odd-row-color all-classes-table all-classes-table-tab2"><a href="vaultWeb/models/PersonalAccessToken.html" title="class in vaultWeb.models">PersonalAccessToken</a></div>
+<div class="col-last odd-row-color all-classes-table all-classes-table-tab2">
+<div class="block">A personal access token (PAT) for CLI and automation clients.</div>
+</div>
+<div class="col-first even-row-color all-classes-table all-classes-table-tab2"><a href="vaultWeb/controllers/PersonalAccessTokenController.html" title="class in vaultWeb.controllers">PersonalAccessTokenController</a></div>
+<div class="col-last even-row-color all-classes-table all-classes-table-tab2">
+<div class="block">Lifecycle API for personal access tokens.</div>
+</div>
+<div class="col-first odd-row-color all-classes-table all-classes-table-tab4"><a href="vaultWeb/dtos/pat/PersonalAccessTokenDto.html" title="class in vaultWeb.dtos.pat">PersonalAccessTokenDto</a></div>
+<div class="col-last odd-row-color all-classes-table all-classes-table-tab4">
+<div class="block">Non-secret PAT metadata.</div>
+</div>
+<div class="col-first even-row-color all-classes-table all-classes-table-tab5"><a href="vaultWeb/exceptions/notfound/PersonalAccessTokenNotFoundException.html" title="class in vaultWeb.exceptions.notfound">PersonalAccessTokenNotFoundException</a></div>
+<div class="col-last even-row-color all-classes-table all-classes-table-tab5">
+<div class="block">Thrown when a PAT does not exist or is not owned by the caller (indistinguishable on purpose).</div>
+</div>
+<div class="col-first odd-row-color all-classes-table all-classes-table-tab1"><a href="vaultWeb/repositories/PersonalAccessTokenRepository.html" title="interface in vaultWeb.repositories">PersonalAccessTokenRepository</a></div>
+<div class="col-last odd-row-color all-classes-table all-classes-table-tab1">&nbsp;</div>
+<div class="col-first even-row-color all-classes-table all-classes-table-tab2"><a href="vaultWeb/services/auth/PersonalAccessTokenService.html" title="class in vaultWeb.services.auth">PersonalAccessTokenService</a></div>
+<div class="col-last even-row-color all-classes-table all-classes-table-tab2">
+<div class="block">Lifecycle and verification of personal access tokens (PATs).</div>
 </div>
 <div class="col-first odd-row-color all-classes-table all-classes-table-tab2"><a href="vaultWeb/models/Poll.html" title="class in vaultWeb.models">Poll</a></div>
 <div class="col-last odd-row-color all-classes-table all-classes-table-tab2">&nbsp;</div>

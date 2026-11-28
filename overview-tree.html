@@ -58,6 +58,7 @@ loadScripts(document, 'script');</script>
 <li><a href="vaultWeb/controllers/package-tree.html">vaultWeb.controllers</a>, </li>
 <li><a href="vaultWeb/dtos/package-tree.html">vaultWeb.dtos</a>, </li>
 <li><a href="vaultWeb/dtos/dashboard/package-tree.html">vaultWeb.dtos.dashboard</a>, </li>
+<li><a href="vaultWeb/dtos/pat/package-tree.html">vaultWeb.dtos.pat</a>, </li>
 <li><a href="vaultWeb/dtos/user/package-tree.html">vaultWeb.dtos.user</a>, </li>
 <li><a href="vaultWeb/exceptions/package-tree.html">vaultWeb.exceptions</a>, </li>
 <li><a href="vaultWeb/exceptions/notfound/package-tree.html">vaultWeb.exceptions.notfound</a>, </li>
@@ -68,6 +69,7 @@ loadScripts(document, 'script');</script>
 <li><a href="vaultWeb/security/annotations/package-tree.html">vaultWeb.security.annotations</a>, </li>
 <li><a href="vaultWeb/security/aspects/package-tree.html">vaultWeb.security.aspects</a>, </li>
 <li><a href="vaultWeb/security/exception/package-tree.html">vaultWeb.security.exception</a>, </li>
+<li><a href="vaultWeb/security/pat/package-tree.html">vaultWeb.security.pat</a>, </li>
 <li><a href="vaultWeb/services/package-tree.html">vaultWeb.services</a>, </li>
 <li><a href="vaultWeb/services/auth/package-tree.html">vaultWeb.services.auth</a></li>
 </ul>
@@ -76,6 +78,11 @@ loadScripts(document, 'script');</script>
 <ul>
 <li class="circle">java.lang.<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html" class="type-name-link external-link" title="class or interface in java.lang">Object</a>
 <ul>
+<li class="circle">org.springframework.security.authentication.AbstractAuthenticationToken (implements org.springframework.security.core.Authentication, org.springframework.security.core.CredentialsContainer)
+<ul>
+<li class="circle">vaultWeb.security.pat.<a href="vaultWeb/security/pat/PatAuthenticationToken.html" class="type-name-link" title="class in vaultWeb.security.pat">PatAuthenticationToken</a></li>
+</ul>
+</li>
 <li class="circle">vaultWeb.security.aspects.<a href="vaultWeb/security/aspects/AdminOnlyAspect.html" class="type-name-link" title="class in vaultWeb.security.aspects">AdminOnlyAspect</a></li>
 <li class="circle">vaultWeb.services.auth.<a href="vaultWeb/services/auth/AuthService.html" class="type-name-link" title="class in vaultWeb.services.auth">AuthService</a></li>
 <li class="circle">vaultWeb.<a href="vaultWeb/BackendApplication.html" class="type-name-link" title="class in vaultWeb">BackendApplication</a> (implements org.springframework.web.servlet.config.annotation.WebMvcConfigurer)</li>
@@ -91,6 +98,7 @@ loadScripts(document, 'script');</script>
 <li class="circle">vaultWeb.services.<a href="vaultWeb/services/CloudPageMediaClient.html" class="type-name-link" title="class in vaultWeb.services">CloudPageMediaClient</a></li>
 <li class="circle">vaultWeb.config.<a href="vaultWeb/config/CorsConfig.html" class="type-name-link" title="class in vaultWeb.config">CorsConfig</a></li>
 <li class="circle">vaultWeb.dtos.<a href="vaultWeb/dtos/CreateGroupFromChatsRequest.html" class="type-name-link" title="class in vaultWeb.dtos">CreateGroupFromChatsRequest</a></li>
+<li class="circle">vaultWeb.dtos.pat.<a href="vaultWeb/dtos/pat/CreatePersonalAccessTokenRequest.html" class="type-name-link" title="class in vaultWeb.dtos.pat">CreatePersonalAccessTokenRequest</a></li>
 <li class="circle">vaultWeb.controllers.<a href="vaultWeb/controllers/DashboardController.html" class="type-name-link" title="class in vaultWeb.controllers">DashboardController</a></li>
 <li class="circle">vaultWeb.services.<a href="vaultWeb/services/DashboardService.html" class="type-name-link" title="class in vaultWeb.services">DashboardService</a></li>
 <li class="circle">vaultWeb.models.<a href="vaultWeb/models/Device.html" class="type-name-link" title="class in vaultWeb.models">Device</a></li>
@@ -103,6 +111,7 @@ loadScripts(document, 'script');</script>
 <li class="circle">org.springframework.web.filter.OncePerRequestFilter
 <ul>
 <li class="circle">vaultWeb.security.<a href="vaultWeb/security/JwtAuthFilter.html" class="type-name-link" title="class in vaultWeb.security">JwtAuthFilter</a></li>
+<li class="circle">vaultWeb.security.pat.<a href="vaultWeb/security/pat/PatAuthFilter.html" class="type-name-link" title="class in vaultWeb.security.pat">PatAuthFilter</a></li>
 </ul>
 </li>
 </ul>
@@ -128,6 +137,12 @@ loadScripts(document, 'script');</script>
 <li class="circle">vaultWeb.dtos.<a href="vaultWeb/dtos/MessageStatusUpdateDto.html" class="type-name-link" title="class in vaultWeb.dtos">MessageStatusUpdateDto</a></li>
 <li class="circle">vaultWeb.services.auth.<a href="vaultWeb/services/auth/MyUserDetailsService.html" class="type-name-link" title="class in vaultWeb.services.auth">MyUserDetailsService</a> (implements org.springframework.security.core.userdetails.UserDetailsService)</li>
 <li class="circle">vaultWeb.config.<a href="vaultWeb/config/OpenApiConfig.html" class="type-name-link" title="class in vaultWeb.config">OpenApiConfig</a></li>
+<li class="circle">vaultWeb.security.pat.<a href="vaultWeb/security/pat/PatAccessPolicy.html" class="type-name-link" title="class in vaultWeb.security.pat">PatAccessPolicy</a></li>
+<li class="circle">vaultWeb.security.pat.<a href="vaultWeb/security/pat/PatEndpointRegistry.html" class="type-name-link" title="class in vaultWeb.security.pat">PatEndpointRegistry</a></li>
+<li class="circle">vaultWeb.security.pat.<a href="vaultWeb/security/pat/PatTokens.html" class="type-name-link" title="class in vaultWeb.security.pat">PatTokens</a></li>
+<li class="circle">vaultWeb.models.<a href="vaultWeb/models/PersonalAccessToken.html" class="type-name-link" title="class in vaultWeb.models">PersonalAccessToken</a></li>
+<li class="circle">vaultWeb.controllers.<a href="vaultWeb/controllers/PersonalAccessTokenController.html" class="type-name-link" title="class in vaultWeb.controllers">PersonalAccessTokenController</a></li>
+<li class="circle">vaultWeb.services.auth.<a href="vaultWeb/services/auth/PersonalAccessTokenService.html" class="type-name-link" title="class in vaultWeb.services.auth">PersonalAccessTokenService</a></li>
 <li class="circle">vaultWeb.models.<a href="vaultWeb/models/Poll.html" class="type-name-link" title="class in vaultWeb.models">Poll</a></li>
 <li class="circle">vaultWeb.models.<a href="vaultWeb/models/PollOption.html" class="type-name-link" title="class in vaultWeb.models">PollOption</a></li>
 <li class="circle">vaultWeb.dtos.<a href="vaultWeb/dtos/PollRequestDto.html" class="type-name-link" title="class in vaultWeb.dtos">PollRequestDto</a></li>
@@ -179,6 +194,7 @@ loadScripts(document, 'script');</script>
 <li class="circle">vaultWeb.exceptions.<a href="vaultWeb/exceptions/InvalidFileException.html" class="type-name-link" title="class in vaultWeb.exceptions">InvalidFileException</a></li>
 <li class="circle">vaultWeb.exceptions.<a href="vaultWeb/exceptions/LastAdminException.html" class="type-name-link" title="class in vaultWeb.exceptions">LastAdminException</a></li>
 <li class="circle">vaultWeb.exceptions.notfound.<a href="vaultWeb/exceptions/notfound/NotMemberException.html" class="type-name-link" title="class in vaultWeb.exceptions.notfound">NotMemberException</a></li>
+<li class="circle">vaultWeb.exceptions.notfound.<a href="vaultWeb/exceptions/notfound/PersonalAccessTokenNotFoundException.html" class="type-name-link" title="class in vaultWeb.exceptions.notfound">PersonalAccessTokenNotFoundException</a></li>
 <li class="circle">vaultWeb.exceptions.<a href="vaultWeb/exceptions/PollDoesNotBelongToGroupException.html" class="type-name-link" title="class in vaultWeb.exceptions">PollDoesNotBelongToGroupException</a></li>
 <li class="circle">vaultWeb.exceptions.notfound.<a href="vaultWeb/exceptions/notfound/PollNotFoundException.html" class="type-name-link" title="class in vaultWeb.exceptions.notfound">PollNotFoundException</a></li>
 <li class="circle">vaultWeb.exceptions.<a href="vaultWeb/exceptions/PollOptionNotFoundException.html" class="type-name-link" title="class in vaultWeb.exceptions">PollOptionNotFoundException</a></li>
@@ -223,6 +239,7 @@ loadScripts(document, 'script');</script>
 <li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/DeviceRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">DeviceRepository</a></li>
 <li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/GroupMemberRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">GroupMemberRepository</a></li>
 <li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/GroupRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">GroupRepository</a></li>
+<li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/PersonalAccessTokenRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">PersonalAccessTokenRepository</a></li>
 <li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/PollRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">PollRepository</a></li>
 <li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/PollVoteRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">PollVoteRepository</a></li>
 <li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/PrivateChatRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">PrivateChatRepository</a></li>
@@ -249,6 +266,7 @@ loadScripts(document, 'script');</script>
 <li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/DeviceRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">DeviceRepository</a></li>
 <li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/GroupMemberRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">GroupMemberRepository</a></li>
 <li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/GroupRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">GroupRepository</a></li>
+<li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/PersonalAccessTokenRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">PersonalAccessTokenRepository</a></li>
 <li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/PollRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">PollRepository</a></li>
 <li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/PollVoteRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">PollVoteRepository</a></li>
 <li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/PrivateChatRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">PrivateChatRepository</a></li>
@@ -275,6 +293,7 @@ loadScripts(document, 'script');</script>
 <li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/DeviceRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">DeviceRepository</a></li>
 <li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/GroupMemberRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">GroupMemberRepository</a></li>
 <li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/GroupRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">GroupRepository</a></li>
+<li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/PersonalAccessTokenRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">PersonalAccessTokenRepository</a></li>
 <li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/PollRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">PollRepository</a></li>
 <li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/PollVoteRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">PollVoteRepository</a></li>
 <li class="circle">vaultWeb.repositories.<a href="vaultWeb/repositories/PrivateChatRepository.html" class="type-name-link" title="interface in vaultWeb.repositories">PrivateChatRepository</a></li>
@@ -312,6 +331,7 @@ loadScripts(document, 'script');</script>
 <ul>
 <li class="circle">vaultWeb.models.enums.<a href="vaultWeb/models/enums/MessageStatus.html" class="type-name-link" title="enum class in vaultWeb.models.enums">MessageStatus</a></li>
 <li class="circle">vaultWeb.models.enums.<a href="vaultWeb/models/enums/MessageType.html" class="type-name-link" title="enum class in vaultWeb.models.enums">MessageType</a></li>
+<li class="circle">vaultWeb.models.enums.<a href="vaultWeb/models/enums/PatScope.html" class="type-name-link" title="enum class in vaultWeb.models.enums">PatScope</a></li>
 <li class="circle">vaultWeb.models.<a href="vaultWeb/models/ProjectMember.Role.html" class="type-name-link" title="enum class in vaultWeb.models">ProjectMember.Role</a></li>
 <li class="circle">vaultWeb.models.enums.<a href="vaultWeb/models/enums/Role.html" class="type-name-link" title="enum class in vaultWeb.models.enums">Role</a></li>
 <li class="circle">vaultWeb.security.annotations.<a href="vaultWeb/security/annotations/SecurityEventType.html" class="type-name-link" title="enum class in vaultWeb.security.annotations">SecurityEventType</a></li>
@@ -329,10 +349,14 @@ loadScripts(document, 'script');</script>
 <li class="circle">java.lang.<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Record.html" class="type-name-link external-link" title="class or interface in java.lang">Record</a>
 <ul>
 <li class="circle">vaultWeb.exceptions.<a href="vaultWeb/exceptions/ApiErrorResponse.html" class="type-name-link" title="class in vaultWeb.exceptions">ApiErrorResponse</a></li>
+<li class="circle">vaultWeb.dtos.pat.<a href="vaultWeb/dtos/pat/CreatedPersonalAccessTokenDto.html" class="type-name-link" title="class in vaultWeb.dtos.pat">CreatedPersonalAccessTokenDto</a></li>
 <li class="circle">vaultWeb.services.auth.<a href="vaultWeb/services/auth/LoginResult.html" class="type-name-link" title="class in vaultWeb.services.auth">LoginResult</a></li>
 <li class="circle">vaultWeb.controllers.<a href="vaultWeb/controllers/MediaController.MediaTokenRequest.html" class="type-name-link" title="class in vaultWeb.controllers">MediaController.MediaTokenRequest</a></li>
 <li class="circle">vaultWeb.controllers.<a href="vaultWeb/controllers/MediaPreviewController.Renewal.html" class="type-name-link" title="class in vaultWeb.controllers">MediaPreviewController.Renewal</a></li>
 <li class="circle">vaultWeb.services.<a href="vaultWeb/services/MediaPreviewService.Preview.html" class="type-name-link" title="class in vaultWeb.services">MediaPreviewService.Preview</a></li>
+<li class="circle">vaultWeb.security.pat.<a href="vaultWeb/security/pat/PatEndpointRegistry.Rule.html" class="type-name-link" title="class in vaultWeb.security.pat">PatEndpointRegistry.Rule</a></li>
+<li class="circle">vaultWeb.dtos.pat.<a href="vaultWeb/dtos/pat/PatScopeDto.html" class="type-name-link" title="class in vaultWeb.dtos.pat">PatScopeDto</a></li>
+<li class="circle">vaultWeb.dtos.pat.<a href="vaultWeb/dtos/pat/PersonalAccessTokenDto.html" class="type-name-link" title="class in vaultWeb.dtos.pat">PersonalAccessTokenDto</a></li>
 <li class="circle">vaultWeb.models.<a href="vaultWeb/models/PollContext.html" class="type-name-link" title="class in vaultWeb.models">PollContext</a></li>
 <li class="circle">vaultWeb.dtos.<a href="vaultWeb/dtos/PrivateChatDto.html" class="type-name-link" title="class in vaultWeb.dtos">PrivateChatDto</a></li>
 <li class="circle">vaultWeb.dtos.<a href="vaultWeb/dtos/ProjectDto.html" class="type-name-link" title="class in vaultWeb.dtos">ProjectDto</a></li>
