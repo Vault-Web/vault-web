@@ -36,6 +36,7 @@ import vaultWeb.models.PersonalAccessToken;
 import vaultWeb.models.User;
 import vaultWeb.models.enums.PatScope;
 import vaultWeb.repositories.PersonalAccessTokenRepository;
+import vaultWeb.repositories.UserRepository;
 import vaultWeb.security.TokenHashUtil;
 import vaultWeb.security.pat.PatAuthenticationToken;
 import vaultWeb.security.pat.PatEndpointRegistry;
@@ -44,6 +45,7 @@ import vaultWeb.security.pat.PatEndpointRegistry;
 class PersonalAccessTokenServiceTest {
 
   @Mock private PersonalAccessTokenRepository repository;
+  @Mock private UserRepository userRepository;
   @Mock private PasswordEncoder passwordEncoder;
 
   private PersonalAccessTokenService service;
@@ -52,7 +54,8 @@ class PersonalAccessTokenServiceTest {
   @BeforeEach
   void setUp() {
     service =
-        new PersonalAccessTokenService(repository, passwordEncoder, new PatEndpointRegistry());
+        new PersonalAccessTokenService(
+            repository, userRepository, passwordEncoder, new PatEndpointRegistry());
     owner = new User();
     owner.setId(7L);
     owner.setUsername("alice");
@@ -74,6 +77,7 @@ class PersonalAccessTokenServiceTest {
   }
 
   private void passwordOk() {
+    when(userRepository.findByUsernameForUpdate("alice")).thenReturn(Optional.of(owner));
     when(passwordEncoder.matches("pw", "hashed")).thenReturn(true);
   }
 
@@ -83,7 +87,7 @@ class PersonalAccessTokenServiceTest {
     when(repository.existsByPublicId(anyString())).thenReturn(false);
 
     CreatedPersonalAccessTokenDto created =
-        service.create(owner, request(List.of("profile:read"), 30));
+        service.create("alice", request(List.of("profile:read"), 30));
 
     ArgumentCaptor<PersonalAccessToken> saved = ArgumentCaptor.forClass(PersonalAccessToken.class);
     verify(repository).save(saved.capture());
@@ -101,10 +105,14 @@ class PersonalAccessTokenServiceTest {
 
   @Test
   void create_withWrongPassword_throwsAndPersistsNothing() {
-    when(passwordEncoder.matches("pw", "hashed")).thenReturn(false);
+    User current = new User();
+    current.setId(owner.getId());
+    current.setPassword("updated-hash");
+    when(userRepository.findByUsernameForUpdate("alice")).thenReturn(Optional.of(current));
+    when(passwordEncoder.matches("pw", "updated-hash")).thenReturn(false);
     assertThrows(
         UnauthorizedException.class,
-        () -> service.create(owner, request(List.of("profile:read"), 30)));
+        () -> service.create("alice", request(List.of("profile:read"), 30)));
     verify(repository, never()).save(any());
   }
 
@@ -113,7 +121,7 @@ class PersonalAccessTokenServiceTest {
     passwordOk();
     assertThrows(
         IllegalArgumentException.class,
-        () -> service.create(owner, request(List.of("cloud:read"), 30)));
+        () -> service.create("alice", request(List.of("cloud:read"), 30)));
   }
 
   @Test
@@ -121,7 +129,7 @@ class PersonalAccessTokenServiceTest {
     passwordOk();
     assertThrows(
         IllegalArgumentException.class,
-        () -> service.create(owner, request(List.of("profile:read"), 366)));
+        () -> service.create("alice", request(List.of("profile:read"), 366)));
   }
 
   @Test
@@ -131,7 +139,7 @@ class PersonalAccessTokenServiceTest {
         .thenReturn((long) PersonalAccessTokenService.MAX_ACTIVE_TOKENS_PER_USER);
     assertThrows(
         IllegalArgumentException.class,
-        () -> service.create(owner, request(List.of("profile:read"), 30)));
+        () -> service.create("alice", request(List.of("profile:read"), 30)));
   }
 
   @Test
@@ -147,7 +155,7 @@ class PersonalAccessTokenServiceTest {
 
     assertThrows(
         AccessDeniedException.class,
-        () -> service.create(owner, request(List.of("profile:read"), 30)));
+        () -> service.create("alice", request(List.of("profile:read"), 30)));
     assertThrows(AccessDeniedException.class, () -> service.list(owner));
     assertThrows(AccessDeniedException.class, () -> service.revoke(owner, "AAAAAAAAAAAA"));
     verify(passwordEncoder, never()).matches(any(), any());

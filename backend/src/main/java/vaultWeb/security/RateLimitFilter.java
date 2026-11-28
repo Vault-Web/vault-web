@@ -14,7 +14,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,7 +52,7 @@ public class RateLimitFilter implements Filter {
 
     // Last fallback if both failed
     if (clientId == null || clientId.isBlank()) {
-      clientId = "unknown" + UUID.randomUUID();
+      clientId = "unknown";
     }
 
     Bucket bucket = resolveBucket(clientId);

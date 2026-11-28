@@ -1,5 +1,5 @@
 package vaultWeb.services.auth;
 
-import vaultWeb.models.User;
+import org.springframework.http.ResponseCookie;
 
-public record LoginResult(User user, String accessToken) {}
+public record LoginResult(String accessToken, ResponseCookie refreshCookie) {}

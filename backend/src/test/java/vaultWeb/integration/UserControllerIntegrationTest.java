@@ -490,10 +490,20 @@ class UserControllerIntegrationTest extends IntegrationTestBase {
       UserDto testUser = createUserDto(TEST_USERNAME, TEST_PASSWORD);
       registerUser(testUser);
       MvcResult result = loginUser(testUser);
-      String refreshToken = extractCookie(result, "refresh_token").getValue();
+      Cookie browserCookie = extractCookie(result, "refresh_token");
+      assertNotNull(browserCookie);
+      String refreshToken = browserCookie.getValue();
+      String logoutPath = browserCookie.getPath() + "/logout";
+      mockMvc
+          .perform(post(logoutPath).cookie(browserCookie).contentType(MediaType.TEXT_PLAIN))
+          .andExpect(status().isUnsupportedMediaType());
       result =
           mockMvc
-              .perform(post("/api/auth/logout").cookie(new Cookie("refresh_token", refreshToken)))
+              .perform(
+                  post(logoutPath)
+                      .cookie(browserCookie)
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content("{}"))
               .andExpect(status().isOk())
               .andReturn();
 
@@ -503,6 +513,7 @@ class UserControllerIntegrationTest extends IntegrationTestBase {
       Cookie deletedCookie = extractCookie(result, "refresh_token");
       assertNotNull(deletedCookie, "refresh_token cookie should be deleted");
       assertEquals(0, deletedCookie.getMaxAge(), "refresh_token should be deleted");
+      assertEquals(browserCookie.getPath(), deletedCookie.getPath());
 
       mockMvc
           .perform(post("/api/auth/refresh").cookie(new Cookie("refresh_token", refreshToken)))
@@ -527,13 +538,28 @@ class UserControllerIntegrationTest extends IntegrationTestBase {
       changePasswordRequest.setCurrentPassword(TEST_PASSWORD);
       changePasswordRequest.setNewPassword(NEW_PASSWORD);
 
+      MvcResult changed =
+          mockMvc
+              .perform(
+                  post("/api/auth/change-password")
+                      .header("Authorization", authHeader(token))
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(objectMapper.writeValueAsString(changePasswordRequest)))
+              .andExpect(status().isOk())
+              .andReturn();
+
+      assertTrue(jwtUtil.validateToken(extractTokenFromResponse(changed)));
+      Cookie previousSession = extractCookie(result, "refresh_token");
+      Cookie replacement = extractCookie(changed, "refresh_token");
+      assertNotNull(replacement);
+      assertEquals(previousSession.getPath(), replacement.getPath());
+      assertTrue(replacement.isHttpOnly());
+      assertNotEquals(previousSession.getValue(), replacement.getValue());
+
       mockMvc
-          .perform(
-              post("/api/auth/change-password")
-                  .header("Authorization", authHeader(token))
-                  .contentType(MediaType.APPLICATION_JSON)
-                  .content(objectMapper.writeValueAsString(changePasswordRequest)))
-          .andExpect(status().isNoContent());
+          .perform(post("/api/auth/refresh").cookie(previousSession))
+          .andExpect(status().isUnauthorized());
+      mockMvc.perform(post("/api/auth/refresh").cookie(replacement)).andExpect(status().isOk());
 
       testUser.setPassword(NEW_PASSWORD);
       result = loginUser(testUser);
@@ -565,6 +591,10 @@ class UserControllerIntegrationTest extends IntegrationTestBase {
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(objectMapper.writeValueAsString(changePasswordRequest)))
           .andExpect(status().isUnauthorized());
+
+      mockMvc
+          .perform(post("/api/auth/refresh").cookie(extractCookie(result, "refresh_token")))
+          .andExpect(status().isOk());
     }
   }
 

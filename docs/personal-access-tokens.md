@@ -125,11 +125,11 @@ rejected.
 
 ## Rollout and rollback
 
-1. Take a protected PostgreSQL backup. Apply `docs/migrations/personal-access-tokens.sql`
-   manually in staging first, then in production. The script is additive (two new tables,
-   no changes to existing ones) and fails instead of accepting a partial schema if the
-   tables already exist. Do not rely on Hibernate `ddl-auto=update` as the migration
-   procedure; runtime settings are unchanged by this feature.
+1. Take a protected PostgreSQL backup. Deploy to staging first. When Vault Web
+   starts, Flyway adds the two token tables with
+   `V3__add_personal_access_tokens.sql` before Hibernate validates the schema.
+   Follow the [database migration guide](../backend/README.md#database-migrations)
+   if the target database has never used Flyway.
 2. Deploy the backend before the frontend. Old frontends never call `/api/auth/tokens`;
    old backends ignore the new tables.
 3. Verify: create a token, call `GET /api/dashboard/me` with it, confirm a denied route

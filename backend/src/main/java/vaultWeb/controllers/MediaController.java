@@ -10,8 +10,10 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import vaultWeb.security.MediaTokenService;
 import vaultWeb.services.CloudPageMediaClient;
+import vaultWeb.services.MediaPreviewService;
 
 /**
  * Serves file bytes to native browser media elements.
@@ -72,6 +75,7 @@ public class MediaController {
   private final MediaTokenService mediaTokenService;
 
   private final CloudPageMediaClient cloudPageMediaClient;
+  private final MediaPreviewService mediaPreviews;
 
   /**
    * Issues a media token for one file.
@@ -84,11 +88,22 @@ public class MediaController {
   public ResponseEntity<Map<String, Object>> createMediaToken(
       @RequestBody MediaTokenRequest request, Authentication authentication) {
 
-    if (request == null || request.path() == null || request.path().isBlank()) {
+    if (request == null
+        || request.path() == null
+        || request.path().isBlank()
+        || request.path().length() > 4096) {
       return ResponseEntity.badRequest().body(Map.of("error", "path is required"));
     }
 
     String username = authentication.getName();
+    if (request.renewable()) {
+      return ResponseEntity.ok()
+          .cacheControl(CacheControl.noStore())
+          .body(
+              Map.of(
+                  "previewId", mediaPreviews.create(username, request.path()),
+                  "expiresIn", mediaTokenService.getTtlSeconds()));
+    }
     String token = mediaTokenService.generateToken(username, request.path());
 
     return ResponseEntity.ok(
@@ -115,14 +130,39 @@ public class MediaController {
     try {
       claims = mediaTokenService.parseToken(token);
     } catch (JwtException e) {
-      // Expired or tampered tokens are an expected condition, not a server fault: a tab left
-      // open past the token lifetime will land here. The client re-mints and retries.
+      // Expired or invalid legacy media tokens are expected, not a server fault.
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
     String username = claims.getSubject();
     String path = mediaTokenService.extractPath(claims);
+    return streamFile(username, path, range, ifNoneMatch, ifModifiedSince, false);
+  }
 
+  @GetMapping("/stream/preview/{id}")
+  public ResponseEntity<StreamingResponseBody> streamPreview(
+      @PathVariable String id,
+      @RequestHeader(value = HttpHeaders.RANGE, required = false) String range,
+      @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
+      @RequestHeader(value = HttpHeaders.IF_MODIFIED_SINCE, required = false)
+          String ifModifiedSince) {
+    var preview = mediaPreviews.activePreview(id);
+    if (preview == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+          .cacheControl(CacheControl.noStore())
+          .build();
+    }
+    return streamFile(
+        preview.username(), preview.path(), range, ifNoneMatch, ifModifiedSince, true);
+  }
+
+  private ResponseEntity<StreamingResponseBody> streamFile(
+      String username,
+      String path,
+      String range,
+      String ifNoneMatch,
+      String ifModifiedSince,
+      boolean renewable) {
     try {
       HttpResponse<InputStream> upstream =
           cloudPageMediaClient.fetch(username, path, range, ifNoneMatch, ifModifiedSince);
@@ -131,6 +171,19 @@ public class MediaController {
 
       for (String header : FORWARDED_RESPONSE_HEADERS) {
         upstream.headers().firstValue(header).ifPresent(value -> response.header(header, value));
+      }
+      if (renewable) {
+        response.cacheControl(CacheControl.noStore()).header("X-Content-Type-Options", "nosniff");
+        if (upstream.statusCode() >= 200
+            && upstream.statusCode() < 300
+            && !isSafePreviewType(
+                upstream.headers().firstValue(HttpHeaders.CONTENT_TYPE).orElse(""))) {
+          response.headers(
+              headers -> {
+                headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+                headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment");
+              });
+        }
       }
 
       // A 304 carries no body, and reading the (empty) stream would only add a hop.
@@ -151,6 +204,14 @@ public class MediaController {
     }
   }
 
+  private boolean isSafePreviewType(String contentType) {
+    String type = contentType.split(";", 2)[0].trim().toLowerCase(java.util.Locale.ROOT);
+    return type.equals("application/pdf")
+        || type.equals("application/ogg")
+        || type.startsWith("video/")
+        || type.startsWith("audio/");
+  }
+
   /**
    * Pumps upstream bytes to the client.
    *
@@ -167,5 +228,9 @@ public class MediaController {
   }
 
   /** Request body for {@link #createMediaToken}. */
-  public record MediaTokenRequest(String path) {}
+  public record MediaTokenRequest(String path, boolean renewable) {
+    public MediaTokenRequest(String path) {
+      this(path, false);
+    }
+  }
 }

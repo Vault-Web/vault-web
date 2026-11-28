@@ -13,6 +13,20 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: vault_migration_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test-fixture-only
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U postgres -d vault_migration_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
 
     steps:
       - uses: actions/checkout@v7
@@ -33,4 +47,8 @@ jobs:
 
       - name: Build with Maven
         working-directory: ./backend
+        env:
+          VAULT_TEST_POSTGRES_URL: jdbc:postgresql://127.0.0.1:${{ job.services.postgres.ports[5432] }}/vault_migration_test
+          VAULT_TEST_POSTGRES_USER: postgres
+          VAULT_TEST_POSTGRES_PASSWORD: test-fixture-only
         run: ./mvnw verify

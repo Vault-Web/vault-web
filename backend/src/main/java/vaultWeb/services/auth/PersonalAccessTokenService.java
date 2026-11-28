@@ -13,6 +13,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import vaultWeb.dtos.pat.CreatePersonalAccessTokenRequest;
 import vaultWeb.dtos.pat.CreatedPersonalAccessTokenDto;
 import vaultWeb.dtos.pat.PatScopeDto;
@@ -23,6 +24,7 @@ import vaultWeb.models.PersonalAccessToken;
 import vaultWeb.models.User;
 import vaultWeb.models.enums.PatScope;
 import vaultWeb.repositories.PersonalAccessTokenRepository;
+import vaultWeb.repositories.UserRepository;
 import vaultWeb.security.TokenHashUtil;
 import vaultWeb.security.pat.PatAuthenticationToken;
 import vaultWeb.security.pat.PatEndpointRegistry;
@@ -56,6 +58,7 @@ public class PersonalAccessTokenService {
   private static final int PUBLIC_ID_ATTEMPTS = 5;
 
   private final PersonalAccessTokenRepository tokenRepository;
+  private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final PatEndpointRegistry endpointRegistry;
 
@@ -81,12 +84,15 @@ public class PersonalAccessTokenService {
    *     active-token limit is reached
    * @throws AccessDeniedException if the caller is authenticated with a PAT
    */
+  @Transactional
   public CreatedPersonalAccessTokenDto create(
-      User owner, CreatePersonalAccessTokenRequest request) {
+      String username, CreatePersonalAccessTokenRequest request) {
     requireInteractiveSession();
-    if (owner == null) {
-      throw new UnauthorizedException("No authenticated user found");
-    }
+    // The password change takes the same account lock before it revokes the user's tokens.
+    User owner =
+        userRepository
+            .findByUsernameForUpdate(username)
+            .orElseThrow(() -> new UnauthorizedException("No authenticated user found"));
     if (request.getCurrentPassword() == null
         || !passwordEncoder.matches(request.getCurrentPassword(), owner.getPassword())) {
       throw new UnauthorizedException("Current password is incorrect");

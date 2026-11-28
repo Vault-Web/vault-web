@@ -16,6 +16,9 @@ const PUBLIC_API_PREFIXES = [`${environment.cloudServiceApiUrl}/public/`];
 export const SKIP_GLOBAL_ERROR_PAGE = new HttpContextToken<boolean>(
   () => false,
 );
+export const REQUIRE_ACTIVE_SESSION = new HttpContextToken<boolean>(
+  () => false,
+);
 
 let refreshTokenSubject = new ReplaySubject<string>(1);
 let isRefreshing = false;
@@ -24,6 +27,19 @@ export const tokenInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const networkStatusService = inject(NetworkStatusService);
   const router = inject(Router);
+
+  if (
+    req.url === `${environment.mainApiUrl}/auth/refresh/logout` ||
+    req.url === `${environment.mainApiUrl}/auth/logout`
+  ) {
+    return next(req);
+  }
+
+  if (req.context.get(REQUIRE_ACTIVE_SESSION) && !authService.getToken()) {
+    return throwError(
+      () => new HttpErrorResponse({ status: 401, url: req.url }),
+    );
+  }
 
   // Public endpoints are opened by recipients without a session. Their 401 means
   // "wrong password", not "session expired", so it must never trigger a token
@@ -67,7 +83,7 @@ export const tokenInterceptor: HttpInterceptorFn = (req, next) => {
   if (
     !req.url.includes('/login') &&
     !req.url.includes('/register') &&
-    !req.url.includes('/refresh')
+    !isRefreshRequest(req.url)
   ) {
     const token = authService.getToken();
     if (token) {
@@ -111,7 +127,7 @@ function handleUnauthorized(
   error: HttpErrorResponse,
 ) {
   // If the refresh endpoint itself returned 401, the refresh token is invalid.
-  if (req.url.includes('/auth/refresh')) {
+  if (isRefreshRequest(req.url)) {
     authService.logout();
     return throwError(() => error);
   }
@@ -148,6 +164,10 @@ function handleUnauthorized(
   );
 }
 
+function isRefreshRequest(url: string): boolean {
+  return url === `${environment.mainApiUrl}/auth/refresh`;
+}
+
 /**
  * The unauthenticated share endpoints, matched against the API bases rather than
  * on a bare '/public/' substring, so a future authenticated path that happens to
@@ -168,9 +188,5 @@ function isServerError(error: HttpErrorResponse): boolean {
 // Exclude specific background endpoints (like refresh and devices) to avoid redirect loops
 // or interrupting the user. We allow login/register 500s to redirect to the error page.
 function isExcludedFromErrorPage(url: string): boolean {
-  return (
-    url.includes('/auth/refresh') ||
-    url.includes('/auth/logout') ||
-    url.includes('/devices')
-  );
+  return url.includes('/auth/refresh') || url.includes('/devices');
 }

@@ -427,7 +427,7 @@ class PersonalAccessTokenIntegrationTest extends IntegrationTestBase {
                   .header("Authorization", bearer(aliceJwt))
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(objectMapper.writeValueAsString(change)))
-          .andExpect(status().isNoContent());
+          .andExpect(status().isOk());
 
       mockMvc
           .perform(get("/api/dashboard/me").header("Authorization", bearer(raw)))

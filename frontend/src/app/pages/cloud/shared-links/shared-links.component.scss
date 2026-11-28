@@ -72,7 +72,8 @@
     color: var(--green-700, #15803d);
   }
 
-  &.is-expired {
+  &.is-expired,
+  &.is-requires-new-link {
     background: var(--surface-200, #e5e7eb);
     color: var(--surface-600, #4b5563);
   }

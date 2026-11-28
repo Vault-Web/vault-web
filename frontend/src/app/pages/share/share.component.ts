@@ -9,7 +9,7 @@ import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
-import { finalize } from 'rxjs';
+import { finalize, from, of, Subscription, switchMap } from 'rxjs';
 import { FolderContentItemDto } from '../../models/dtos/FolderContentItemDto';
 import { PublicShareDto } from '../../models/dtos/SecureSendLinkDto';
 import { PublicShareService } from '../../services/public-share.service';
@@ -34,7 +34,6 @@ const TEXT_EXTENSIONS = [
   'js',
   'scss',
   'css',
-  'html',
   'yml',
   'yaml',
   'java',
@@ -44,6 +43,7 @@ const TEXT_EXTENSIONS = [
 
 interface Preview {
   name: string;
+  path: string;
   kind: PreviewKind;
   /** Object URL of an image. A blob: URL passes Angular's URL sanitizer as it is. */
   imageUrl?: string;
@@ -57,8 +57,8 @@ interface Preview {
  * Landing page a share link points at. Recipients have no account, so this page never talks to an
  * authenticated endpoint and never redirects to the login screen.
  *
- * <p>A file link describes the file and downloads it. A folder link opens a browser instead: the
- * recipient walks the tree, previews or downloads single files, and can take the current folder as
+ * A file link previews or downloads the file. A folder link opens a browser instead: the
+ * recipient walks the tree, previews or downloads individual files, and can take the current folder as
  * a ZIP. The password, where there is one, is held in memory and sent with every request — an
  * anonymous recipient has no session to keep it in.
  */
@@ -98,15 +98,12 @@ export class ShareComponent implements OnInit, OnDestroy {
   downloadingPath: string | null = null;
   archiving = false;
 
-  /**
-   * Two-way bound to the dialog. Deriving its visibility from `preview` instead
-   * left the dialog's own close button fighting the binding, which put it
-   * straight back on screen.
-   */
   showPreview = false;
   preview: Preview | null = null;
   previewLoading = false;
+  previewError = '';
   private previewObjectUrl: string | null = null;
+  private previewRequest?: Subscription;
 
   /** Counts listings so a late response can tell it has been overtaken. */
   private listingId = 0;
@@ -136,7 +133,7 @@ export class ShareComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.releasePreviewUrl();
+    this.closePreview();
   }
 
   get isFolder(): boolean {
@@ -164,7 +161,11 @@ export class ShareComponent implements OnInit, OnDestroy {
     this.downloadError = '';
     this.publicShareService
       .content(this.token, path, this.passwordOrUndefined)
-      .pipe(finalize(() => (this.browsing = false)))
+      .pipe(
+        finalize(() => {
+          if (requestId === this.listingId) this.browsing = false;
+        }),
+      )
       .subscribe({
         next: (entries) => {
           if (requestId !== this.listingId) {
@@ -188,9 +189,9 @@ export class ShareComponent implements OnInit, OnDestroy {
       this.openFolder(entry.path);
       return;
     }
-    const kind = this.previewKind(entry);
+    const kind = this.previewKind(entry.name);
     if (kind) {
-      this.openPreview(entry, kind);
+      this.openPreview(entry.name, entry.path, kind);
       return;
     }
     this.downloadEntry(entry);
@@ -236,33 +237,78 @@ export class ShareComponent implements OnInit, OnDestroy {
       });
   }
 
-  openPreview(entry: FolderContentItemDto, kind: PreviewKind): void {
+  get canPreviewFile(): boolean {
+    return (
+      !!this.share && !this.isFolder && !!this.previewKind(this.share.fileName)
+    );
+  }
+
+  submitSharePassword(): void {
+    if (this.isFolder) {
+      this.unlockFolder();
+    } else if (this.canPreviewFile) {
+      this.previewSharedFile();
+    } else {
+      this.download();
+    }
+  }
+
+  get previewPdfUrl(): string | null {
+    return this.preview?.pdfUrl ? this.previewObjectUrl : null;
+  }
+
+  previewSharedFile(): void {
+    if (!this.share || this.isFolder || !this.hasRequiredPassword()) return;
+    const kind = this.previewKind(this.share.fileName);
+    if (kind) this.openPreview(this.share.fileName, '', kind);
+  }
+
+  private openPreview(name: string, path: string, kind: PreviewKind): void {
+    this.previewRequest?.unsubscribe();
     this.releasePreviewUrl();
+    this.passwordError = '';
+    this.downloadError = '';
+    this.previewError = '';
     this.previewLoading = true;
-    this.preview = { name: entry.name, kind };
+    this.preview = { name, path, kind };
     this.showPreview = true;
-    this.publicShareService
-      .view(this.token, entry.path, this.passwordOrUndefined)
-      .pipe(finalize(() => (this.previewLoading = false)))
+    this.previewRequest = this.publicShareService
+      .view(this.token, path, this.passwordOrUndefined)
+      .pipe(
+        switchMap((blob) => (kind === 'text' ? from(blob.text()) : of(blob))),
+        finalize(() => (this.previewLoading = false)),
+      )
       .subscribe({
-        next: (blob) => this.renderPreview(blob, entry.name, kind),
+        next: (content) => this.renderPreview(content, { name, path, kind }),
         error: (error: HttpErrorResponse) => {
-          this.closePreview();
-          this.handleDownloadError(error);
+          if (error.status === 401 || error.status === 404) {
+            this.closePreview();
+            this.handleBrowseError(error);
+          } else {
+            this.previewError =
+              'The preview could not be loaded. You can download the file instead.';
+          }
         },
       });
   }
 
   closePreview(): void {
+    this.previewRequest?.unsubscribe();
+    this.previewRequest = undefined;
     this.releasePreviewUrl();
     this.preview = null;
     this.showPreview = false;
+    this.previewError = '';
   }
 
   /** Downloads what is currently being previewed, straight from the preview. */
   downloadPreviewed(): void {
+    if (!this.isFolder) {
+      this.download();
+      return;
+    }
     const previewed = this.entries.find(
-      (entry) => entry.name === this.preview?.name,
+      (entry) => entry.path === this.preview?.path,
     );
     if (previewed) {
       this.downloadEntry(previewed);
@@ -270,13 +316,7 @@ export class ShareComponent implements OnInit, OnDestroy {
   }
 
   download(): void {
-    if (this.downloading) {
-      return;
-    }
-    if (this.share?.passwordProtected && !this.password.trim()) {
-      this.passwordError = 'Please enter the password for this link.';
-      return;
-    }
+    if (this.downloading || !this.hasRequiredPassword()) return;
     if (!this.needsPasswordHeader) {
       this.streamFromBrowser('', this.share?.fileName ?? 'download', false);
       return;
@@ -317,13 +357,19 @@ export class ShareComponent implements OnInit, OnDestroy {
     return this.password.trim() || undefined;
   }
 
+  private hasRequiredPassword(): boolean {
+    if (!this.needsPasswordHeader || this.password.trim()) return true;
+    this.passwordError = 'Please enter the password for this link.';
+    return false;
+  }
+
   /**
    * What a file can be shown as in place, or null when it can only be downloaded.
    * The extension lists are the ones the cloud view previews and edits by, so a
    * file that opens there opens here too.
    */
-  private previewKind(entry: FolderContentItemDto): PreviewKind | null {
-    const ext = entry.name.split('.').pop()?.toLowerCase() ?? '';
+  private previewKind(name: string): PreviewKind | null {
+    const ext = name.split('.').pop()?.toLowerCase() ?? '';
     if (IMAGE_EXTENSIONS.includes(ext)) {
       return 'image';
     }
@@ -333,21 +379,22 @@ export class ShareComponent implements OnInit, OnDestroy {
     return TEXT_EXTENSIONS.includes(ext) ? 'text' : null;
   }
 
-  private renderPreview(blob: Blob, name: string, kind: PreviewKind): void {
-    if (kind === 'text') {
-      blob
-        .text()
-        .then((text) => (this.preview = { name, kind, text }))
-        .catch(() => this.closePreview());
+  private renderPreview(content: Blob | string, preview: Preview): void {
+    if (typeof content === 'string') {
+      this.preview = { ...preview, text: content };
       return;
     }
-    this.previewObjectUrl = URL.createObjectURL(blob);
+    if (preview.kind === 'pdf' && content.type !== 'application/pdf') {
+      this.previewError =
+        'This file cannot be shown as a PDF. You can download it instead.';
+      return;
+    }
+    this.previewObjectUrl = URL.createObjectURL(content);
     this.preview =
-      kind === 'image'
-        ? { name, kind, imageUrl: this.previewObjectUrl }
+      preview.kind === 'image'
+        ? { ...preview, imageUrl: this.previewObjectUrl }
         : {
-            name,
-            kind,
+            ...preview,
             pdfUrl: this.sanitizer.bypassSecurityTrustResourceUrl(
               this.previewObjectUrl,
             ),
@@ -423,16 +470,9 @@ export class ShareComponent implements OnInit, OnDestroy {
   }
 
   private handleDownloadError(error: HttpErrorResponse): void {
-    if (error.status === 401) {
-      this.passwordError = this.password.trim()
-        ? 'That password is not correct.'
-        : 'This link is password protected.';
-      return;
-    }
-    if (error.status === 404) {
-      // The link expired or was revoked between opening the page and downloading.
-      this.unavailable = true;
-      this.share = null;
+    if (error.status === 401 || error.status === 404) {
+      this.closePreview();
+      this.handleBrowseError(error);
       return;
     }
     this.downloadError = 'The download failed. Please try again later.';

@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,7 +29,6 @@ import vaultWeb.services.ProfilePictureService;
 import vaultWeb.services.UserService;
 import vaultWeb.services.auth.AuthService;
 import vaultWeb.services.auth.LoginResult;
-import vaultWeb.services.auth.RefreshTokenService;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -37,7 +38,6 @@ public class UserController {
 
   private final UserService userService;
   private final AuthService authService;
-  private final RefreshTokenService refreshTokenService;
   // Injected automatically by Spring — handles file validation and disk storage
   private final ProfilePictureService profilePictureService;
 
@@ -85,11 +85,15 @@ public class UserController {
   @PostMapping("/login")
   @ApiResponse(responseCode = "200", description = "Login successful.")
   @ApiResponse(responseCode = "401", description = "Username or password is incorrect.")
-  public ResponseEntity<?> login(
-      @Valid @RequestBody LoginRequest loginRequest, HttpServletResponse response) {
-    LoginResult res = authService.login(loginRequest.getUsername(), loginRequest.getPassword());
-    refreshTokenService.create(res.user(), response);
-    return ResponseEntity.ok(Map.of("token", res.accessToken()));
+  public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
+    return sessionResponse(
+        authService.login(loginRequest.getUsername(), loginRequest.getPassword()));
+  }
+
+  private ResponseEntity<Map<String, String>> sessionResponse(LoginResult session) {
+    return ResponseEntity.ok()
+        .header(HttpHeaders.SET_COOKIE, session.refreshCookie().toString())
+        .body(Map.of("token", session.accessToken()));
   }
 
   @Operation(
@@ -119,13 +123,12 @@ public class UserController {
   @ApiRateLimit(capacity = 5, refillTokens = 5, refillDurationMinutes = 1, useIpAddress = true)
   @PostMapping("/refresh")
   public ResponseEntity<?> refresh(
-      @CookieValue(name = "refresh_token", required = false) String refreshToken,
-      HttpServletResponse response) {
+      @CookieValue(name = "refresh_token", required = false) String refreshToken) {
     if (refreshToken == null) {
       return ResponseEntity.status(401).build();
     }
 
-    return authService.refresh(refreshToken, response);
+    return authService.refresh(refreshToken);
   }
 
   @AuditSecurityEvent(SecurityEventType.LOGOUT)
@@ -150,6 +153,15 @@ public class UserController {
                     """)
   @ApiResponse(responseCode = "200", description = "Logged out successfully")
   public ResponseEntity<Void> logout(
+      @CookieValue(name = "refresh_token", required = false) String refreshToken,
+      HttpServletResponse response) {
+    authService.logout(refreshToken, response);
+    return ResponseEntity.ok().build();
+  }
+
+  @AuditSecurityEvent(SecurityEventType.LOGOUT)
+  @PostMapping(value = "/refresh/logout", consumes = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<Void> logoutFromBrowser(
       @CookieValue(name = "refresh_token", required = false) String refreshToken,
       HttpServletResponse response) {
     authService.logout(refreshToken, response);
@@ -187,19 +199,19 @@ public class UserController {
   @Operation(
       summary = "Change password for the authenticated user",
       description =
-          "User must provide the current password. The new password must meet the platform requirements.")
-  @ApiResponse(responseCode = "204", description = "Password changed successfully.")
+          "Validates the current password, revokes previous refresh sessions, and issues fresh tokens. "
+              + "Existing access tokens remain valid until their normal expiry.")
+  @ApiResponse(
+      responseCode = "200",
+      description = "Password updated and replacement session issued.")
   @ApiResponse(
       responseCode = "401",
       description =
           "Unauthorized request. You must provide an authentication token along with the correct current password.")
-  public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
-    User currentUser = authService.getCurrentUser();
-    if (currentUser == null) {
-      throw new UnauthorizedException("User not authenticated");
-    }
-    userService.changePassword(currentUser, request.getCurrentPassword(), request.getNewPassword());
-    return ResponseEntity.noContent().build();
+  public ResponseEntity<Map<String, String>> changePassword(
+      @Valid @RequestBody ChangePasswordRequest request) {
+    return sessionResponse(
+        authService.changePassword(request.getCurrentPassword(), request.getNewPassword()));
   }
 
   @ApiRateLimit(capacity = 20, refillTokens = 20, refillDurationMinutes = 1, useIpAddress = true)

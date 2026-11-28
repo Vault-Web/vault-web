@@ -125,14 +125,49 @@ FATAL: invalid value for parameter "TimeZone"
 See `../common_problems.md` for platform-specific troubleshooting and startup
 guidance.
 
+## Private media previews
+
+PDF and audio/video previews use a stable URL that streams one Cloud file with
+HTTP range support. Keep the Vault Web tab that opened the preview running so it
+can renew access. Renewal requires the current access token and a valid
+`refresh_token` cookie from the same browser account. An expired, revoked, or
+different account's session cannot extend the preview.
+
+The access window is controlled by `app.media.token-ttl-seconds` and defaults
+to five minutes. Preview bindings are held in memory on one Vault Web backend.
+Reopen previews after a backend restart or a prolonged browser suspension.
+
+## Database migrations
+
+Vault Web runs versioned PostgreSQL migrations with Flyway before Hibernate
+validates the schema. The application fails startup if a migration or validation
+fails. New databases are initialized automatically.
+
+For the first upgrade of an existing Vault Web database without Flyway history:
+
+1. Take a verified PostgreSQL backup and stop the old backend. Confirm that the
+   target database is the Vault Web database and already has the current schema
+   apart from the chat deletion flag. Apply the poll upgrade below first if it
+   has not already been applied.
+2. Start the upgraded backend once with `SPRING_FLYWAY_BASELINE_ON_MIGRATE=true`
+   in the backend process environment. With Docker Compose, pass it to the
+   `vault-web-backend` service through a temporary Compose override.
+3. Confirm successful startup, then remove the override. All subsequent starts
+   use the recorded migration history.
+
+This upgrade records the legacy schema as version 1 and backfills the `deleted`
+flag for existing chat messages as version 2. Messages that already have a
+deletion flag keep their current value. Add future schema changes as a new
+versioned migration under `src/main/resources/db/migration`.
+
 ## Upgrading existing poll data
 
 Before deploying the poll vote uniqueness fix to an existing database, stop all
 backend instances and run [sql/pollVoteUniqueness.sql](sql/pollVoteUniqueness.sql)
 against the application database. The script backfills `poll_votes.poll_id` from
 each vote's option and adds the unique constraint on `(poll_id, user_id)`.
-Hibernate's `ddl-auto=update` cannot backfill this required column. New databases
-get the column and constraint from the entity mapping.
+This manual upgrade is for databases that predate the poll vote uniqueness fix.
+The Flyway baseline includes the column and constraint for new databases.
 
 Check for existing duplicates before running the script:
 
@@ -156,6 +191,11 @@ Run the backend test suite using the Maven Wrapper:
 ```bash
 ./mvnw test
 ```
+
+CI also runs `PostgresMigrationTest` against PostgreSQL 16. To run it locally,
+set `VAULT_TEST_POSTGRES_URL`, `VAULT_TEST_POSTGRES_USER` and
+`VAULT_TEST_POSTGRES_PASSWORD` for a disposable PostgreSQL database. The test
+creates and removes isolated schemas in that database.
 
 ## Package structure
 
@@ -181,3 +221,16 @@ src/main/java/vaultWeb
 └── services
     └── auth             # Authentication-related services
 ```
+
+
+### Client addresses behind a reverse proxy
+
+By default, Vault Web uses the peer address supplied by Tomcat for rate limits and audit
+logs. For a direct installation, no forwarding configuration is needed.
+
+If Vault Web is behind a reverse proxy, set `VAULT_WEB_FORWARD_HEADERS_STRATEGY=native` and
+`VAULT_WEB_INTERNAL_PROXIES` to a pattern matching only the fixed addresses of the proxies in
+your forwarding chain. For example, `172[.]30[.]8[.]10` trusts a single address. The edge
+proxy must replace client-provided forwarding headers and add the client address it observed.
+Keep the backend reachable through the intended proxy only. Without a trusted proxy
+configuration, clients that connect through the same proxy share its IP-based limits.

@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import java.security.Principal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
@@ -71,16 +72,21 @@ public class PersonalAccessTokenController {
   @ApiResponse(responseCode = "401", description = "Not authenticated or wrong password")
   public ResponseEntity<CreatedPersonalAccessTokenDto> create(
       @Valid @RequestBody CreatePersonalAccessTokenRequest request,
+      Principal principal,
       HttpServletRequest httpRequest) {
-    User user = requireUser();
+    if (principal == null) {
+      throw new UnauthorizedException("User not authenticated");
+    }
     CreatedPersonalAccessTokenDto created;
     try {
-      created = tokenService.create(user, request);
+      created = tokenService.create(principal.getName(), request);
     } catch (UnauthorizedException e) {
-      userService.logSecurityEvent(user, SecurityEventType.PAT_CREATED, FAILURE, httpRequest, null);
+      userService.logSecurityEvent(
+          authService.getCurrentUser(), SecurityEventType.PAT_CREATED, FAILURE, httpRequest, null);
       throw e;
     }
-    userService.logSecurityEvent(user, SecurityEventType.PAT_CREATED, SUCCESS, httpRequest, null);
+    userService.logSecurityEvent(
+        authService.getCurrentUser(), SecurityEventType.PAT_CREATED, SUCCESS, httpRequest, null);
     return ResponseEntity.status(HttpStatus.CREATED)
         .cacheControl(CacheControl.noStore())
         .header("Pragma", "no-cache")

@@ -129,6 +129,7 @@ public class SecurityConfig {
                         "/api/auth/register",
                         "/api/auth/check-username",
                         "/api/auth/refresh",
+                        "/api/auth/refresh/logout",
                         "/api/auth/logout",
                         "/api/media/stream/**",
                         "/v3/api-docs/**",

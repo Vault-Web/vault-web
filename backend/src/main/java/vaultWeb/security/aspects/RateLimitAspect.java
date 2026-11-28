@@ -41,7 +41,7 @@ public class RateLimitAspect {
     HttpServletRequest request =
         ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
 
-    String key = getRateLimitKey(joinPoint, request, apiRateLimit);
+    String key = getRateLimitKey(request, apiRateLimit);
     Bucket bucket = resolveBucket(key, apiRateLimit);
 
     ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
@@ -75,34 +75,17 @@ public class RateLimitAspect {
         });
   }
 
-  private String getRateLimitKey(
-      ProceedingJoinPoint joinPoint, HttpServletRequest request, ApiRateLimit rateLimit) {
-
-    String ip = getClientIpAddress(request);
-    String username = jwtUtil.extractUsernameFromRequest(request);
-
-    // If annotation says "rate-limit by IP"
+  private String getRateLimitKey(HttpServletRequest request, ApiRateLimit rateLimit) {
+    // Tomcat resolves forwarded addresses only when its trusted proxy list is enabled.
+    String ip = request.getRemoteAddr();
     if (rateLimit.useIpAddress()) {
       return "IP:" + ip;
     }
 
-    // Otherwise rate-limit by username if present
+    String username = jwtUtil.extractUsernameFromRequest(request);
     if (username != null && !username.isBlank()) {
       return "USER:" + username;
     }
-    // Fallback to IP-based key for anonymous users
     return "ANON:" + ip;
-  }
-
-  private String getClientIpAddress(HttpServletRequest request) {
-    String remoteAddr = request.getRemoteAddr();
-    String xForwardedFor = request.getHeader("X-Forwarded-For");
-
-    // Safety check: If header exists and isn't suspiciously long (spoofing attempt)
-    if (xForwardedFor != null && !xForwardedFor.isBlank() && xForwardedFor.length() < 100) {
-      return xForwardedFor.split(",")[0].trim();
-    }
-
-    return remoteAddr;
   }
 }
