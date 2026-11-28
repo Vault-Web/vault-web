@@ -6,12 +6,12 @@ its own namespace and is not part of this change.
 
 ## Cloud contract source
 
-The provider-owned, revision-addressable OpenAPI export is tracked by
-[Vault-Web/cloud-page#192](https://github.com/Vault-Web/cloud-page/issues/192).
-That export is not available yet, so this branch intentionally does not contain
-a fabricated schema, generated DTOs, or a migration of the folder-listing flow.
+Cloud Page publishes a revision-addressable OpenAPI export
+([provider PR #216](https://github.com/Vault-Web/cloud-page/pull/216)).
+The consumer integration and migration of the folder-listing flow are tracked in
+[Vault Web #408](https://github.com/Vault-Web/vault-web/issues/408).
 
-When the provider export is published, add the exact immutable provider
+For that integration, add the exact immutable provider
 revision and spec path (or immutable artifact plus digest) here and place the
 export at:
 
@@ -26,9 +26,9 @@ and pinned as part of the consumer update.
 - Generator: OpenAPI Generator `typescript-angular`
 - OpenAPI Generator CLI and generator release: `7.26.0`
   (`openapitools/openapi-generator-cli@sha256:a304ddf1e2e5f24f68fa3153568d6174cea4959d09aa8e3db6d526fd0782326d`; multi-platform image-index digest).
-- Angular target: `19.2.0`
-- TypeScript target: `5.7.2`
-- RxJS target: `7.8.1`
+- Angular target: `21.2.26`
+- TypeScript target: `5.9.3`
+- RxJS target: `7.8.2`
 - Zone.js target: `0.15.0`
 
 The Docker image is pinned by its immutable multi-platform OCI image-index

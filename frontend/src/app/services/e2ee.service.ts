@@ -305,7 +305,7 @@ export class E2eeService {
     plaintext: string,
     senderPrivateKey: CryptoKey,
     recipientPublicKey: CryptoKey,
-    aad: Uint8Array,
+    aad: Uint8Array<ArrayBuffer>,
   ): Promise<E2eeRecipientPayload> {
     const sharedSecret = await crypto.subtle.deriveBits(
       { name: 'ECDH', public: recipientPublicKey },
@@ -332,7 +332,7 @@ export class E2eeService {
     entry: E2eeRecipientPayload,
     recipientPrivateKey: CryptoKey,
     senderPublicKey: CryptoKey,
-    aad: Uint8Array,
+    aad: Uint8Array<ArrayBuffer>,
   ): Promise<string> {
     const sharedSecret = await crypto.subtle.deriveBits(
       { name: 'ECDH', public: senderPublicKey },
@@ -365,7 +365,7 @@ export class E2eeService {
     recipientDeviceId: string,
     senderDeviceId: string,
     senderPublicKey: JsonWebKey,
-  ): Uint8Array {
+  ): Uint8Array<ArrayBuffer> {
     const canonical = JSON.stringify({
       v: 1,
       recipientDeviceId,
