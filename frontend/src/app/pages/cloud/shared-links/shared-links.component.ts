@@ -136,7 +136,10 @@ export class SharedLinksComponent implements OnInit {
 
   linkStatus(
     link: SecureSendLinkDto,
-  ): 'revoked' | 'expired' | 'active' | 'never-expires' {
+  ): 'revoked' | 'expired' | 'active' | 'never-expires' | 'requires-new-link' {
+    if (link.requiresNewLink) {
+      return 'requires-new-link';
+    }
     if (link.isRevoked) {
       return 'revoked';
     }
@@ -147,7 +150,7 @@ export class SharedLinksComponent implements OnInit {
   }
 
   canRevoke(link: SecureSendLinkDto): boolean {
-    return !link.isRevoked && !this.isExpired(link);
+    return !link.requiresNewLink && !link.isRevoked && !this.isExpired(link);
   }
 
   confirmRevokeLink(link: SecureSendLinkDto): void {
@@ -188,7 +191,9 @@ export class SharedLinksComponent implements OnInit {
   }
 
   canReactivate(link: SecureSendLinkDto): boolean {
-    return Boolean(link.isRevoked) && !this.isExpired(link);
+    return (
+      !link.requiresNewLink && Boolean(link.isRevoked) && !this.isExpired(link)
+    );
   }
 
   confirmReactivateLink(link: SecureSendLinkDto): void {

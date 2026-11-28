@@ -21,6 +21,7 @@ import { environment } from '../../environments/environment';
 import { SKIP_GLOBAL_ERROR_PAGE } from '../core/interceptors/token.interceptor';
 
 interface RawSecureSendResponse {
+  requiresNewLink?: boolean;
   id?: string;
   linkId?: string;
   token?: string;
@@ -402,6 +403,7 @@ export class CloudService {
         !!password,
       ),
       isRevoked: Boolean(res?.revoked ?? res?.isRevoked ?? false),
+      requiresNewLink: res?.requiresNewLink === true,
       revokedAt: res?.revokedAt || null,
       createdAt: res?.createdAt || '',
       lastAccessedAt: res?.lastAccessedAt ?? null,

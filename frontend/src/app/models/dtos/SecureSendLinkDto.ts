@@ -12,6 +12,7 @@ export interface SecureSendLinkDto {
   expiresAt: string | Date | null;
   hasPassword?: boolean;
   isRevoked?: boolean;
+  requiresNewLink?: boolean;
   revokedAt?: string | Date | null;
   createdAt: string | Date;
   /** Null if the link has never been opened. */
