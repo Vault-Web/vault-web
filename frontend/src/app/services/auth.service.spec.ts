@@ -34,6 +34,36 @@ describe('AuthService', () => {
     localStorage.clear();
   });
 
+  it('logs out through the refresh cookie path and clears local authentication', () => {
+    service.saveToken('session');
+    service.saveUsername('previewuser');
+
+    service.logout();
+
+    const request = httpMock.expectOne(
+      `${environment.mainApiUrl}/auth/refresh/logout`,
+    );
+    expect(request.request.withCredentials).toBeTrue();
+    expect(service.getToken()).toBeNull();
+    request.flush(null);
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(
+      ['/login'],
+      undefined,
+    );
+  });
+
+  it('supports logout from a backend that only has the legacy endpoint', () => {
+    service.logout();
+    httpMock
+      .expectOne(`${environment.mainApiUrl}/auth/refresh/logout`)
+      .flush(null, { status: 404, statusText: 'Not Found' });
+    httpMock.expectOne(`${environment.mainApiUrl}/auth/logout`).flush(null);
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(
+      ['/login'],
+      undefined,
+    );
+  });
+
   describe('isLoggedInLocally()', () => {
     it('should return false when no token exists', () => {
       expect(service.isLoggedInLocally()).toBe(false);

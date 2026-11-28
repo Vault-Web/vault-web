@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -150,6 +151,15 @@ public class UserController {
                     """)
   @ApiResponse(responseCode = "200", description = "Logged out successfully")
   public ResponseEntity<Void> logout(
+      @CookieValue(name = "refresh_token", required = false) String refreshToken,
+      HttpServletResponse response) {
+    authService.logout(refreshToken, response);
+    return ResponseEntity.ok().build();
+  }
+
+  @AuditSecurityEvent(SecurityEventType.LOGOUT)
+  @PostMapping(value = "/refresh/logout", consumes = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<Void> logoutFromBrowser(
       @CookieValue(name = "refresh_token", required = false) String refreshToken,
       HttpServletResponse response) {
     authService.logout(refreshToken, response);
