@@ -29,7 +29,11 @@
                 "input": "public"
               }
             ],
-            "styles": ["node_modules/ngx-toastr/toastr.css", "src/styles.scss"],
+            "styles": [
+              "node_modules/ngx-toastr/toastr.css",
+              "node_modules/primeicons/primeicons.css",
+              "src/styles.scss"
+            ],
             "scripts": []
           },
           "configurations": {
@@ -83,7 +87,10 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.scss"],
+            "styles": [
+              "node_modules/primeicons/primeicons.css",
+              "src/styles.scss"
+            ],
             "scripts": []
           }
         }

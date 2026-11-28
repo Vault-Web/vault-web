@@ -6,16 +6,28 @@ The frontend is an Angular-based application providing the web interface and das
 
 To develop or run the frontend independently, you will need:
 
-- Node.js (LTS recommended)
+- Node.js 22.12 or later in the Node 22 line used by CI and Deploy
 - npm (comes with Node.js)
-- Angular CLI 19 (optional; the project includes a local CLI dependency through npm)
+- Angular CLI 21 (optional; the project includes a local CLI dependency through npm)
 
 The project uses:
 
-- Angular 19
-- TypeScript 5.7
+- Angular 21
+- TypeScript 5.9
 - Tailwind CSS 4
-- PrimeNG 19
+- PrimeNG 21
+
+## Dependency checks
+
+Run `npm ci` and `npm audit --omit=dev` to check the production dependency graph.
+The frontend is built as a browser application and the deployment serves its static
+output. SockJS maps its Node WebSocket transport to the browser's native WebSocket
+transport through its `browser` field. The Node transport is absent from the
+production browser bundle. The lockfile also resolves the Node driver outside
+the reported affected versions.
+
+Tailwind and PostCSS run during the build. Check build-time dependencies separately
+with `npm audit`.
 
 ## Local Development
 
