@@ -45,19 +45,26 @@
           name="share-password"
           autocomplete="off"
           [(ngModel)]="password"
-          (keyup.enter)="isFolder ? unlockFolder() : download()"
+          (keyup.enter)="submitSharePassword()"
+          [attr.aria-invalid]="passwordError ? 'true' : null"
+          aria-describedby="share-password-description"
           [ngClass]="{ 'share-input-invalid': passwordError }"
           class="w-full text-xxs sm:text-xs"
           placeholder="Password for this link"
         />
         <p
           *ngIf="passwordError"
+          id="share-password-description"
           class="share-error text-xxs sm:text-xs"
           role="alert"
         >
           {{ passwordError }}
         </p>
-        <p *ngIf="!passwordError" class="share-hint text-xxs sm:text-xs">
+        <p
+          *ngIf="!passwordError"
+          id="share-password-description"
+          class="share-hint text-xxs sm:text-xs"
+        >
           The owner protected this
           {{ isFolder ? "folder" : "file" }} with a password.
         </p>
@@ -93,7 +100,7 @@
       ></p-button>
 
       <p
-        *ngIf="downloadError"
+        *ngIf="downloadError && !showPreview"
         class="share-error share-centered text-xxs sm:text-xs"
         role="alert"
       >
@@ -124,7 +131,10 @@
         ></p-button>
       </div>
 
-      <nav class="share-crumbs text-xxs sm:text-xs">
+      <nav
+        class="share-crumbs text-xxs sm:text-xs"
+        aria-label="Shared folder path"
+      >
         <ng-container *ngFor="let crumb of breadcrumbs; let last = last">
           <button
             type="button"
@@ -138,7 +148,11 @@
         </ng-container>
       </nav>
 
-      <div *ngIf="browsing" class="share-state text-xxs sm:text-xs">
+      <div
+        *ngIf="browsing"
+        class="share-state text-xxs sm:text-xs"
+        role="status"
+      >
         <i class="pi pi-spin pi-spinner"></i> Loading folder...
       </div>
 
@@ -159,7 +173,7 @@
           <tr>
             <th>Name</th>
             <th>Size</th>
-            <th>Modified</th>
+            <th class="share-entry-modified">Modified</th>
             <th></th>
           </tr>
         </ng-template>
@@ -180,7 +194,7 @@
             <td class="share-muted">
               {{ entry.directory ? "" : formatSize(entry.size) }}
             </td>
-            <td class="share-muted">
+            <td class="share-muted share-entry-modified">
               {{ entry.lastModifiedAt | date: "short" }}
             </td>
             <td class="text-right">
@@ -209,7 +223,11 @@
         </ng-template>
       </p-table>
 
-      <p *ngIf="downloadError" class="share-error text-xxs sm:text-xs">
+      <p
+        *ngIf="downloadError && !showPreview"
+        class="share-error text-xxs sm:text-xs"
+        role="alert"
+      >
         {{ downloadError }}
       </p>
     </div>
@@ -219,8 +237,8 @@
 </div>
 
 <p-dialog
-  [(visible)]="showPreview"
-  (onHide)="closePreview()"
+  [visible]="showPreview"
+  (visibleChange)="closePreview()"
   [modal]="true"
   [closable]="true"
   [draggable]="false"
@@ -261,7 +279,19 @@
       >
     </ng-container>
   </div>
+  <p *ngIf="downloadError && showPreview" class="share-error" role="alert">
+    {{ downloadError }}
+  </p>
   <ng-template pTemplate="footer">
+    <a
+      *ngIf="previewPdfUrl as url"
+      [href]="url"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="p-button p-button-outlined p-button-sm share-open-pdf"
+    >
+      Open PDF in new tab
+    </a>
     <p-button
       label="Close"
       styleClass="p-button-text p-button-sm text-xxs sm:text-xs"
@@ -271,6 +301,7 @@
       label="Download"
       icon="pi pi-download"
       styleClass="p-button-sm text-xxs sm:text-xs"
+      [loading]="downloading || !!downloadingPath"
       [disabled]="downloading || !!downloadingPath"
       (click)="downloadPreviewed()"
     ></p-button>

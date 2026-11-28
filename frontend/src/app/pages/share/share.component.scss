@@ -193,7 +193,8 @@
 
 .share-preview-frame {
   width: 100%;
-  height: 70vh;
+  height: 65vh;
+  height: 65dvh;
   border: none;
 }
 
@@ -212,4 +213,22 @@
    own buttons in a row and must keep them at their natural size. */
 :host ::ng-deep .share-card:not(.share-card-wide) .p-button {
   width: 100%;
+}
+
+.share-open-pdf {
+  text-decoration: none;
+}
+
+@media (max-width: 480px) {
+  .share-card-wide {
+    padding: 0.875rem;
+  }
+
+  .share-entry-modified {
+    display: none;
+  }
+
+  .share-field input {
+    font-size: 1rem;
+  }
 }
