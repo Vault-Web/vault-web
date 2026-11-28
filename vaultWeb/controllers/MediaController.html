@@ -172,6 +172,12 @@ loadScripts(document, 'script');</script>
 <div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
 <div class="block">Streams the file a media token was issued for.</div>
 </div>
+<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>org.springframework.http.ResponseEntity<wbr>&lt;org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody&gt;</code></div>
+<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#streamPreview(java.lang.String,java.lang.String,java.lang.String,java.lang.String)" class="member-name-link">streamPreview</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;id,
+ <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;range,
+ <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;ifNoneMatch,
+ <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;ifModifiedSince)</code></div>
+<div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">&nbsp;</div>
 </div>
 </div>
 </div>
@@ -235,6 +241,20 @@ loadScripts(document, 'script');</script>
  valid token at a different file. Range and conditional headers are forwarded upstream and the
  upstream status is preserved, which is what allows <code>206 Partial Content</code> and <code>304
  Not Modified</code> to reach the browser intact.</div>
+</section>
+</li>
+<li>
+<section class="detail" id="streamPreview(java.lang.String,java.lang.String,java.lang.String,java.lang.String)">
+<h3>streamPreview</h3>
+<div class="member-signature"><span class="annotations">@GetMapping("/stream/preview/{id}")
+</span><span class="modifiers">public</span>&nbsp;<span class="return-type">org.springframework.http.ResponseEntity&lt;org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody&gt;</span>&nbsp;<span class="element-name">streamPreview</span><wbr><span class="parameters">(@PathVariable
+ <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;id,
+ @RequestHeader(value="Range",required=false)
+ <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;range,
+ @RequestHeader(value="If-None-Match",required=false)
+ <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;ifNoneMatch,
+ @RequestHeader(value="If-Modified-Since",required=false)
+ <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;ifModifiedSince)</span></div>
 </section>
 </li>
 </ul>
