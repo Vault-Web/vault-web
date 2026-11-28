@@ -98,11 +98,6 @@ export class ShareComponent implements OnInit, OnDestroy {
   downloadingPath: string | null = null;
   archiving = false;
 
-  /**
-   * Two-way bound to the dialog. Deriving its visibility from `preview` instead
-   * left the dialog's own close button fighting the binding, which put it
-   * straight back on screen.
-   */
   showPreview = false;
   preview: Preview | null = null;
   previewLoading = false;
@@ -248,6 +243,20 @@ export class ShareComponent implements OnInit, OnDestroy {
     );
   }
 
+  submitSharePassword(): void {
+    if (this.isFolder) {
+      this.unlockFolder();
+    } else if (this.canPreviewFile) {
+      this.previewSharedFile();
+    } else {
+      this.download();
+    }
+  }
+
+  get previewPdfUrl(): string | null {
+    return this.preview?.pdfUrl ? this.previewObjectUrl : null;
+  }
+
   previewSharedFile(): void {
     if (!this.share || this.isFolder || !this.hasRequiredPassword()) return;
     const kind = this.previewKind(this.share.fileName);
@@ -258,6 +267,7 @@ export class ShareComponent implements OnInit, OnDestroy {
     this.previewRequest?.unsubscribe();
     this.releasePreviewUrl();
     this.passwordError = '';
+    this.downloadError = '';
     this.previewError = '';
     this.previewLoading = true;
     this.preview = { name, path, kind };
@@ -460,16 +470,9 @@ export class ShareComponent implements OnInit, OnDestroy {
   }
 
   private handleDownloadError(error: HttpErrorResponse): void {
-    if (error.status === 401) {
-      this.passwordError = this.password.trim()
-        ? 'That password is not correct.'
-        : 'This link is password protected.';
-      return;
-    }
-    if (error.status === 404) {
-      // The link expired or was revoked between opening the page and downloading.
-      this.unavailable = true;
-      this.share = null;
+    if (error.status === 401 || error.status === 404) {
+      this.closePreview();
+      this.handleBrowseError(error);
       return;
     }
     this.downloadError = 'The download failed. Please try again later.';

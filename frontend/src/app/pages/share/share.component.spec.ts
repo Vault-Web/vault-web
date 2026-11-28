@@ -236,11 +236,83 @@ describe('ShareComponent', () => {
     componentInstance.previewSharedFile();
     expect(shareServiceSpy.view).toHaveBeenCalledWith('tok', '', 'passphrase');
     expect(componentInstance.preview?.pdfUrl).toBeDefined();
+    expect(componentInstance.previewPdfUrl).toMatch(/^blob:/);
 
     const download = spyOn(componentInstance, 'download');
     componentInstance.downloadPreviewed();
     expect(download).toHaveBeenCalled();
     componentInstance.closePreview();
+    expect(componentInstance.previewPdfUrl).toBeNull();
+  });
+
+  it('previews a protected PDF when the password is submitted with Enter', () => {
+    shareServiceSpy.describe.and.returnValue(
+      of({ ...fileShare, passwordProtected: true }),
+    );
+    shareServiceSpy.view.and.returnValue(
+      of(new Blob(['%PDF-1.7'], { type: 'application/pdf' })),
+    );
+    createComponent();
+    fixture.detectChanges();
+    component.password = 'right';
+
+    const input: HTMLInputElement =
+      fixture.nativeElement.querySelector('#share-password');
+    input.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter' }));
+    fixture.detectChanges();
+
+    expect(shareServiceSpy.view).toHaveBeenCalledWith('tok', '', 'right');
+    expect(shareServiceSpy.download).not.toHaveBeenCalled();
+    const link: HTMLAnchorElement = document.querySelector('.share-open-pdf')!;
+    expect(link.href).toMatch(/^blob:/);
+    expect(link.target).toBe('_blank');
+    expect(link.rel).toContain('noopener');
+  });
+
+  it('keeps a successful retry open after a rejected password', () => {
+    shareServiceSpy.describe.and.returnValue(
+      of({ ...fileShare, passwordProtected: true }),
+    );
+    shareServiceSpy.view.and.returnValues(
+      throwError(() => ({ status: 401 })),
+      of(new Blob(['%PDF-1.7'], { type: 'application/pdf' })),
+    );
+    createComponent();
+    fixture.detectChanges();
+
+    component.password = 'wrong';
+    component.submitSharePassword();
+    fixture.detectChanges();
+    expect(component.passwordError).toBe('That password is not correct.');
+
+    component.password = 'right';
+    component.submitSharePassword();
+    fixture.detectChanges();
+
+    expect(component.showPreview).toBeTrue();
+    expect(component.previewPdfUrl).toMatch(/^blob:/);
+  });
+
+  it('closes the preview when the link expires before download', () => {
+    shareServiceSpy.describe.and.returnValue(
+      of({ ...fileShare, passwordProtected: true }),
+    );
+    shareServiceSpy.view.and.returnValue(
+      of(new Blob(['%PDF-1.7'], { type: 'application/pdf' })),
+    );
+    shareServiceSpy.download.and.returnValue(
+      throwError(() => ({ status: 404 })),
+    );
+    createComponent();
+    component.ngOnInit();
+
+    component.password = 'right';
+    component.previewSharedFile();
+    component.downloadPreviewed();
+
+    expect(component.unavailable).toBeTrue();
+    expect(component.showPreview).toBeFalse();
+    expect(component.previewPdfUrl).toBeNull();
   });
 
   it('does not embed a non-PDF response in the preview frame', () => {
