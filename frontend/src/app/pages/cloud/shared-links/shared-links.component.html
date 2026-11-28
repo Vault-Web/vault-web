@@ -173,13 +173,18 @@
           </td>
           <td>
             <span class="shared-badge" [ngClass]="'is-' + linkStatus(link)">
-              {{ linkStatus(link) }}
+              {{
+                link.requiresNewLink ? "New link required" : linkStatus(link)
+              }}
             </span>
+            <p *ngIf="link.requiresNewLink" class="shared-muted mt-1">
+              Create a new share from the file or folder.
+            </p>
           </td>
           <td>
             <div class="shared-actions">
               <p-button
-                *ngIf="link.isRevoked"
+                *ngIf="link.isRevoked && !link.requiresNewLink"
                 label="Reactivate"
                 icon="pi pi-replay"
                 styleClass="p-button-text p-button-sm"
@@ -195,7 +200,7 @@
                 ariaLabel="Reactivate share link"
               ></p-button>
               <p-button
-                *ngIf="!link.isRevoked"
+                *ngIf="!link.isRevoked && !link.requiresNewLink"
                 label="Revoke"
                 icon="pi pi-ban"
                 severity="danger"

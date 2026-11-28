@@ -140,6 +140,15 @@ describe('SharedLinksComponent', () => {
     expect(toastMock.success).toHaveBeenCalled();
   });
 
+  it('marks an unbound link for replacement and prevents reactivation', () => {
+    const unbound = { ...link, isRevoked: true, requiresNewLink: true };
+
+    expect(component.linkStatus(unbound)).toBe('requires-new-link');
+    expect(component.canReactivate(unbound)).toBeFalse();
+    component.confirmReactivateLink(unbound);
+    expect(cloudMock.reactivateSecureSendLink).not.toHaveBeenCalled();
+  });
+
   it('allows a reactivated never-expiring link to be revoked again', () => {
     const revoked: SecureSendLinkDto = {
       ...link,
