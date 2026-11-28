@@ -28,6 +28,13 @@ export const tokenInterceptor: HttpInterceptorFn = (req, next) => {
   const networkStatusService = inject(NetworkStatusService);
   const router = inject(Router);
 
+  if (
+    req.url === `${environment.mainApiUrl}/auth/refresh/logout` ||
+    req.url === `${environment.mainApiUrl}/auth/logout`
+  ) {
+    return next(req);
+  }
+
   if (req.context.get(REQUIRE_ACTIVE_SESSION) && !authService.getToken()) {
     return throwError(
       () => new HttpErrorResponse({ status: 401, url: req.url }),
@@ -181,9 +188,5 @@ function isServerError(error: HttpErrorResponse): boolean {
 // Exclude specific background endpoints (like refresh and devices) to avoid redirect loops
 // or interrupting the user. We allow login/register 500s to redirect to the error page.
 function isExcludedFromErrorPage(url: string): boolean {
-  return (
-    url.includes('/auth/refresh') ||
-    url.includes('/auth/logout') ||
-    url.includes('/devices')
-  );
+  return url.includes('/auth/refresh') || url.includes('/devices');
 }

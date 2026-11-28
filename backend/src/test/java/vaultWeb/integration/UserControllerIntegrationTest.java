@@ -490,10 +490,20 @@ class UserControllerIntegrationTest extends IntegrationTestBase {
       UserDto testUser = createUserDto(TEST_USERNAME, TEST_PASSWORD);
       registerUser(testUser);
       MvcResult result = loginUser(testUser);
-      String refreshToken = extractCookie(result, "refresh_token").getValue();
+      Cookie browserCookie = extractCookie(result, "refresh_token");
+      assertNotNull(browserCookie);
+      String refreshToken = browserCookie.getValue();
+      String logoutPath = browserCookie.getPath() + "/logout";
+      mockMvc
+          .perform(post(logoutPath).cookie(browserCookie).contentType(MediaType.TEXT_PLAIN))
+          .andExpect(status().isUnsupportedMediaType());
       result =
           mockMvc
-              .perform(post("/api/auth/logout").cookie(new Cookie("refresh_token", refreshToken)))
+              .perform(
+                  post(logoutPath)
+                      .cookie(browserCookie)
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content("{}"))
               .andExpect(status().isOk())
               .andReturn();
 
@@ -503,6 +513,7 @@ class UserControllerIntegrationTest extends IntegrationTestBase {
       Cookie deletedCookie = extractCookie(result, "refresh_token");
       assertNotNull(deletedCookie, "refresh_token cookie should be deleted");
       assertEquals(0, deletedCookie.getMaxAge(), "refresh_token should be deleted");
+      assertEquals(browserCookie.getPath(), deletedCookie.getPath());
 
       mockMvc
           .perform(post("/api/auth/refresh").cookie(new Cookie("refresh_token", refreshToken)))
