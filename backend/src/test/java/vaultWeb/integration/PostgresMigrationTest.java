@@ -95,8 +95,10 @@ class PostgresMigrationTest {
     try (var connection = openSchema();
         var statement = connection.createStatement();
         var rows =
-            statement.executeQuery("SELECT success FROM flyway_schema_history WHERE version='2'")) {
-      assertTrue(rows.next() && rows.getBoolean("success"));
+            statement.executeQuery(
+                "SELECT count(*) FROM flyway_schema_history WHERE version IN ('2', '3') AND success")) {
+      assertTrue(rows.next());
+      assertEquals(2, rows.getInt(1));
     }
   }
 

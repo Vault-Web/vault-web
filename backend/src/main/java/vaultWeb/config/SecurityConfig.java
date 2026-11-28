@@ -1,19 +1,34 @@
 package vaultWeb.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+import vaultWeb.exceptions.ApiErrorResponse;
 import vaultWeb.security.JwtAuthFilter;
 import vaultWeb.security.JwtAuthenticationEntryPoint;
+import vaultWeb.security.pat.PatAccessPolicy;
+import vaultWeb.security.pat.PatAuthFilter;
+import vaultWeb.security.pat.PatAuthenticationToken;
+import vaultWeb.security.pat.PatTokens;
 import vaultWeb.services.auth.MyUserDetailsService;
 
 @Configuration
@@ -25,6 +40,12 @@ public class SecurityConfig {
   private final JwtAuthFilter jwtAuthFilter;
   private final CorsConfig corsConfig;
   private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+  private final PatAuthFilter patAuthFilter;
+  private final PatAccessPolicy patAccessPolicy;
+  private final ObjectMapper objectMapper;
+
+  private static final RequestMatcher PAT_REQUEST =
+      request -> PatTokens.isBearerPat(request.getHeader(HttpHeaders.AUTHORIZATION));
 
   /**
    * Defines the PasswordEncoder bean used for hashing passwords. Here, BCryptPasswordEncoder is
@@ -35,7 +56,7 @@ public class SecurityConfig {
    * authenticating users (to verify raw password against stored hash).
    */
   @Bean
-  public PasswordEncoder passwordEncoder() {
+  public static PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
   }
 
@@ -89,10 +110,21 @@ public class SecurityConfig {
     http.cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
         .csrf(csrf -> csrf.disable())
         .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
+        .exceptionHandling(
+            ex ->
+                ex.authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                    .accessDeniedHandler(this::handleAccessDenied))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers(
+                // Any request presenting a PAT is confined to the PatEndpointRegistry allow-list,
+                // including routes that are otherwise public. This rule must stay first.
+                auth.requestMatchers(PAT_REQUEST)
+                    .access(
+                        (authentication, context) ->
+                            new AuthorizationDecision(
+                                patAccessPolicy.isPermitted(
+                                    authentication.get(), context.getRequest())))
+                    .requestMatchers(
                         "/api/auth/login",
                         "/api/auth/register",
                         "/api/auth/check-username",
@@ -111,8 +143,28 @@ public class SecurityConfig {
                     .permitAll()
                     .anyRequest()
                     .authenticated())
-        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+        .addFilterBefore(patAuthFilter, JwtAuthFilter.class);
 
     return http.build();
+  }
+
+  private void handleAccessDenied(
+      HttpServletRequest request,
+      HttpServletResponse response,
+      org.springframework.security.access.AccessDeniedException ex)
+      throws IOException {
+    boolean pat =
+        SecurityContextHolder.getContext().getAuthentication() instanceof PatAuthenticationToken;
+    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+    response
+        .getWriter()
+        .write(
+            objectMapper.writeValueAsString(
+                new ApiErrorResponse(
+                    pat ? "INSUFFICIENT_SCOPE" : "FORBIDDEN",
+                    pat ? "Personal access token is not permitted for this operation" : "Forbidden",
+                    Instant.now())));
   }
 }

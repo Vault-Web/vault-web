@@ -77,6 +77,12 @@
           routerLinkActive="is-active"
           >Security Activity</a
         >
+        <a
+          routerLink="/access-tokens"
+          class="navbar-link"
+          routerLinkActive="is-active"
+          >Access Tokens</a
+        >
 
         <!-- Theme Toggle Button -->
         <button
@@ -179,6 +185,13 @@
       class="mobile-link block py-2"
       routerLinkActive="is-active"
       >Security Activity</a
+    >
+    <a
+      routerLink="/access-tokens"
+      (click)="closeMobileMenu()"
+      class="mobile-link block py-2"
+      routerLinkActive="is-active"
+      >Access Tokens</a
     >
 
     <div *ngIf="hasExternalLinks" class="mobile-external-links">

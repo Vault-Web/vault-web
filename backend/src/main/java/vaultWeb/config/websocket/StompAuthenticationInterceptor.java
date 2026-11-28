@@ -14,6 +14,7 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import vaultWeb.security.JwtUtil;
+import vaultWeb.security.pat.PatTokens;
 
 /** Authenticates STOMP before any application handler or broker subscription can run. */
 @Component
@@ -37,7 +38,8 @@ public class StompAuthenticationInterceptor implements ChannelInterceptor {
       }
       String token = headers.getFirst().substring(7);
       try {
-        if (token.isBlank() || !jwtUtil.validateToken(token)) {
+        // Personal access tokens are never accepted for WebSocket/chat access.
+        if (token.isBlank() || PatTokens.hasPrefix(token) || !jwtUtil.validateToken(token)) {
           throw denied();
         }
         Authentication authentication = jwtUtil.getAuthentication(token);

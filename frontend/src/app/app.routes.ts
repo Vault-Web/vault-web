@@ -14,6 +14,7 @@ import { ShareComponent } from './pages/share/share.component';
 import { SharedLinksComponent } from './pages/cloud/shared-links/shared-links.component';
 import { ProjectsComponent } from './pages/projects/projects.component';
 import { ShareTargetComponent } from './pages/share-target/share-target.component';
+import { AccessTokensComponent } from './pages/access-tokens/access-tokens.component';
 
 export const routes: Routes = [
   { path: 'projects', component: ProjectsComponent, canActivate: [authGuard] },
@@ -33,6 +34,11 @@ export const routes: Routes = [
   {
     path: 'security-activity',
     component: SecurityActivityComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'access-tokens',
+    component: AccessTokensComponent,
     canActivate: [authGuard],
   },
   { path: 'password-manager', redirectTo: 'passwords', pathMatch: 'full' },

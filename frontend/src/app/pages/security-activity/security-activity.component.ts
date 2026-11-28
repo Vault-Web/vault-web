@@ -101,6 +101,12 @@ export class SecurityActivityComponent implements OnInit {
         return 'Vault Unlocked';
       case 'VAULT_LOCKED':
         return 'Vault Locked';
+      case 'PAT_CREATED':
+        return 'Access Token Created';
+      case 'PAT_REVOKED':
+        return 'Access Token Revoked';
+      case 'PAT_REVOKED_ALL':
+        return 'All Access Tokens Revoked';
       default:
         return type;
     }
@@ -124,6 +130,11 @@ export class SecurityActivityComponent implements OnInit {
         return 'pi-lock-open';
       case 'VAULT_LOCKED':
         return 'pi-lock';
+      case 'PAT_CREATED':
+        return 'pi-key';
+      case 'PAT_REVOKED':
+      case 'PAT_REVOKED_ALL':
+        return 'pi-ban';
       default:
         return 'pi-shield';
     }

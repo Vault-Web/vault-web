@@ -10,6 +10,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import vaultWeb.repositories.PersonalAccessTokenRepository;
 import vaultWeb.repositories.RefreshTokenRepository;
 import vaultWeb.repositories.SecurityEventRepository;
 import vaultWeb.repositories.UserRepository;
@@ -23,6 +24,7 @@ abstract class IntegrationTestBase {
   @Autowired protected ObjectMapper objectMapper;
   @Autowired protected UserRepository userRepository;
   @Autowired protected RefreshTokenRepository refreshTokenRepository;
+  @Autowired protected PersonalAccessTokenRepository personalAccessTokenRepository;
   @Autowired protected SecurityEventRepository securityEventRepository;
   @Autowired protected TestRestTemplate restTemplate;
   @LocalServerPort protected int port;
@@ -30,6 +32,7 @@ abstract class IntegrationTestBase {
   @BeforeEach
   void setUp() {
     // Clear database before each test
+    personalAccessTokenRepository.deleteAll();
     refreshTokenRepository.deleteAll();
     securityEventRepository.deleteAll();
     userRepository.deleteAll();

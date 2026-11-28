@@ -6,6 +6,8 @@ The backend provides the core services for the Vault Web ecosystem. It is a
 Spring Boot application responsible for:
 
 - user authentication and JWT-based security
+- scoped personal access tokens for CLI/automation clients
+  ([docs/personal-access-tokens.md](../docs/personal-access-tokens.md))
 - user and session management
 - chat, groups, polls, and collaboration features
 - REST APIs consumed by the frontend
