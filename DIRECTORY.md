@@ -172,6 +172,7 @@
           - 📄 [UserControllerTest.java](backend/src/test/java/vaultWeb/controllers/UserControllerTest.java)
         - 📁 **integration**
           - 📄 [IntegrationTestBase.java](backend/src/test/java/vaultWeb/integration/IntegrationTestBase.java)
+          - 📄 [PostgresMigrationTest.java](backend/src/test/java/vaultWeb/integration/PostgresMigrationTest.java)
           - 📄 [SecurityActivityControllerIntegrationTest.java](backend/src/test/java/vaultWeb/integration/SecurityActivityControllerIntegrationTest.java)
           - 📄 [SecurityAuditIntegrationTest.java](backend/src/test/java/vaultWeb/integration/SecurityAuditIntegrationTest.java)
           - 📄 [UserControllerIntegrationTest.java](backend/src/test/java/vaultWeb/integration/UserControllerIntegrationTest.java)
