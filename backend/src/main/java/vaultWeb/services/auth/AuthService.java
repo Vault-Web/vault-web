@@ -66,6 +66,28 @@ public class AuthService {
   private final RefreshTokenService refreshTokenService;
   private final SecurityEventRepository securityEventRepository;
 
+  /** Checks the current browser session for an operation that does not rotate the token. */
+  @org.springframework.transaction.annotation.Transactional(readOnly = true)
+  public boolean hasActiveRefreshSession(String token, String username) {
+    if (token == null || token.isBlank()) return false;
+    String tokenId;
+    try {
+      tokenId = jwtUtil.parseRefreshToken(token).getId();
+    } catch (JwtException e) {
+      return false;
+    }
+    if (tokenId == null || tokenId.isBlank()) return false;
+    return refreshTokenRepository
+        .findByTokenIdAndRevokedFalse(tokenId)
+        .filter(session -> session.getExpiresAt().isAfter(Instant.now()))
+        .filter(session -> session.getUser().getUsername().equals(username))
+        .filter(
+            session ->
+                TokenHashUtil.constantTimeEquals(
+                    TokenHashUtil.sha256(token), session.getTokenHash()))
+        .isPresent();
+  }
+
   /**
    * Authenticates a user using their username and password and returns a JWT token upon successful
    * authentication.

@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -36,6 +37,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import vaultWeb.security.MediaTokenService;
 import vaultWeb.services.CloudPageMediaClient;
+import vaultWeb.services.MediaPreviewService;
 
 /**
  * MediaController is deliberately reachable at /api/media/stream/** without an Authorization header
@@ -48,6 +50,7 @@ class MediaControllerTest {
 
   @Mock private MediaTokenService mediaTokenService;
   @Mock private CloudPageMediaClient cloudPageMediaClient;
+  @Mock private MediaPreviewService mediaPreviews;
 
   @InjectMocks private MediaController mediaController;
 
@@ -83,6 +86,28 @@ class MediaControllerTest {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     body.writeTo(out);
     return out.toString(StandardCharsets.UTF_8);
+  }
+
+  @Test
+  void aRenewedPreviewStreamsARangeFromTheOriginalFile() throws Exception {
+    when(mediaPreviews.activePreview("preview-id"))
+        .thenReturn(
+            null,
+            new MediaPreviewService.Preview("Ted", "movie.mp4", Instant.now().plusSeconds(30)));
+    var upstream =
+        mockUpstreamResponse(
+            206, "abc", Map.of("Content-Type", "video/mp4", "Content-Range", "bytes 8-10/11"));
+    when(cloudPageMediaClient.fetch("Ted", "movie.mp4", "bytes=8-10", null, null))
+        .thenReturn(upstream);
+
+    assertEquals(
+        HttpStatus.UNAUTHORIZED,
+        mediaController.streamPreview("preview-id", "bytes=8-10", null, null).getStatusCode());
+    var response = mediaController.streamPreview("preview-id", "bytes=8-10", null, null);
+    assertEquals(HttpStatus.PARTIAL_CONTENT, response.getStatusCode());
+    assertEquals("no-store", response.getHeaders().getCacheControl());
+    assertEquals("bytes 8-10/11", response.getHeaders().getFirst("Content-Range"));
+    assertEquals("abc", writeBody(response.getBody()));
   }
 
   // ============================================================================

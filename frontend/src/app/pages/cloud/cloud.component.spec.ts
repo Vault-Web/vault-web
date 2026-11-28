@@ -419,8 +419,9 @@ describe('CloudComponent PDF preview', () => {
 
   beforeEach(() => {
     cloudMock = jasmine.createSpyObj<CloudService>('CloudService', [
-      'getMediaStreamUrl',
+      'createMediaPreview',
       'getFileView',
+      'renewMediaPreview',
     ]);
     toastMock = jasmine.createSpyObj<UiToastService>('UiToastService', [
       'error',
@@ -445,7 +446,7 @@ describe('CloudComponent PDF preview', () => {
 
   it('opens an authenticated PDF blob when media-token creation fails', fakeAsync(() => {
     const blob = new Blob(['%PDF-1.7'], { type: 'application/pdf' });
-    cloudMock.getMediaStreamUrl.and.returnValue(
+    cloudMock.createMediaPreview.and.returnValue(
       throwError(() => new Error('Media backend unavailable')),
     );
     cloudMock.getFileView.and.returnValue(of(blob));
@@ -459,7 +460,7 @@ describe('CloudComponent PDF preview', () => {
       mimeType: 'application/pdf',
     });
 
-    expect(cloudMock.getMediaStreamUrl).toHaveBeenCalledWith('doc.pdf');
+    expect(cloudMock.createMediaPreview).toHaveBeenCalledWith('doc.pdf', true);
     expect(cloudMock.getFileView).toHaveBeenCalledWith('doc.pdf');
     expect(tab.location.href).toBe('blob:pdf-preview');
     expect(toastMock.error).not.toHaveBeenCalled();
@@ -469,7 +470,7 @@ describe('CloudComponent PDF preview', () => {
   }));
 
   it('reports the Cloud view error if both PDF preview paths fail', () => {
-    cloudMock.getMediaStreamUrl.and.returnValue(
+    cloudMock.createMediaPreview.and.returnValue(
       throwError(() => new Error('Media backend unavailable')),
     );
     cloudMock.getFileView.and.returnValue(
@@ -489,6 +490,32 @@ describe('CloudComponent PDF preview', () => {
       'Cloud view unavailable',
     );
   });
+
+  it('renews a native video at the same URL and stops when the tab closes', fakeAsync(() => {
+    cloudMock.createMediaPreview.and.returnValue(
+      of({
+        url: '/api/media/stream/preview/preview-id',
+        previewId: 'preview-id',
+        expiresIn: 3,
+      }),
+    );
+    cloudMock.renewMediaPreview.and.returnValue(of(void 0));
+    component.previewFile({
+      name: 'movie.mp4',
+      path: '/root/movie.mp4',
+      size: 10,
+      mimeType: 'video/mp4',
+    });
+
+    tick(4_000);
+    expect(tab.location.href).toBe('/api/media/stream/preview/preview-id');
+    expect(cloudMock.renewMediaPreview).toHaveBeenCalledTimes(4);
+    expect(cloudMock.renewMediaPreview).toHaveBeenCalledWith('preview-id');
+
+    Object.defineProperty(tab, 'closed', { value: true });
+    tick(2_000);
+    expect(cloudMock.renewMediaPreview).toHaveBeenCalledTimes(4);
+  }));
 });
 
 describe('CloudComponent Unsaved Changes Flow', () => {
