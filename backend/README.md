@@ -219,3 +219,16 @@ src/main/java/vaultWeb
 └── services
     └── auth             # Authentication-related services
 ```
+
+
+### Client addresses behind a reverse proxy
+
+By default, Vault Web uses the peer address supplied by Tomcat for rate limits and audit
+logs. For a direct installation, no forwarding configuration is needed.
+
+If Vault Web is behind a reverse proxy, set `VAULT_WEB_FORWARD_HEADERS_STRATEGY=native` and
+`VAULT_WEB_INTERNAL_PROXIES` to a pattern matching only the fixed addresses of the proxies in
+your forwarding chain. For example, `172[.]30[.]8[.]10` trusts a single address. The edge
+proxy must replace client-provided forwarding headers and add the client address it observed.
+Keep the backend reachable through the intended proxy only. Without a trusted proxy
+configuration, clients that connect through the same proxy share its IP-based limits.
