@@ -538,13 +538,28 @@ class UserControllerIntegrationTest extends IntegrationTestBase {
       changePasswordRequest.setCurrentPassword(TEST_PASSWORD);
       changePasswordRequest.setNewPassword(NEW_PASSWORD);
 
+      MvcResult changed =
+          mockMvc
+              .perform(
+                  post("/api/auth/change-password")
+                      .header("Authorization", authHeader(token))
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(objectMapper.writeValueAsString(changePasswordRequest)))
+              .andExpect(status().isOk())
+              .andReturn();
+
+      assertTrue(jwtUtil.validateToken(extractTokenFromResponse(changed)));
+      Cookie previousSession = extractCookie(result, "refresh_token");
+      Cookie replacement = extractCookie(changed, "refresh_token");
+      assertNotNull(replacement);
+      assertEquals(previousSession.getPath(), replacement.getPath());
+      assertTrue(replacement.isHttpOnly());
+      assertNotEquals(previousSession.getValue(), replacement.getValue());
+
       mockMvc
-          .perform(
-              post("/api/auth/change-password")
-                  .header("Authorization", authHeader(token))
-                  .contentType(MediaType.APPLICATION_JSON)
-                  .content(objectMapper.writeValueAsString(changePasswordRequest)))
-          .andExpect(status().isNoContent());
+          .perform(post("/api/auth/refresh").cookie(previousSession))
+          .andExpect(status().isUnauthorized());
+      mockMvc.perform(post("/api/auth/refresh").cookie(replacement)).andExpect(status().isOk());
 
       testUser.setPassword(NEW_PASSWORD);
       result = loginUser(testUser);
@@ -576,6 +591,10 @@ class UserControllerIntegrationTest extends IntegrationTestBase {
                   .contentType(MediaType.APPLICATION_JSON)
                   .content(objectMapper.writeValueAsString(changePasswordRequest)))
           .andExpect(status().isUnauthorized());
+
+      mockMvc
+          .perform(post("/api/auth/refresh").cookie(extractCookie(result, "refresh_token")))
+          .andExpect(status().isOk());
     }
   }
 

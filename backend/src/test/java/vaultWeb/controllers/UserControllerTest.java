@@ -3,7 +3,6 @@ package vaultWeb.controllers;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -20,7 +19,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import vaultWeb.dtos.user.ChangePasswordRequest;
@@ -33,7 +34,6 @@ import vaultWeb.models.User;
 import vaultWeb.services.UserService;
 import vaultWeb.services.auth.AuthService;
 import vaultWeb.services.auth.LoginResult;
-import vaultWeb.services.auth.RefreshTokenService;
 
 @ExtendWith(MockitoExtension.class)
 class UserControllerTest {
@@ -41,8 +41,6 @@ class UserControllerTest {
   @Mock private UserService userService;
 
   @Mock private AuthService authService;
-
-  @Mock private RefreshTokenService refreshTokenService;
 
   @InjectMocks private UserController userController;
 
@@ -78,27 +76,25 @@ class UserControllerTest {
   @Test
   void shouldLoginSuccessfully() {
     LoginRequest loginRequest = new LoginRequest("testuser", "password");
-    HttpServletResponse responseMock = mock(HttpServletResponse.class);
     when(authService.login(loginRequest.getUsername(), loginRequest.getPassword()))
-        .thenReturn(new LoginResult(createTestUser(1L, "testuser"), "mock-jwt-token"));
-    doNothing().when(refreshTokenService).create(any(User.class), any(HttpServletResponse.class));
-    ResponseEntity<?> response = userController.login(loginRequest, responseMock);
+        .thenReturn(
+            new LoginResult(
+                "mock-jwt-token", ResponseCookie.from("refresh_token", "mock").build()));
+    ResponseEntity<?> response = userController.login(loginRequest);
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEquals("mock-jwt-token", ((Map<String, String>) response.getBody()).get("token"));
     verify(authService, times(1)).login(loginRequest.getUsername(), loginRequest.getPassword());
-    verify(refreshTokenService, times(1)).create(any(User.class), any(HttpServletResponse.class));
   }
 
   @Test
   void shouldRefreshTokenSuccessfully() {
     String refreshToken = "mock-refresh-token";
-    HttpServletResponse responseMock = mock(HttpServletResponse.class);
-    when(authService.refresh(refreshToken, responseMock))
+    when(authService.refresh(refreshToken))
         .thenAnswer(invocation -> ResponseEntity.ok(Map.of("token", "mock-jwt-token")));
-    ResponseEntity<?> response = userController.refresh(refreshToken, responseMock);
+    ResponseEntity<?> response = userController.refresh(refreshToken);
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEquals("mock-jwt-token", ((Map<String, String>) response.getBody()).get("token"));
-    verify(authService, times(1)).refresh(refreshToken, responseMock);
+    verify(authService, times(1)).refresh(refreshToken);
   }
 
   @Test
@@ -147,18 +143,18 @@ class UserControllerTest {
 
   @Test
   void shouldChangePasswordSuccessfully() {
-    User user = createTestUser(1L, "testuser");
     ChangePasswordRequest request = new ChangePasswordRequest();
     request.setCurrentPassword("currentPassword");
     request.setNewPassword("newPassword");
-    when(authService.getCurrentUser()).thenReturn(user);
-    doNothing()
-        .when(userService)
-        .changePassword(user, request.getCurrentPassword(), request.getNewPassword());
-    ResponseEntity<?> response = userController.changePassword(request);
-    assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
-    verify(userService, times(1))
-        .changePassword(user, request.getCurrentPassword(), request.getNewPassword());
+    ResponseCookie cookie = ResponseCookie.from("refresh_token", "replacement").build();
+    when(authService.changePassword(request.getCurrentPassword(), request.getNewPassword()))
+        .thenReturn(new LoginResult("replacement-access-token", cookie));
+
+    ResponseEntity<Map<String, String>> response = userController.changePassword(request);
+
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertEquals("replacement-access-token", response.getBody().get("token"));
+    assertEquals(cookie.toString(), response.getHeaders().getFirst(HttpHeaders.SET_COOKIE));
   }
 
   // ============================================================================
@@ -178,60 +174,40 @@ class UserControllerTest {
   @Test
   void shouldFailLogin_WhenInvalidCredentials() {
     LoginRequest loginRequest = new LoginRequest("testuser", "wrongpassword");
-    HttpServletResponse responseMock = mock(HttpServletResponse.class);
 
     // Mock: authService.login() throws BadCredentialsException
     when(authService.login(loginRequest.getUsername(), loginRequest.getPassword()))
         .thenThrow(new BadCredentialsException("Invalid credentials"));
     // Act & Assert: Verify the exception is thrown (GlobalExceptionHandler handles it in real app)
-    assertThrows(
-        BadCredentialsException.class, () -> userController.login(loginRequest, responseMock));
-    verify(refreshTokenService, never()).create(any(User.class), any(HttpServletResponse.class));
+    assertThrows(BadCredentialsException.class, () -> userController.login(loginRequest));
   }
 
   @Test
   void shouldFailRefresh_WhenNoTokenProvided() {
     String refreshToken = null;
-    HttpServletResponse responseMock = mock(HttpServletResponse.class);
-    ResponseEntity<?> response = userController.refresh(refreshToken, responseMock);
+    ResponseEntity<?> response = userController.refresh(refreshToken);
     assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    verify(authService, never()).refresh(anyString(), any(HttpServletResponse.class));
+    verify(authService, never()).refresh(any());
   }
 
   @Test
   void shouldFailRefresh_WhenInvalidToken() {
     String invalidToken = "invalid-token";
-    HttpServletResponse responseMock = mock(HttpServletResponse.class);
-    when(authService.refresh(invalidToken, responseMock))
+    when(authService.refresh(invalidToken))
         .thenReturn(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
-    ResponseEntity<?> response = userController.refresh(invalidToken, responseMock);
+    ResponseEntity<?> response = userController.refresh(invalidToken);
     assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    verify(authService, times(1)).refresh(invalidToken, responseMock);
+    verify(authService, times(1)).refresh(invalidToken);
   }
 
   @Test
-  void shouldFailChangePassword_WhenNotAuthenticated() {
-
-    ChangePasswordRequest request = new ChangePasswordRequest();
-    request.setCurrentPassword("currentPassword");
-    request.setNewPassword("newPassword");
-    when(authService.getCurrentUser()).thenReturn(null);
-    assertThrows(UnauthorizedException.class, () -> userController.changePassword(request));
-    verify(userService, never()).changePassword(any(User.class), anyString(), anyString());
-  }
-
-  @Test
-  void shouldFailChangePassword_WhenWrongCurrentPassword() {
-    User user = createTestUser(1L, "testuser");
+  void shouldFailChangePassword_WhenRejectedByAuthService() {
     ChangePasswordRequest request = new ChangePasswordRequest();
     request.setCurrentPassword("wrongPassword");
     request.setNewPassword("newPassword");
-    when(authService.getCurrentUser()).thenReturn(user);
-    doThrow(new UnauthorizedException("Current password is incorrect"))
-        .when(userService)
-        .changePassword(user, request.getCurrentPassword(), request.getNewPassword());
+    when(authService.changePassword(request.getCurrentPassword(), request.getNewPassword()))
+        .thenThrow(new UnauthorizedException("Current password is incorrect"));
+
     assertThrows(UnauthorizedException.class, () -> userController.changePassword(request));
-    verify(userService, times(1))
-        .changePassword(user, request.getCurrentPassword(), request.getNewPassword());
   }
 }

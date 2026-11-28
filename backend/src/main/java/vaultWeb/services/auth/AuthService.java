@@ -19,6 +19,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import vaultWeb.exceptions.UnauthorizedException;
 import vaultWeb.exceptions.notfound.UserNotFoundException;
 import vaultWeb.models.RefreshToken;
 import vaultWeb.models.SecurityEvent;
@@ -29,6 +30,7 @@ import vaultWeb.repositories.UserRepository;
 import vaultWeb.security.JwtUtil;
 import vaultWeb.security.TokenHashUtil;
 import vaultWeb.security.annotations.SecurityEventType;
+import vaultWeb.services.UserService;
 
 /**
  * Service class responsible for handling authentication and user session-related operations.
@@ -65,6 +67,7 @@ public class AuthService {
   private final RefreshTokenRepository refreshTokenRepository;
   private final RefreshTokenService refreshTokenService;
   private final SecurityEventRepository securityEventRepository;
+  private final UserService userService;
 
   /** Checks the current browser session for an operation that does not rotate the token. */
   @org.springframework.transaction.annotation.Transactional(readOnly = true)
@@ -89,50 +92,42 @@ public class AuthService {
   }
 
   /**
-   * Authenticates a user using their username and password and returns a JWT token upon successful
-   * authentication.
+   * Validates the credentials and issues a fresh access token and refresh cookie.
    *
-   * <p>Workflow:
-   *
-   * <ol>
-   *   <li>The AuthenticationManager validates the username and password against the stored hash.
-   *   <li>If authentication succeeds, the Authentication object is stored in the SecurityContext.
-   *   <li>UserDetails are retrieved from the Authentication object, containing basic security info
-   *       (username, roles).
-   *   <li>The full User entity is then loaded from the database for additional details.
-   *   <li>A JWT token is generated for the user, signed and valid for a specific duration.
-   * </ol>
-   *
-   * <p>Detailed notes on {@code authenticationManager.authenticate(...)}:
-   *
-   * <ul>
-   *   <li>Spring Security calls the UserDetailsService to fetch user info by username.
-   *   <li>The provided password is compared with the stored hashed password using PasswordEncoder.
-   *   <li>If the password matches, a fully authenticated Authentication object is returned.
-   *   <li>If the password does not match, a BadCredentialsException is thrown.
-   * </ul>
-   *
-   * @param username the username provided by the client
-   * @param password the plaintext password provided by the client
-   * @return a signed JWT token representing the authenticated user
-   * @throws UserNotFoundException if the user does not exist in the database
+   * <p>Holds the account row lock across authentication and session issuance so a password change
+   * cannot leave behind a session issued against the old password.
    */
+  @Transactional
   public LoginResult login(String username, String password) {
+    // Serialize password checks and session issuance with account password changes.
+    User user = userRepository.findByUsernameForUpdate(username).orElse(null);
     Authentication authentication =
         authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(username, password));
     SecurityContextHolder.getContext().setAuthentication(authentication);
 
-    UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+    if (user == null) {
+      throw new UserNotFoundException("User not found: " + username);
+    }
+    return issueSession(user);
+  }
 
+  @Transactional
+  public LoginResult changePassword(String currentPassword, String newPassword) {
+    String username = getCurrentUsername();
+    if (username == null) {
+      throw new UnauthorizedException("User not authenticated");
+    }
     User user =
         userRepository
-            .findByUsername(userDetails.getUsername())
-            .orElseThrow(
-                () -> new UserNotFoundException("User not found: " + userDetails.getUsername()));
+            .findByUsernameForUpdate(username)
+            .orElseThrow(() -> new UnauthorizedException("User not authenticated"));
+    userService.changePassword(user, currentPassword, newPassword);
+    return issueSession(user);
+  }
 
-    String accessToken = jwtUtil.generateToken(user);
-    return new LoginResult(user, accessToken);
+  private LoginResult issueSession(User user) {
+    return new LoginResult(jwtUtil.generateToken(user), refreshTokenService.create(user));
   }
 
   /**
@@ -144,6 +139,11 @@ public class AuthService {
    * @return the currently authenticated {@link User}, or {@code null} if no user is authenticated
    */
   public User getCurrentUser() {
+    String username = getCurrentUsername();
+    return username == null ? null : userRepository.findByUsername(username).orElse(null);
+  }
+
+  private String getCurrentUsername() {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     if (authentication == null || !authentication.isAuthenticated()) {
       return null;
@@ -151,7 +151,7 @@ public class AuthService {
 
     Object principal = authentication.getPrincipal();
     if (principal instanceof UserDetails userDetails) {
-      return userRepository.findByUsername(userDetails.getUsername()).orElse(null);
+      return userDetails.getUsername();
     }
 
     return null;
@@ -195,16 +195,17 @@ public class AuthService {
    * </ul>
    *
    * @param rawRefreshToken the refresh JWT provided by the client (via HttpOnly cookie)
-   * @param response HTTP response used to set the rotated refresh token cookie
    * @return a response containing a new access token if the refresh succeeds
    */
   @Transactional
-  public ResponseEntity<?> refresh(String rawRefreshToken, HttpServletResponse response) {
+  public ResponseEntity<?> refresh(String rawRefreshToken) {
 
     Claims claims;
+    Long userId;
     try {
       claims = jwtUtil.parseRefreshToken(rawRefreshToken);
-    } catch (JwtException e) {
+      userId = Long.valueOf(claims.getSubject());
+    } catch (JwtException | NumberFormatException e) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
@@ -212,9 +213,13 @@ public class AuthService {
     if (tokenId == null || tokenId.isBlank()) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
+    User user = userRepository.findByIdForUpdate(userId).orElse(null);
+    if (user == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
     RefreshToken storedToken = refreshTokenRepository.findByTokenId(tokenId).orElse(null);
 
-    if (storedToken == null) {
+    if (storedToken == null || !userId.equals(storedToken.getUser().getId())) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
@@ -239,17 +244,10 @@ public class AuthService {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
-    // rotate
-    storedToken.setRevoked(true);
-    refreshTokenRepository.save(storedToken);
-
-    User user = storedToken.getUser();
-
-    refreshTokenService.create(user, response);
-
-    String newAccessToken = jwtUtil.generateToken(user);
-
-    return ResponseEntity.ok(Map.of("token", newAccessToken));
+    LoginResult session = issueSession(user);
+    return ResponseEntity.ok()
+        .header(HttpHeaders.SET_COOKIE, session.refreshCookie().toString())
+        .body(Map.of("token", session.accessToken()));
   }
 
   /**

@@ -64,6 +64,40 @@ describe('AuthService', () => {
     );
   });
 
+  describe('changePassword()', () => {
+    const endpoint = `${environment.mainApiUrl}/auth/change-password`;
+
+    it('accepts the replacement browser session', () => {
+      service.saveToken('old-session');
+      service.changePassword('old password', 'new password').subscribe();
+
+      const request = httpMock.expectOne(endpoint);
+      expect(request.request.withCredentials).toBeTrue();
+      request.flush({ token: 'replacement-session' });
+      expect(service.getToken()).toBe('replacement-session');
+    });
+
+    it('keeps the current token with an older backend', () => {
+      service.saveToken('existing-session');
+      service.changePassword('old password', 'new password').subscribe();
+
+      httpMock
+        .expectOne(endpoint)
+        .flush(null, { status: 204, statusText: 'No Content' });
+
+      expect(service.getToken()).toBe('existing-session');
+    });
+
+    it('does not replace the token for a session that changed meanwhile', () => {
+      service.saveToken('old-session');
+      service.changePassword('old password', 'new password').subscribe();
+      service.saveToken('different-session');
+
+      httpMock.expectOne(endpoint).flush({ token: 'replacement-session' });
+      expect(service.getToken()).toBe('different-session');
+    });
+  });
+
   describe('isLoggedInLocally()', () => {
     it('should return false when no token exists', () => {
       expect(service.isLoggedInLocally()).toBe(false);
